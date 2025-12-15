@@ -1,0 +1,16 @@
+name = "DBSP"
+version = "0.1.0"
+keywords = ["math"]
+defaultTargets = ["DBSP"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+autoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "7260822b747892e2a72b6f2a6c530c398e4d1adf"
+
+[[lean_lib]]
+name = "DBSP"
