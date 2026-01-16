@@ -3,7 +3,7 @@ import DBSP.StreamTheory.Linear
 import DBSP.Logic.SProp
 open CktBasic
 
-section FPChecker
+section FPDetector
 variable {A B C: VType}
 
 def FixedAfter {T: Type} (s: stream T) (n: ℕ): Prop :=
@@ -383,7 +383,7 @@ theorem StFP_let_fixed_eq {A B: VType} {ns: Bool} (c: Ckt A B ns 0)
 
 -- A high-level specification of the fixedpoint checker
 -- the idea is to check the state fixedpoint `StFP` at runtime:
-noncomputable def FPChecker {A B: VType} {ns: Bool} (c: Ckt A B ns 0) (x: SOVType ns A): SOType ns Prop :=
+noncomputable def FPDetector {A B: VType} {ns: Bool} (c: Ckt A B ns 0) (x: SOVType ns A): SOType ns Prop :=
   match c with
   | Ckt.node1 f => STrue
   | Ckt.node2 f => STrue
@@ -393,37 +393,37 @@ noncomputable def FPChecker {A B: VType} {ns: Bool} (c: Ckt A B ns 0) (x: SOVTyp
   | Ckt.snd => STrue
   | Ckt.add => STrue
   | Ckt.sub => STrue
-  | Ckt.seq c1 c2 => SAnd (FPChecker c1 x) (FPChecker c2 (denote c1 x))
-  | Ckt.par c1 c2 => SAnd (FPChecker c1 x) (FPChecker c2 x)
+  | Ckt.seq c1 c2 => SAnd (FPDetector c1 x) (FPDetector c2 (denote c1 x))
+  | Ckt.par c1 c2 => SAnd (FPDetector c1 x) (FPDetector c2 x)
   | Ckt.delay => match ns with
     -- for non-nested delay, it checks whether the input is equal to the stored state (the output)
     | false => fun n => x n = (z⁻¹ x) n
     -- for nested delay, it checks whether the input from last row has reached fixedpoint
     --   which is also assumed to be stored in the state
     | true => fun m n => FixedAfter (z⁻¹ x m) n
-  | Ckt.lifting c => fun m n => FPChecker c (x m) n
+  | Ckt.lifting c => fun m n => FPDetector c (x m) n
   -- The checking for loop is similar to that of delay, but more complicated
   | Ckt.loop c => match ns with
     -- for non-nested loop, it checks the internal circuit
     -- and also whether the output is equal to the stored state (i.e. the delayed output)
     | false => fun n => let o := denote (Ckt.loop c) x
-      FPChecker c (sprod (x, z⁻¹ o)) n ∧ o n = (z⁻¹ o) n
+      FPDetector c (sprod (x, z⁻¹ o)) n ∧ o n = (z⁻¹ o) n
     -- for nested loop, it checks the internal circuit
     -- and also whether the output from last row has reached fixedpoint
     | true => fun m n => let o := denote (Ckt.loop c) x
-      FPChecker c (sprod2 (x, z⁻¹ o)) m n ∧ FixedAfter (z⁻¹ o m) n
+      FPDetector c (sprod2 (x, z⁻¹ o)) m n ∧ FixedAfter (z⁻¹ o m) n
   -- The checking for loop_lifted is similar to that of non-nested loop
   | Ckt.loop_lifted c => fun m n => let o := denote (Ckt.loop_lifted c) x
-      FPChecker c (sprod2 (x, ↑↑z⁻¹ o)) m n ∧ o m n = (↑↑z⁻¹ o) m n
+      FPDetector c (sprod2 (x, ↑↑z⁻¹ o)) m n ∧ o m n = (↑↑z⁻¹ o) m n
 
---  The soundness of `FPChecker` w.r.t. the idea mentinioned above
-theorem FPChecker_sound {A B: VType} {ns: Bool} (c: Ckt A B ns 0)
+--  The soundness of `FPDetector` w.r.t. the idea mentinioned above
+theorem FPDetector_sound {A B: VType} {ns: Bool} (c: Ckt A B ns 0)
   (x: SOVType ns A) (p: SPos ns):
-    SPread (FPChecker c x) p <-> StFP c x p := by
+    SPread (FPDetector c x) p <-> StFP c x p := by
   revert c; apply Ckt_generalize_rec_0
   intro rec c; revert x p
   induction c <;> intro x p hr <;> (try subst hr) <;>
-  simp [FPChecker, StFP, IntFP] <;>
+  simp [FPDetector, StFP, IntFP] <;>
   -- base cases are trivial since they are lifted functions
   try apply ExtFP_lifted_Ckt_let_fixed; simp [lifted_Ckt]; tauto
   case id =>
@@ -452,7 +452,7 @@ theorem FPChecker_sound {A B: VType} {ns: Bool} (c: Ckt A B ns 0)
       rw [ih1, ih2]; simp [StFP]
       specialize ih1 x m n hx; rw [ih1]
       suffices h: IntFP c1 x (m, n) ->
-        (FPChecker c2 (denote c1 x) m n <-> IntFP c2 (denote c1 x) (m, n))
+        (FPDetector c2 (denote c1 x) m n <-> IntFP c2 (denote c1 x) (m, n))
       tauto
       intro h; apply IntFP_impl_ExtFP at h
       apply ih2; apply h.2
@@ -464,7 +464,7 @@ theorem FPChecker_sound {A B: VType} {ns: Bool} (c: Ckt A B ns 0)
     rcases p; simp
   case delay =>
     rename Bool => ns; rcases ns
-    · simp at p; simp [FPChecker, denote]
+    · simp at p; simp [FPDetector, denote]
       have : FixedAfter (z⁻¹ x) p <-> x p = (z⁻¹ x) p := by
         constructor <;> intro h
         · specialize h (p+1) (by omega)
@@ -479,10 +479,10 @@ theorem FPChecker_sound {A B: VType} {ns: Bool} (c: Ckt A B ns 0)
           rw [<- h]; apply hx; omega
       tauto
     · rcases p with ⟨m, n⟩; simp at hx
-      simp [FPChecker, denote]; tauto
+      simp [FPDetector, denote]; tauto
   case loop c ih =>
     simp at ih; rename Bool => ns; rcases ns
-    · simp at p; simp [FPChecker]
+    · simp at p; simp [FPDetector]
       constructor; rintro ⟨hf, he⟩
 
 
@@ -517,4 +517,4 @@ theorem FPChecker_sound {A B: VType} {ns: Bool} (c: Ckt A B ns 0)
 --   | Ckt.loop_lifted c => fun a => fix2 (fun s => denote c (sprod2 (a, ↑↑z⁻¹ s)))
 --   | Ckt.bracket c _ => ↑↑∫0 ∘ denote c ∘ ↑↑δ0
 
-end FPChecker
+end FPDetector

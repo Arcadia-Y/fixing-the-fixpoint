@@ -1,11 +1,12 @@
-import DBSP.Circuits.Circuits_v5
+import DBSP.Circuits.Circuits_v6
+import DBSP.Circuits.CktProp
 import DBSP.StreamTheory.Linear
 import DBSP.Logic.SProp
 open CktBasic
 
 -- Fixedpoint checking theory
 -- for the outer iteration, i.e. the **1st** time dimension
-section FPChecker1
+section FPDetector1
 variable {A B C: VType}
 
 def FixedAfter1 {T: Type} (s: stream T) (n: ℕ): Prop :=
@@ -323,7 +324,7 @@ theorem StFP1_iff {A B: VType} {ns: Bool}
 -- A high-level specification of the outer-iteration fixedpoint checker
 -- the idea is to check the state fixedpoint `StFP1` at runtime.
 -- For nested-circuits, this is run at the end of each outer iteration.
-noncomputable def FPChecker1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A): stream Prop :=
+noncomputable def FPDetector1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A): stream Prop :=
   match c with
   -- all primitive nodes and convenient constructs
   | Ckt.node1 f => STrue
@@ -335,8 +336,8 @@ noncomputable def FPChecker1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType
   | Ckt.add => STrue
   | Ckt.sub => STrue
   -- sequential and parallel compositions
-  | Ckt.seq c1 c2 => SAnd (FPChecker1 c1 x) (FPChecker1 c2 (denote c1 x))
-  | Ckt.par c1 c2 => SAnd (FPChecker1 c1 x) (FPChecker1 c2 x)
+  | Ckt.seq c1 c2 => SAnd (FPDetector1 c1 x) (FPDetector1 c2 (denote c1 x))
+  | Ckt.par c1 c2 => SAnd (FPDetector1 c1 x) (FPDetector1 c2 x)
   -- checks whether the input is equal to the stored state (the last input)
   -- for non-nested delay, it's a single value
   -- for nested delay, it's a list
@@ -348,15 +349,15 @@ noncomputable def FPChecker1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType
   -- and also whether the output is equal to the stored state (i.e. the delayed output)
   | Ckt.loop c =>
     fun n => let o := denote (Ckt.loop c) x
-      FPChecker1 c (sprodO ns (x, z⁻¹ o)) n ∧ o n = (z⁻¹ o) n
+      FPDetector1 c (sprodO ns (x, z⁻¹ o)) n ∧ o n = (z⁻¹ o) n
   -- The lifted_loop itself has no states across outer iterations
   -- but the internal circuit may have states across outer iterations
   -- so we need to check the internal circuit
   | Ckt.loop_lifted c => fun n => let o := denote (Ckt.loop_lifted c) x
-      FPChecker1 c (sprod2 (x, ↑↑z⁻¹ o)) n
+      FPDetector1 c (sprod2 (x, ↑↑z⁻¹ o)) n
   -- We need to check the internal circuit
   -- for the same reason as loop_lifted
-  | Ckt.bracket c => fun n => FPChecker1 c (↑↑δ0 x) n
+  | Ckt.bracket c => fun n => FPDetector1 c (↑↑δ0 x) n
 
 lemma ExtFP1_lifted_Ckt_let_fixed1 {A B: VType} {ns: Bool}
   (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ) (hc: lifted_Ckt c):
@@ -404,7 +405,7 @@ lemma loop_FixedAfter1_ind {A B: VType} {ns: Bool}
     _ = _ := by
       rw [<- loop_unfold]; tauto
 
-lemma loop_FPChecker1_correct {A B: VType} {ns: Bool}
+lemma loop_FPDetector1_correct {A B: VType} {ns: Bool}
   (c: Ckt (A ×ᵥB) B ns) (x: SOVType ns A) (n: ℕ):
     StFP1 c (sprodO ns (x, z⁻¹ (denote (cloop c) x))) n ∧
     denote (cloop c) x n = z⁻¹ (denote (cloop c) x) n <->
@@ -504,8 +505,8 @@ lemma loop_lifted_FixedAfter1_ind {A B: VType}
       constructor; rfl
       apply agree_let_fixed1
 
--- This proof is similar to `loop_FPChecker1_correct`, but simpler
-lemma loop_lifted_FPChecker1_correct {A B: VType} (c: Ckt (A ×ᵥB) B 1)
+-- This proof is similar to `loop_FPDetector1_correct`, but simpler
+lemma loop_lifted_FPDetector1_correct {A B: VType} (c: Ckt (A ×ᵥB) B 1)
   (x: SOVType 1 A) (n: ℕ):
     IntFP1 c (sprod2 (let_fixed1 x n, let_fixed1 (↑↑z⁻¹ (denote (cloop2 c) x)) n)) n <->
     IntFP1 c (sprod2 (let_fixed1 x n, ↑↑z⁻¹ (denote (cloop2 c) (let_fixed1 x n)))) n := by
@@ -533,13 +534,13 @@ lemma loop_lifted_FPChecker1_correct {A B: VType} (c: Ckt (A ×ᵥB) B 1)
   rcases hi with ⟨_, hf⟩
   apply loop_lifted_FixedAfter1_ind; tauto
 
--- The corrrectness of `FPChecker1`
+-- The corrrectness of `FPDetector1`
 -- It is sound and complete w.r.t. `StFP1`
-theorem FPChecker1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
+theorem FPDetector1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
   (x: SOVType ns A):
-    FPChecker1 c x = StFP1 c x := by
+    FPDetector1 c x = StFP1 c x := by
   funext n; simp; revert x; induction c <;>
-  intro x <;> simp [FPChecker1, StFP1, IntFP1] <;>
+  intro x <;> simp [FPDetector1, StFP1, IntFP1] <;>
   -- base cases are trivial since they are lifted functions
   (try  apply ExtFP1_lifted_Ckt_let_fixed1) <;>
   (try unfold lifted_Ckt; simp [lifted_Ckt, denote, liftO]) <;>
@@ -574,11 +575,11 @@ theorem FPChecker1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
     rw [FixedAfter1_delay_succ]; simp [hf]
     rcases n <;> simp [let_fixed1] <;> tauto
   case loop ns _ _ c ih =>
-    rw [ih]; apply loop_FPChecker1_correct
+    rw [ih]; apply loop_FPDetector1_correct
   case loop_lifted c ih =>
     rw [ih, StFP1]
     rw [let_fixed1_sprod2]
-    apply loop_lifted_FPChecker1_correct
+    apply loop_lifted_FPDetector1_correct
   case bracket c ih =>
     rw [ih, StFP1]
     rw [iff_eq_eq]; congr
@@ -589,12 +590,12 @@ theorem FPChecker1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
     · simp [hj, hi, let_fixed1]
     simp [hi, hj, let_fixed1]
 
-end FPChecker1
+end FPDetector1
 
 
 -- Fixedpoint checking theory
 -- for the inner iteration, i.e. the **2nd** time dimension
-section FPChecker2
+section FPDetector2
 variable {A B C: VType}
 -- FixedAfter2 is like FixedAfter1 but for a row of a nested stream
 def FixedAfter2 {T: Type} (s: stream (stream T)) (m n: ℕ): Prop :=
@@ -656,6 +657,9 @@ theorem ExtFP2_causal (c: Ckt A B 1):
 -- both the input and output become fixed after inner iteration `n`.
 def IntFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ): Prop :=
   match c with
+  | Ckt.node1 f => ExtFP2 (Ckt.node1 f) x m n
+  | Ckt.node2 f => ExtFP2 (Ckt.node2 f) x m n
+  | Ckt.const k => ExtFP2 (Ckt.const k) x m n
   | Ckt.id => ExtFP2 (Ckt.id) x m n
   | Ckt.fst => ExtFP2 (Ckt.fst) x m n
   | Ckt.snd => ExtFP2 (Ckt.snd) x m n
@@ -1057,32 +1061,35 @@ theorem StFP2_iff {A B: VType}
 
 -- A high-level specification of the inner-level fixedpoint checker
 -- the idea is to check the nested state fixedpoint `StFP2` at runtime:
-noncomputable def FPChecker2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stream (stream Prop) :=
+noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stream (stream Prop) :=
   match c with
   -- primitive nodes and convenient constructs
+  | Ckt.node1 f => STrue2
+  | Ckt.node2 f => STrue2
+  | Ckt.const k => STrue2
   | Ckt.id => STrue2
   | Ckt.fst => STrue2
   | Ckt.snd => STrue2
   | Ckt.add => STrue2
   | Ckt.sub => STrue2
   -- sequential and parallel composition
-  | Ckt.seq c1 c2 => SAnd2 (FPChecker2 c1 x) (FPChecker2 c2 (denote c1 x))
-  | Ckt.par c1 c2 => SAnd2 (FPChecker2 c1 x) (FPChecker2 c2 x)
+  | Ckt.seq c1 c2 => SAnd2 (FPDetector2 c1 x) (FPDetector2 c2 (denote c1 x))
+  | Ckt.par c1 c2 => SAnd2 (FPDetector2 c1 x) (FPDetector2 c2 x)
   -- Nested delay needs to check whether the input from last row has reached the fixedpoint
   -- which is assumed to be stored in the state at the end of last outer iteration
   | Ckt.delay => fun m n => FixedAfter2 (z⁻¹ x) m n
-  -- This is where `FPChecker2` depends on `FPChecker1`
+  -- This is where `FPDetector2` depends on `FPDetector1`
   -- `c↑ c` checks the `StFP1` of the inner circuit `c`
-  | Ckt.lifting c => fun m n => FPChecker1 c (x m) n
+  | Ckt.lifting c => fun m n => FPDetector1 c (x m) n
   -- The checking for loop is similar to that of delay, but more complicated
   -- it checks the internal circuit
   -- and also whether the output from last row has reached fixedpoint
   | Ckt.loop c => fun m n => let o := denote (Ckt.loop c) x
-      FPChecker2 c (sprod2 (x, z⁻¹ o)) m n ∧ FixedAfter2 (z⁻¹ o) m n
+      FPDetector2 c (sprod2 (x, z⁻¹ o)) m n ∧ FixedAfter2 (z⁻¹ o) m n
   -- The lifted_loop checks the internal circuit
   -- and also whether the output is equal to the stored state (i.e. the lifting-delayed output)
   | Ckt.loop_lifted c => fun m n => let o := denote (Ckt.loop_lifted c) x
-      FPChecker2 c (sprod2 (x, ↑↑z⁻¹ o)) m n ∧ o m n = (↑↑z⁻¹ o) m n
+      FPDetector2 c (sprod2 (x, ↑↑z⁻¹ o)) m n ∧ o m n = (↑↑z⁻¹ o) m n
 
 lemma ExtFP2_lifted_scalar_Ckt_let_fixed2 {A B: VType}
   (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ) (hc: lifted_scalar_Ckt c):
@@ -1131,7 +1138,7 @@ lemma loop_FixedAfter2_StFP2_iff {A B: VType}
     _ <-> _ := by
       rw [IntFP2_StFP2]; simp [*]
 
-lemma loop_FPChecker2_correct {A B: VType}
+lemma loop_FPDetector2_correct {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ):
     StFP2 c (sprod2 (x, z⁻¹ (denote (cloop c) x))) m n ∧
     FixedAfter2 (z⁻¹ (denote (cloop c) x)) m n <->
@@ -1246,7 +1253,7 @@ lemma loop_lifted_FixedAfter2_StFP2_iff {A B: VType}
   _ <-> _ := by
     rw [IntFP2_StFP2]; simp [*]
 
-lemma loop_lifted_FPChecker2_correct {A B: VType}
+lemma loop_lifted_FPDetector2_correct {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ):
     StFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (cloop2 c) x))) m n ∧
     denote (cloop2 c) x m n = z⁻¹ (denote (cloop2 c) x m) n <->
@@ -1276,22 +1283,22 @@ lemma loop_lifted_FPChecker2_correct {A B: VType}
   rw [this]
   apply loop_lifted_FixedAfter2_StFP2_iff; tauto
 
--- The corrrectness of `FPChecker2`
+-- The corrrectness of `FPDetector2`
 -- It is sound and complete w.r.t. `StFP2`
-theorem FPChecker2_correct {A B: VType}
+theorem FPDetector2_correct {A B: VType}
   (c: Ckt A B 1) (x: SOVType 1 A):
-    FPChecker2 c x = StFP2 c x := by
+    FPDetector2 c x = StFP2 c x := by
   funext m n; simp
   revert c; apply Ckt_generalize_ns_1
   intro ns c hns; revert x m n
   induction c <;> intro x m n <;> (try subst hns) <;>
-  simp [FPChecker2] <;>
+  simp [FPDetector2] <;>
   -- base cases are trivial since they are lifted functions
   try simp [StFP2, IntFP2]; apply ExtFP2_lifted_scalar_Ckt_let_fixed2; simp [lifted_scalar_Ckt]; tauto
-  -- For lifting, the soundness depends on that of `FPChecker1`
+  -- For lifting, the correctness depends on that of `FPDetector1`
   case lifting c ih =>
     simp [StFP2, IntFP2]
-    clear ih; rw [FPChecker1_correct]
+    clear ih; rw [FPDetector1_correct]
     simp [StFP1]; rw [let_fixed2_row_m]
   case seq c1 c2 ih1 ih2 =>
     simp [StFP2, IntFP2]
@@ -1317,9 +1324,9 @@ theorem FPChecker2_correct {A B: VType}
     funext i; simp [let_fixed2]
   case loop c ih =>
     simp at ih; rw [ih]
-    apply loop_FPChecker2_correct
+    apply loop_FPDetector2_correct
   case loop_lifted c ih =>
     simp at ih; rw [ih]
-    apply loop_lifted_FPChecker2_correct
+    apply loop_lifted_FPDetector2_correct
 
-end FPChecker2
+end FPDetector2
