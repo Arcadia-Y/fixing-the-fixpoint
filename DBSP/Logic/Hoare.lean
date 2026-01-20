@@ -13,7 +13,7 @@ def transpose (s: stream (stream A)): stream (stream A) :=
 notation "TP" => transpose
 
 @[simp]
-lemma transpose_apply (s: stream (stream A)) (n m: ℕ):
+lemma TP_apply (s: stream (stream A)) (n m: ℕ):
   TP s n m = s m n := by rfl
 
 variable [Zero A]
@@ -30,18 +30,18 @@ def TP_SPred (P: SPred (stream A)) :=
 end Transpose
 
 section Hoare
-variable {A B C: VType} {ns: Bool} {c: Ckt ns A B} {x: SOVType ns A} {Q: SPred (OVType ns B)} {n: ℕ}
+variable {A B C: VType} {ns: Bool} {c: Ckt ns A B}
+  {x: SOVType ns A} {P: SPred (OVType ns A)} {Q: SPred (OVType ns B)}
 
--- Hoare triple for Ckts
--- precondition is shallow-embedded using input `x`
-def Hoare (c: Ckt ns A B) (x: SOVType ns A)
-    (Q: SPred (OVType ns B)) (n: ℕ) :=
-  true_until n (Q (denote c x))
+-- Shallow-embedded Hoare triple for Ckts
+def Hoare (P: SPred (OVType ns A))
+    (c: Ckt ns A B) (Q: SPred (OVType ns B)):=
+  ∀ x n, TrueUntil n (P x) -> TrueUntil n (Q (denote c x))
 
 theorem Hoare_conseq_strong
   (Q': SPred (OVType ns B))
   {n: ℕ} (h: Hoare c x Q' n)
-  (hy: ∀ y n, true_until n (Q' y) -> true_until n (Q y)):
+  (hy: ∀ y n, TrueUntil n (Q' y) -> TrueUntil n (Q y)):
     Hoare c x Q n := by
   tauto
 
@@ -65,23 +65,23 @@ theorem Hoare_SequivOn_cong {c1 c2: Ckt ns A B}
   have : denote c1 x = denote c2 x := by
     rw [agree_everywhere_eq]
     intro n; apply he
-    rw [true_until_forall] at hp; tauto
+    rw [TrueUntil_forall] at hp; tauto
   rw [this]
 
 theorem Hoare_SequivOn_cong_causal {c1 c2: Ckt ns A B}
   (P: SPred (OVType ns A)) (he: c1 ≃[P] c2)
   (hc: Causal Q)
-  {n: ℕ} (hp: true_until n (P x)):
+  {n: ℕ} (hp: TrueUntil n (P x)):
     Hoare c1 x Q n <-> Hoare c2 x Q n := by
   simp [Hoare]; specialize he x
   constructor <;> intro h m hm <;>
-  specialize he m (by apply true_until_mono <;> tauto)
+  specialize he m (by apply TrueUntil_mono <;> tauto)
   · apply hc at he; rw [<- he]; tauto
   · apply hc at he; rw [he]; tauto
 
 theorem Hoare_seq {c1: Ckt ns A B} {c2: Ckt ns B C}
   {Q1: SPred (OVType ns B)} {Q2: SPred (OVType ns C)}
-  (h1: Hoare c1 x Q1 n) (h2: ∀ y, true_until n (Q1 y) -> Hoare c2 y Q2 n):
+  (h1: Hoare c1 x Q1 n) (h2: ∀ y, TrueUntil n (Q1 y) -> Hoare c2 y Q2 n):
     Hoare (c1 >>c c2) x Q2 n := by
   tauto
 
@@ -115,14 +115,14 @@ theorem Hoare_par_ncausal {c1: Ckt ns A B} {c2: Ckt ns A C}
 theorem Hoare_loop {c: Ckt ns (A ×ᵥ B) B}
   {x: SOVType ns A}
   (I: SPred (OVType ns B))
-  (ih: ∀ y n, true_until n (later I y) -> Hoare c (sprodO ns (x, y)) I n) {n: ℕ}:
+  (ih: ∀ y n, TrueUntil n (later I y) -> Hoare c (sprodO ns (x, y)) I n) {n: ℕ}:
     Hoare (cloop c) x I n := by
   unfold Hoare at *; induction n
-  · specialize ih (z⁻¹ (denote (cloop c) x)) 0 (by simp [true_until])
+  · specialize ih (z⁻¹ (denote (cloop c) x)) 0 (by simp [TrueUntil])
     rw [loop_unfold]
     apply ih
   · rename_i n hn
-    rw [later_delay_true_until] at hn
+    rw [later_delay_TrueUntil] at hn
     apply ih at hn
     rw [loop_unfold]
     apply hn
@@ -130,17 +130,17 @@ theorem Hoare_loop {c: Ckt ns (A ×ᵥ B) B}
 theorem Hoare_loop_lifted {c: Ckt true (A ×ᵥ B) B}
   {x: stream (stream (VType_interp A))}
   (I: SPred (stream (VType_interp B)))
-  (ih: ∀ y n, true_until n (later I (TP y)) -> Hoare c (sprod2 (x, y)) (TP_SPred I) n) {n: ℕ}:
+  (ih: ∀ y n, TrueUntil n (later I (TP y)) -> Hoare c (sprod2 (x, y)) (TP_SPred I) n) {n: ℕ}:
     Hoare (cloop2 c) x (TP_SPred I) n := by
   unfold Hoare at *; induction n
   · specialize ih (↑↑z⁻¹ (denote (cloop2 c) x)) 0 (by
-      rw [TP_delay]; simp [true_until]
+      rw [TP_delay]; simp [TrueUntil]
     )
     rw [loop_lifted_unfold]
     apply ih
   · rename_i n hn
     simp at hn
-    rw [later_delay_true_until] at hn
+    rw [later_delay_TrueUntil] at hn
     rw [<- TP_delay] at hn
     apply ih at hn
     rw [loop_lifted_unfold]
@@ -150,13 +150,13 @@ theorem Hoare_bracket {c: Ckt 1 A B} {fc}
   {x: stream (VType_interp A)}
   (Q: SPred (stream (VType_interp B))) (b: stream ℕ) {n: ℕ}
   (h: Hoare c (↑↑δ0 x) Q n)
-  (hb: ∀ n y, true_until n (Q y) -> ZeroAfter (y n) (b n)) :
+  (hb: ∀ n y, TrueUntil n (Q y) -> ZeroAfter (y n) (b n)) :
     Hoare (cbracket c fc) x
       (fun y i => ∃ m, (Q m) i ∧ y i = sumVals (m i) (b i)) n := by
   set m := denote c (↑↑δ0 x)
   have hzm: ∀ t ≤ n, ZeroAfter (m t) (b t) := by
     intro t ht
-    apply hb; apply true_until_mono <;> tauto
+    apply hb; apply TrueUntil_mono <;> tauto
   simp [Hoare, denote]; intro t ht
   use m; constructor; apply h; tauto
   rw [streamElim_zeroAfter]; apply hzm; tauto
@@ -165,12 +165,12 @@ theorem Hoare_bracket_ncausal {c: Ckt 1 A B} {fc}
   {x: stream (VType_interp A)}
   (Q: SPred (stream (VType_interp B))) (b: stream ℕ)
   (h: ∀ n, Hoare c (↑↑δ0 x) Q n)
-  (hb: ∀ n y, true_until n (Q y) -> ZeroAfter (y n) (b n)) {n: ℕ} :
+  (hb: ∀ n y, TrueUntil n (Q y) -> ZeroAfter (y n) (b n)) {n: ℕ} :
     Hoare (cbracket c fc) x
       (fun y _ => ∃ m, ∀ i, (Q m) i ∧ y i = sumVals (m i) (b i)) n := by
   set m := denote c (↑↑δ0 x)
   have hzm: ∀ t, ZeroAfter (m t) (b t) := by
-    intro t; apply hb; apply true_until_mono <;> tauto
+    intro t; apply hb; apply TrueUntil_mono <;> tauto
   simp [Hoare, denote]; intro t ht
   use m; intro i; constructor; apply h; tauto
   rw [streamElim_zeroAfter]; apply hzm

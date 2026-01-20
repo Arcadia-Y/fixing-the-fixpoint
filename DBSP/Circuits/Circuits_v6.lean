@@ -168,6 +168,11 @@ lemma lift_fst_sprod (a b: Type) (x: stream a × stream b):
 lemma lift_snd_sprod (a b: Type) (x: stream a × stream b):
     (↑↑ Prod.snd) (sprod x) = x.2 := by rfl
 
+lemma liftO_id (ns: Bool) {a: Type}:
+    liftO ns (@id a) = id := by
+  funext x
+  rcases ns <;> rfl
+
 -- Type abbreviations
 @[reducible]
 def OVType (ns: Bool) (A: VType) :=

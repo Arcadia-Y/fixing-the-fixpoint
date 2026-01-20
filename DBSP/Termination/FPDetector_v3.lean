@@ -1,6 +1,7 @@
 import DBSP.StreamTheory.Linear
 import DBSP.Logic.SProp
-import DBSP.FPD.FPSpec
+import DBSP.Termination.Spec
+import DBSP.Termination.FPProp
 open CktBasic
 
 -- Fixpoint Detector
@@ -164,18 +165,18 @@ noncomputable def FPDetector1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVTyp
   | Ckt.delay => fun n => x n = (z⁻¹ x) n
   -- For `c↑ c`, returns true since it has no states across outer iterations
   | Ckt.lifting c => STrue
-  -- The checking for loop is similar to that of delay, but more complicated
-  -- it checks the internal circuit
-  -- and also whether the output is equal to the stored state (i.e. the delayed output)
+  -- The detection for loop is similar to that of delay, but more complicated
+  -- it detects the internal circuit
+  -- and also checks whether the output is equal to the stored state (i.e. the delayed output)
   | Ckt.loop c =>
     fun n => let o := denote (Ckt.loop c) x
       FPDetector1 c (sprodO ns (x, z⁻¹ o)) n ∧ o n = (z⁻¹ o) n
   -- The lifted_loop itself has no states across outer iterations
   -- but the internal circuit may have states across outer iterations
-  -- so we need to check the internal circuit
+  -- so we need to detect the internal circuit
   | Ckt.loop_lifted c => fun n => let o := denote (Ckt.loop_lifted c) x
       FPDetector1 c (sprod2 (x, ↑↑z⁻¹ o)) n
-  -- We need to check the internal circuit
+  -- We need to detect the internal circuit
   -- for the same reason as loop_lifted
   | Ckt.bracket c => fun n => FPDetector1 c (↑↑δ0 x) n
 
@@ -730,27 +731,27 @@ noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stre
   -- sequential and parallel composition
   | Ckt.seq c1 c2 => SAnd2 (FPDetector2 c1 x) (FPDetector2 c2 (denote c1 x))
   | Ckt.par c1 c2 => SAnd2 (FPDetector2 c1 x) (FPDetector2 c2 x)
-  -- Nested delay needs to check whether the input from last row has reached the fixedpoint
+  -- Nested delay needs to detect whether the input from last row has reached the fixedpoint
   -- which is assumed to be stored in the state at the end of last outer iteration
   | Ckt.delay => fun m n => FixedAfter2 (z⁻¹ x) m n
   -- This is where `FPDetector2` depends on `FPDetector1`
-  -- `c↑ c` checks the `StFP1` of the inner circuit `c`
+  -- `c↑ c` detects the `StFP1` of the inner circuit `c`
   | Ckt.lifting c => fun m n => FPDetector1 c (x m) n
-  -- The checking for loop is similar to that of delay, but more complicated
-  -- it checks the internal circuit
-  -- and also whether the output from last row has reached fixedpoint
+  -- The detection for loop is similar to that of delay, but more complicated
+  -- it detects the internal circuit
+  -- and also checks whether the output from last row has reached fixedpoint
   | Ckt.loop c => fun m n => let o := denote (Ckt.loop c) x
       FPDetector2 c (sprod2 (x, z⁻¹ o)) m n ∧ FixedAfter2 (z⁻¹ o) m n
-  -- The lifted_loop checks the internal circuit
-  -- and also whether the output is equal to the stored state (i.e. the lifting-delayed output)
+  -- The lifted_loop detects the internal circuit
+  -- and also checks whether the output is equal to the stored state (i.e. the lifting-delayed output)
   | Ckt.loop_lifted c => fun m n => let o := denote (Ckt.loop_lifted c) x
       FPDetector2 c (sprod2 (x, ↑↑z⁻¹ o)) m n ∧ o m n = (↑↑z⁻¹ o) m n
 
 lemma ExtFP2_lifted_scalar_Ckt_let_fixed2 {A B: VType}
-  (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ) (hc: lifted_scalar_Ckt c):
+  (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ) (hc: denote_lifted_scalar c):
     ExtFP2 c (let_fixed2 x m n) m n := by
   have h1 := FixedAfter2_let_fixed2 x m n
-  have h2 := lifted_scalar_Ckt_ExtFP2 c (let_fixed2 x m n) hc
+  have h2 := denote_lifted_scalar_ExtFP2 c (let_fixed2 x m n) hc
   rw [h2]; tauto
 
 lemma FixedAfter2_denote_let_fixed2_agree {A B: VType}
@@ -949,7 +950,7 @@ theorem FPDetector2_correct {A B: VType}
   induction c <;> intro x m n <;> (try subst hns) <;>
   simp [FPDetector2] <;>
   -- base cases are trivial since they are lifted functions
-  try simp [StFP2, IntFP2]; apply ExtFP2_lifted_scalar_Ckt_let_fixed2; simp [lifted_scalar_Ckt]; tauto
+  try simp [StFP2, IntFP2]; apply ExtFP2_lifted_scalar_Ckt_let_fixed2; simp [denote_lifted_scalar]; tauto
   -- For lifting, the correctness depends on that of `FPDetector1`
   case lifting c ih =>
     simp [StFP2, IntFP2]

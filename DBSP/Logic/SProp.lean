@@ -32,17 +32,17 @@ lemma SAnd2_apply (P Q: stream (stream Prop)) (m n: ℕ):
     SAnd2 P Q m n = (P m n ∧ Q m n) := by rfl
 
 -- This is to make `Sprop` downward-closed
-def true_until (n: ℕ) (P: SProp) :=
+def TrueUntil (n: ℕ) (P: SProp) :=
   ∀ m ≤ n, P m
 
-lemma true_until_mono {P: SProp} {n m: ℕ}
-  (ht: true_until m P) (h: n ≤ m):
-    true_until n P := by
+lemma TrueUntil_mono {P: SProp} {n m: ℕ}
+  (ht: TrueUntil m P) (h: n ≤ m):
+    TrueUntil n P := by
   intro k hk; apply ht; omega
 
-lemma true_until_forall {P: SProp}:
-  (∀ n, P n) <-> (∀ n, true_until n P) := by
-  constructor <;> simp [true_until] <;>
+lemma TrueUntil_forall {P: SProp}:
+  (∀ n, P n) <-> (∀ n, TrueUntil n P) := by
+  constructor <;> simp [TrueUntil] <;>
   intros <;> tauto
 
 variable {A: Type} [Zero A] {n: ℕ}
@@ -60,9 +60,9 @@ def later (P: SPred A): SPred A :=
 lemma later_delay (P: SPred A) (s: stream A) (n: ℕ):
     P s n <-> later P (z⁻¹ s) (n+1) := by simp
 
-lemma later_delay_true_until (P: SPred A) (s: stream A) (n: ℕ):
-    true_until n (P s) <-> true_until (n+1) (later P (z⁻¹ s)) := by
-  simp [true_until]; constructor
+lemma later_delay_TrueUntil (P: SPred A) (s: stream A) (n: ℕ):
+    TrueUntil n (P s) <-> TrueUntil (n+1) (later P (z⁻¹ s)) := by
+  simp [TrueUntil]; constructor
   · intro hp m hm hm0
     apply hp; omega
   · intro h m hm
@@ -72,12 +72,12 @@ lemma later_delay_true_until (P: SPred A) (s: stream A) (n: ℕ):
 lemma later_delay_forall (P: SPred A) (s: stream A):
     (∀ n, P s n) <-> (∀ n, later P (z⁻¹ s) (n+1)) := by simp
 
-lemma later_delay_true_until_forall (P: SPred A) (s: stream A):
-    (∀ n, true_until n (P s)) <-> (∀ n, true_until n (later P (z⁻¹ s))) := by
+lemma later_delay_TrueUntil_forall (P: SPred A) (s: stream A):
+    (∀ n, TrueUntil n (P s)) <-> (∀ n, TrueUntil n (later P (z⁻¹ s))) := by
   constructor
-  · intro h n; cases n; simp [true_until]
-    rw [<- later_delay_true_until]; tauto
+  · intro h n; cases n; simp [TrueUntil]
+    rw [<- later_delay_TrueUntil]; tauto
   · intro h n
-    rw [later_delay_true_until]; tauto
+    rw [later_delay_TrueUntil]; tauto
 
 end SProp

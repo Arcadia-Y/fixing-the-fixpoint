@@ -95,7 +95,7 @@ def incOpt {a b ns} (c: Ckt a b ns) [h: IncCkt c] : Ckt a b ns:=
   match h.evidence with
   | IncEvidence.node1 n => IncUnary.opt n
   | IncEvidence.node2 n => IncBinary.opt n
-  | IncEvidence.const x => Ckt.const x
+  | IncEvidence.const x => Ckt.const x >>c cD
   | IncEvidence.id => Ckt.id
   | IncEvidence.fst => Ckt.fst
   | IncEvidence.snd => Ckt.snd

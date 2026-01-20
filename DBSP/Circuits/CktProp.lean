@@ -208,7 +208,4 @@ theorem loop_lifted_unfold {a b} (c: Ckt (a ×ᵥ b) b 1) x:
 def lifted_Ckt {ns} {A B: VType} (c: Ckt A B ns): Prop :=
   ∃ f, denote c = ↑↑f
 
-def lifted_scalar_Ckt {ns} {A B: VType} (c: Ckt A B ns): Prop :=
-  ∃ f, denote c = liftO ns f
-
 end CktBasic

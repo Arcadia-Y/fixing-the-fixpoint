@@ -21,13 +21,13 @@ theorem δ0_0 : δ0 (0 : a) = 0 := by funext n; simp
 def ZeroAfter (s : stream a) (n : ℕ) :=
   ∀ t ≥ n, s t = 0
 
-theorem zeroAfter_ge {s : stream a} {n1 : ℕ} (pf1 : ZeroAfter s n1) : ∀ n2 ≥ n1, ZeroAfter s n2 :=
+theorem ZeroAfter_ge {s : stream a} {n1 : ℕ} (pf1 : ZeroAfter s n1) : ∀ n2 ≥ n1, ZeroAfter s n2 :=
   by
   intro n2 hge
   intro m hge2
   apply pf1; omega
 
-lemma δ0_zeroAfter (x : a) : ZeroAfter (δ0 x) 1 := by intro t hge; unfold δ0; rw [if_neg]; omega
+lemma δ0_ZeroAfter (x : a) : ZeroAfter (δ0 x) 1 := by intro t hge; unfold δ0; rw [if_neg]; omega
 
 lemma ZeroAfter_ex_Minimal {A: Type} [Zero A]
   (s: stream A) (n: ℕ) (h: ZeroAfter s n) :
@@ -42,7 +42,7 @@ lemma ZeroAfter_ex_Minimal {A: Type} [Zero A]
       intro y hzy hy
       by_contra
       have : n ≥ y := by omega
-      have := zeroAfter_ge hzy _ this
+      have := ZeroAfter_ge hzy _ this
       tauto
 
 lemma Minimal_ZeroAfter
@@ -168,7 +168,7 @@ theorem streamElim_delta (x : a) : ∫0 (δ0 x) = x :=
   by
   rw [streamElim_zeroAfter _ 1]
   simp
-  apply δ0_zeroAfter
+  apply δ0_ZeroAfter
 
 theorem delta_linear : ∀ x y : a, δ0 (x + y) = δ0 x + δ0 y :=
   by
@@ -273,6 +273,31 @@ theorem nested_zpp (Q : Operator a b) : TimeInvariant Q → ∫0 (Q (δ0 0)) = 0
 
 variable {c: Type} [AddCommGroup c]
 
+lemma ZeroAfter_neg {s: stream c} {n: ℕ}:
+    ZeroAfter (-s) n ↔ ZeroAfter s n := by
+  constructor <;> intro h
+  · intro m hm
+    specialize h m hm
+    simp at h; assumption
+  · intro m hm; simp
+    apply h; assumption
+
+theorem streamElim_neg (s : stream c) : ∫0 (-s) = -∫0 s := by
+  by_cases hz : ∃ n, ZeroAfter s n
+  · cases' hz with n hz
+    rw [streamElim_zeroAfter _ _ hz]
+    rw [streamElim_zeroAfter _ _ (ZeroAfter_neg.2 hz)]
+    simp
+  · have hz2 : ¬∃ n, ZeroAfter (-s) n := by
+      simp; intro x; rw [ZeroAfter_neg]
+      tauto
+    unfold streamElim
+    split <;> rename_i h1
+    · contradiction
+    · split <;> rename_i h2
+      · contradiction
+      · simp
+
 theorem sub_zeroAfter {s1 s2 : stream c} {n1 : ℕ} (pf1 : ZeroAfter s1 n1) {n2 : ℕ}
     (pf2 : ZeroAfter s2 n2) : ZeroAfter (s1 - s2) (if n1 ≥ n2 then n1 else n2) :=
   by
@@ -298,7 +323,7 @@ theorem integral_zero' (s : stream (stream c)) (t n : ℕ) :
   by
   by_cases t = 0
   · subst t; simp; intro hz _hz'
-    apply zeroAfter_ge hz; omega
+    apply ZeroAfter_ge hz; omega
   intro hz hz'
   intro m hge
   trans D (I s) t m
