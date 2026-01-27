@@ -41,11 +41,12 @@ def IntFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ): P
   | Ckt.seq c1 c2 => IntFP1 c1 x n ∧ IntFP1 c2 (denote c1 x) n
   | Ckt.par c1 c2 => IntFP1 c1 x n ∧ IntFP1 c2 x n
   | Ckt.delay => ExtFP1 Ckt.delay x n
+  | Ckt.lifted_delay => ExtFP1 Ckt.lifted_delay x n
   -- For `c↑ c`, since the internal circuit doesn't have across-iteration states,
   -- thus the Internal Fixpoint is simply the External Fixpoint
   | Ckt.lifting c => ExtFP1 (Ckt.lifting c) x n
   | Ckt.loop c =>  IntFP1 c (sprodO ns (x, z⁻¹ (denote (Ckt.loop c) x))) n
-  | Ckt.loop_lifted c => IntFP1 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.loop_lifted c) x))) n
+  | Ckt.lifted_loop c => IntFP1 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x))) n
   | Ckt.bracket c => IntFP1 c (↑↑δ0 x) n
 
 end FPSpec1
@@ -82,12 +83,13 @@ def IntFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ): Prop :=
        IntFP2 c1 x m n ∧ IntFP2 c2 o m n
   | Ckt.par c1 c2 => IntFP2 c1 x m n ∧ IntFP2 c2 x m n
   | Ckt.delay => ExtFP2 Ckt.delay x m n
+  | Ckt.lifted_delay => ExtFP2 Ckt.lifted_delay x m n
   -- This is where `IntFP2` depends on `IntFP1`
   -- For `c↑ c`, the nested Internal Fixpoint is `(m, n)` means that
   -- the Internal Fixpoint of `c` on input `x m` is `n`
   | Ckt.lifting c => IntFP1 c (x m) n
   | Ckt.loop c =>  IntFP2 c (sprod2 (x, z⁻¹ (denote (Ckt.loop c) x))) m n
-  | Ckt.loop_lifted c => IntFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.loop_lifted c) x))) m n
+  | Ckt.lifted_loop c => IntFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x))) m n
 
 -- Termination (Streaming Progress) Specification
 -- `TerminateRow c x i` means that given access to previous output,
@@ -103,9 +105,13 @@ def TerminateRow {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A) (i: �
   | Ckt.par c1 c2 => TerminateRow c1 x i ∧ TerminateRow c2 x i
   | Ckt.lifting c => ∀ j, TerminateRow c (x i) j
   | Ckt.loop c =>  TerminateRow c (sprodO ns (x, z⁻¹ (denote (Ckt.loop c) x))) i
-  | Ckt.loop_lifted c => TerminateRow c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.loop_lifted c) x))) i
+  | Ckt.lifted_loop c => TerminateRow c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x))) i
   -- all other primitive nodes are terminating
   | _ => true
+
+-- The vetorized version of FixedAfter2
+def FixedAfter2Vec {T: Type} (s: stream (stream T)) (b: stream ℕ): Prop :=
+  ∀ i, FixedAfter2 s i (b i)
 
 -- The vectorized version of ExtFP2
 def ExtFP2Vec (c: Ckt A B 1) (x: SOVType 1 A) (b: stream ℕ): Prop :=
@@ -119,7 +125,7 @@ def ZeroAfterVec {A: Type} [Zero A] (x:  stream (stream A)) (b: stream ℕ): Pro
   ∀ i, ZeroAfter (x i) (b i)
 
 -- The vectorized version of `Terminate`
--- This is definition is for convenience when used
+-- This definition is for convenience when used
 def Terminate {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
   match c with
   -- the core definition
@@ -131,25 +137,8 @@ def Terminate {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
   | Ckt.par c1 c2 => Terminate c1 x ∧ Terminate c2 x
   | Ckt.lifting c => ∀ j, Terminate c (x j)
   | Ckt.loop c =>  Terminate c (sprodO ns (x, z⁻¹ (denote (Ckt.loop c) x)))
-  | Ckt.loop_lifted c => Terminate c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.loop_lifted c) x)))
+  | Ckt.lifted_loop c => Terminate c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x)))
   -- all other primitive nodes are terminating
   | _ => true
-
-lemma forall_and_iff {A: Type} {P Q: A -> Prop}: (∀ x, P x ∧ Q x) <-> (∀ x, P x) ∧ (∀ x, Q x) :=
-  Iff.intro (fun h => ⟨fun x => (h x).1, fun x => (h x).2⟩) (fun h x => ⟨h.1 x, h.2 x⟩)
-
--- The equivalent definition of `Terminate` based on `TerminateRow`
-theorem TerminateVec_iff {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A):
-    Terminate c x <-> ∀ i, TerminateRow c x i := by
-  induction c <;> try simp [TerminateRow, Terminate, forall_and_iff, *]
-  case bracket c IH =>
-    intro _
-    simp [IntFP2Vec, ZeroAfterVec, ←forall_and_iff]
-    apply Iff.intro
-    · intro ⟨b, hb⟩ i; exact ⟨b i, hb i⟩
-    · intro h
-      have ⟨f, hf⟩ := Classical.axiom_of_choice h
-      exact ⟨f, hf⟩
-
 
 end FPSpec2

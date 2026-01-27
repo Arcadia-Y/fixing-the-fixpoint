@@ -49,8 +49,9 @@ def instDecidableLiftedScalar {ns} {a b} (c : Ckt a b ns) : Decidable (LiftedSca
     | isTrue h => isTrue (LiftedScalar.lifting c h)
     | isFalse h => isFalse (by intro h'; cases h'; apply h; assumption)
   | Ckt.delay => isFalse (by intro h; cases h)
+  | Ckt.lifted_delay => isFalse (by intro h; cases h)
   | Ckt.loop _ => isFalse (by intro h; cases h)
-  | Ckt.loop_lifted _ => isFalse (by intro h; cases h)
+  | Ckt.lifted_loop _ => isFalse (by intro h; cases h)
   | Ckt.bracket _ => isFalse (by intro h; cases h)
 
 instance {ns} {a b} (c : Ckt a b ns) : Decidable (LiftedScalar c) :=
@@ -61,7 +62,7 @@ def DenoteLiftedScalar {ns} {A B: VType} (c: Ckt A B ns) (f: VType_interp A -> V
   denote c = liftO ns f
 
 -- The key semantic property of lifted scalar circuits
-theorem LiftedScalar_denote {ns} {A B: VType} (c: Ckt A B ns):
+theorem LiftedScalar_Denote {ns} {A B: VType} (c: Ckt A B ns):
     LiftedScalar c -> ∃f, DenoteLiftedScalar c f := by
   intro h
   induction h <;> simp [DenoteLiftedScalar, denote]

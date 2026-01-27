@@ -3,6 +3,14 @@ import DBSP.Circuits.Circuits_v6
 
 namespace CktBasic
 
+lemma Ckt_generalize_ns_0 {A B: VType} {P: Ckt A B 0 -> Prop}
+  (h: ∀ ns (c: Ckt A B ns), ns = 0 ->
+    match ns with
+    | true => True
+    | false => P c):
+    ∀ (c: Ckt A B 0), P c := by
+  intros c; specialize h 0 c (by tauto); apply h
+
 lemma Ckt_generalize_ns_1 {A B: VType} {P: Ckt A B 1 -> Prop}
   (h: ∀ ns (c: Ckt A B ns), ns = 1 ->
     match ns with
@@ -74,6 +82,53 @@ lemma sprodO_causal {ns: Bool} {a b: Type}
   · apply sprod_causal
   · apply sprod2_causal
 
+lemma D_lifting_delay_comm {a: Type} [AddCommGroup a] (x: stream (stream a)):
+    D (↑↑z⁻¹ x) = ↑↑z⁻¹ (D x) := by
+  funext m n
+  simp [D]
+  rcases m <;> rcases n <;> simp
+
+lemma D_lifting_delta_comm {a: Type} [AddCommGroup a] (x: stream a):
+    D (↑↑δ0 x) = ↑↑δ0 (D x) := by
+  funext m n
+  simp [D]
+  rcases m <;> rcases n <;> simp
+
+lemma D_sprod2 {a b: Type} [AddCommGroup a] [AddCommGroup b]
+  (x: stream (stream a)) (y: stream (stream b)):
+    D (sprod2 (x, y)) = sprod2 (D x, D y) := by
+  funext m n; simp
+  by_cases m = 0
+  · subst m; simp
+  · repeat' rw [derivative_difference_t] <;> try omega
+    simp
+
+lemma D_sprodO {ns: Bool} {a b: Type} [AddCommGroup a] [AddCommGroup b]
+  (x: stream (Optstream ns a)) (y: stream (Optstream ns b)):
+    D (sprodO ns (x, y)) = sprodO ns (D x, D y) := by
+  rcases ns <;> simp [sprodO]
+  · apply derivative_sprod
+  · rw [D_sprod2]
+
+lemma I_sprodO {ns: Bool} {a b: Type} [AddCommGroup a] [AddCommGroup b]
+  (x: stream (Optstream ns a)) (y: stream (Optstream ns b)):
+    I (sprodO ns (x, y)) = sprodO ns (I x, I y) := by
+  rcases ns <;> simp [sprodO]
+  · apply integral_sprod
+  · apply integral_sprod2
+
+lemma agreeUpto_delay_succ {A: Type} [Zero A]
+  (s1 s2: stream A) (n: ℕ):
+    (z⁻¹ s1 =[n+1]= z⁻¹ s2) <-> (s1 =[n]= s2) := by
+  constructor <;> intro h
+  · intro t ht
+    specialize h (t+1) (by omega)
+    simp at h; tauto
+  · intro t ht
+    rcases t with _|t'
+    · simp
+    simp; apply h; omega
+
 -- polymorphic causality w.r.t. nested streams
 def CausalO (ns: Bool) {a b: Type} (f: Operator (Optstream ns a) (Optstream ns b)): Prop :=
   match ns with
@@ -140,13 +195,15 @@ theorem ckt_causalO {ns} {a b: VType} (c: Ckt a b ns): CausalO ns (denote c) := 
     apply causalO_sprodO <;> tauto
   case delay ns _ =>
     apply causalO_delay
+  case lifted_delay _ =>
+    apply causalNested_lifting; apply delay_causal
   case lifting ih =>
     apply causalNested_lifting; apply ih
   case loop ns _ _ c ih =>
     rcases ns <;> simp
     · apply loop1_causal; apply ih
     · apply causalNested_loop; apply ih
-  case loop_lifted c ih =>
+  case lifted_loop c ih =>
     apply causalNested_loop_lifted; apply ih
   case bracket c ih =>
     apply causal_comp_causal (denote c ∘ ↑↑δ0)
@@ -192,20 +249,74 @@ theorem loop_unfold {ns a b} (c: Ckt (a ×ᵥ b) b ns) x:
   nth_rw 1 [fix_eq]
   apply loop_body_strict
 
-theorem loop_lifted_body_strict {a b} (c: Ckt (a ×ᵥ b) b 1) x:
+theorem lifted_loop_body_strict {a b} (c: Ckt (a ×ᵥ b) b 1) x:
     Strict2 fun s ↦ denote c (sprod2 (x, ↑↑z⁻¹ s)) := by
   apply causalNested_strict2_strict2
   · suffices CausalO true (denote c) by apply this
     apply ckt_causalO
   apply lifting_delay_strict2
 
-theorem loop_lifted_unfold {a b} (c: Ckt (a ×ᵥ b) b 1) x:
-    denote (Ckt.loop_lifted c) x = denote c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.loop_lifted c) x))) := by
+theorem lifted_loop_unfold {a b} (c: Ckt (a ×ᵥ b) b 1) x:
+    denote (Ckt.lifted_loop c) x = denote c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x))) := by
   simp [denote]
   nth_rw 1 [fix2_eq]
-  apply loop_lifted_body_strict
+  apply lifted_loop_body_strict
 
 def lifted_Ckt {ns} {A B: VType} (c: Ckt A B ns): Prop :=
   ∃ f, denote c = ↑↑f
+
+@[simp]
+lemma lifted_Ckt_node1 {ns} {A B} [BaseType A] [BaseType B] (f: UnaryNode):
+    lifted_Ckt (@Ckt.node1 ns A B _ _ f) := by
+  rcases ns
+  · use f.f; simp [denote, liftO]
+  · use ↑↑f.f; simp [denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_node2 {ns} {A B C} [BaseType A] [BaseType B] [BaseType C] (f: BinaryNode):
+    lifted_Ckt (@Ckt.node2 ns A B C _ _ _ f) := by
+  rcases ns
+  · use f.f; simp [denote, liftO]
+  · use ↑↑f.f; simp [denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_id {ns} {A: VType}: lifted_Ckt (@Ckt.id ns A) := by
+  rcases ns
+  · use id; simp [denote, liftO]
+  · use ↑↑id; simp [denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_fst {ns} {A B: VType}: lifted_Ckt (@Ckt.fst ns A B) := by
+  rcases ns
+  · use Prod.fst; simp [denote, liftO]
+  · use ↑↑Prod.fst; simp [denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_snd {ns} {A B: VType}: lifted_Ckt (@Ckt.snd ns A B) := by
+  rcases ns
+  · use Prod.snd; simp [denote, liftO]
+  · use ↑↑Prod.snd; simp [denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_add {ns} {A: VType}: lifted_Ckt (@Ckt.add ns A) := by
+  rcases ns
+  · use (fun x => x.1 + x.2); simp [denote, liftO]
+  · use ↑↑(fun x => x.1 + x.2); simp [denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_sub {ns} {A: VType}: lifted_Ckt (@Ckt.sub ns A) := by
+  rcases ns
+  · use (fun x => x.1 - x.2); simp [denote, liftO]
+  · use ↑↑(fun x => x.1 - x.2); simp [denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_const {ns} {A B: VType} (x: VType_interp B):
+    lifted_Ckt (@Ckt.const ns A B x) := by
+  rcases ns <;> simp [lifted_Ckt, denote, liftO]
+
+@[simp]
+lemma lifted_Ckt_lifted_delay {A: VType}:
+    lifted_Ckt (@Ckt.lifted_delay A) := by
+  use z⁻¹; simp [denote, liftO]
 
 end CktBasic

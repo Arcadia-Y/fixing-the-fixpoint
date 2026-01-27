@@ -1,191 +1,13 @@
-import DBSP.Circuits.Circuits_v6
-import DBSP.Circuits.CktProp
 import DBSP.StreamTheory.Linear
 import DBSP.Logic.SProp
+import DBSP.Termination.Spec
+import DBSP.Termination.FPProp
 open CktBasic
 
--- Fixedpoint checking theory
+-- Fixpoint Detector
 -- for the outer iteration, i.e. the **1st** time dimension
 section FPDetector1
 variable {A B C: VType}
-
-def FixedAfter1 {T: Type} (s: stream T) (n: ℕ): Prop :=
-  ∀ m ≥ n, s m = s n
-
-lemma FixedAfter1_mono {T: Type} {s: stream T} {n1 n2: ℕ}
-  (h: FixedAfter1 s n1)(hn: n1 ≤ n2):
-     FixedAfter1 s n2 := by
-  intro m hm
-  have := h _ hn
-  specialize h m (by omega)
-  rw [this, h]
-
-lemma FixedAfter1_iff_forall {T: Type} {s: stream T} {n: ℕ}:
-    FixedAfter1 s n <-> ∀ m ≥ n, FixedAfter1 s m := by
-  constructor <;> intro h
-  · intro m hm; apply FixedAfter1_mono <;> tauto
-  · apply h; omega
-
-lemma FixedAfter1_extend {T: Type} {s: stream T} {n: ℕ}:
-     (FixedAfter1 s (n+1) ∧ s n = s (n+1)) <->
-     FixedAfter1 s n := by
-  constructor
-  · rintro ⟨h ,hn⟩
-    intro m hm
-    by_cases heq: (m = n)
-    · subst heq; tauto
-    · specialize h m (by omega)
-      rw [hn]; tauto
-  · intro h
-    have hn : s (n+1) = s n := by
-      apply h; omega
-    symm; constructor; tauto
-    intro m hm; rw [hn]
-    apply h; omega
-
-lemma FixedAfter1_sprod {A B: Type} {s1: stream A} {s2: stream B}
-  {p: ℕ}:
-    FixedAfter1 (sprod (s1, s2)) p <->
-    FixedAfter1 s1 p ∧ FixedAfter1 s2 p := by
-  simp [FixedAfter1]; constructor <;> intros; swap; tauto
-  rename_i h; constructor <;> intros m hm <;> specialize h m hm <;> tauto
-
-lemma FixedAfter1_sprod2 {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)} {n: ℕ}:
-    FixedAfter1 (sprod2 (s1, s2)) n  <->
-    FixedAfter1 (s1) n ∧ FixedAfter1 (s2) n := by
-  simp [FixedAfter1]; constructor <;> intro h
-  · constructor <;>
-    intro m hm <;> specialize h m hm <;>
-    funext i <;>
-    have := congr h (Eq.refl i) <;>
-    simp at this <;> tauto
-  · intro m hm; funext i; simp
-    rcases h with ⟨h1, h2⟩
-    specialize h1 m hm; specialize h2 m hm; tauto
-
-lemma FixedAfter1_sprodO {A B: Type} {ns: Bool}
-  {s1: SOType ns A} {s2: SOType ns B} {n: ℕ}:
-    FixedAfter1 (sprodO ns (s1, s2)) n <->
-    FixedAfter1 s1 n ∧ FixedAfter1 s2 n := by
-  rcases ns <;> simp [sprodO]
-  apply FixedAfter1_sprod
-  apply FixedAfter1_sprod2
-
-lemma FixedAfter1_delay_0 {T: Type} [Zero T] {s: stream T}:
-    FixedAfter1 (z⁻¹ s) 0 <-> s = 0 := by
-  simp [FixedAfter1, delay]; constructor
-  · intro h; funext m; specialize h (m+1) (by omega)
-    simp at h; rw [h]; rfl
-  · intro h; rw [h]; simp [FixedAfter1]
-
-lemma FixedAfter1_delay_succ {T: Type} [Zero T] {s: stream T} {n: ℕ}:
-    FixedAfter1 (z⁻¹ s) (n+1) <-> FixedAfter1 s n := by
-  simp [FixedAfter1]; constructor
-  · intro h m hm
-    specialize h (m+1) (by omega)
-    simp at h; tauto
-  · intro h m hm
-    specialize h (m-1) (by omega)
-    simp [delay]
-    rcases m; omega
-    simp at h ⊢; tauto
-
-lemma FixedAfter1_lifting {A B: Type} {s: stream A} {n: ℕ}
-  {f: A -> B} (hx: FixedAfter1 s n):
-    FixedAfter1 (↑↑f s) n := by
-  simp [FixedAfter1, lifting] at hx ⊢
-  intros; congr 1; apply hx; tauto
-
-lemma FixedAfter1_liftO {A B: Type} {ns: Bool} {s: SOType ns A} {n: ℕ}
-  {f: A -> B} (hx: FixedAfter1 s n):
-    FixedAfter1 (liftO ns f s) n := by
-  simp [liftO] at hx ⊢
-  rcases ns <;> simp <;> apply FixedAfter1_lifting <;> tauto
-
--- For any circuit, the external fixedpoint is
---   an index `n` of the outer stream such that
---   after `n` both the input and output of the circuit become fixed.
--- For the nested circuit, `n` is a column index,
---   and "fixed" means that the same stream repeats after `n`,
---   not that a single value repeats after `n`.
-def ExtFP1 {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ): Prop :=
-  FixedAfter1 x n ∧ FixedAfter1 (denote c x) n
-
-lemma lifted_Ckt_ExtFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns)
-  (x: SOVType ns A) (hc: lifted_Ckt c):
-    ExtFP1 c x = FixedAfter1 x := by
-  funext n; simp [ExtFP1]; intro h
-  rcases hc with ⟨f, hc⟩; rw [hc]
-  apply FixedAfter1_lifting h
-
--- The internal fixedpoint is an index `n` of the outer stream such that,
---   for any internal circuit,
---   both input and output become fixed after `n`.
--- For nested circuits, this means
---   for any internal circuit,
---   both input and output become a fixed stream after the outer iteration `n`.
-def IntFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ): Prop :=
-  match c with
-  -- all primitive nodes and convenient constructs
-  | Ckt.node1 f => ExtFP1 (Ckt.node1 f) x n
-  | Ckt.node2 f => ExtFP1 (Ckt.node2 f) x n
-  | Ckt.const k => ExtFP1 (Ckt.const k) x n
-  | Ckt.id => ExtFP1 (Ckt.id) x n
-  | Ckt.fst => ExtFP1 (Ckt.fst) x n
-  | Ckt.snd => ExtFP1 (Ckt.snd) x n
-  | Ckt.add => ExtFP1 (Ckt.add) x n
-  | Ckt.sub => ExtFP1 (Ckt.sub) x n
-  -- sequential and parallel compositions
-  | Ckt.seq c1 c2 => IntFP1 c1 x n ∧ IntFP1 c2 (denote c1 x) n
-  | Ckt.par c1 c2 => IntFP1 c1 x n ∧ IntFP1 c2 x n
-  | Ckt.delay => ExtFP1 Ckt.delay x n
-  -- For `c↑ c`, since the internal circuit doesn't have across-iteration states,
-  -- thus the internal fixedpoint is simply the external fixedpoint
-  | Ckt.lifting c => ExtFP1 (Ckt.lifting c) x n
-  | Ckt.loop c =>  IntFP1 c (sprodO ns (x, z⁻¹ (denote (Ckt.loop c) x))) n
-  | Ckt.loop_lifted c => IntFP1 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.loop_lifted c) x))) n
-  | Ckt.bracket c => IntFP1 c (↑↑δ0 x) n
-
--- The internal fixedpoint implies the external fixedpoint
-theorem IntFP1_impl_ExtFP1 {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ):
-    IntFP1 c x n -> ExtFP1 c x n := by
-  revert x; induction c <;> intro x <;> simp [IntFP1]
-  case seq c1 c2 ih1 ih2 =>
-    intro h1 h2
-    specialize ih1 x h1; specialize ih2 (denote c1 x) h2
-    rename Bool => ns; rcases ns <;> simp [ExtFP1] at ih1 ih2 ⊢ <;>
-    simp [denote] <;> tauto
-  case par c1 c2 ih1 ih2 =>
-    intro h1 h2
-    specialize ih1 x h1; specialize ih2 x h2
-    simp [ExtFP1] at *; constructor; tauto
-    simp [denote]; rw [FixedAfter1_sprodO]; tauto
-  case loop c ih =>
-    intro h; apply ih at h; clear ih
-    simp [ExtFP1] at *
-    rw [FixedAfter1_sprodO] at h
-    rw [loop_unfold]
-    tauto
-  case loop_lifted c ih =>
-    intro h; apply ih at h; clear ih
-    simp [ExtFP1] at *
-    rw [FixedAfter1_sprod2] at h
-    rw [loop_lifted_unfold]
-    tauto
-  case bracket c ih =>
-    intro h
-    apply ih at h; clear ih
-    simp [ExtFP1, denote] at *
-    rcases h with ⟨h1, h2⟩
-    constructor
-    · intro i hi
-      specialize h1 i hi
-      have := congr h1 (Eq.refl 0)
-      simp at this; tauto
-    · intro i hi
-      simp [lifting]
-      specialize h2 i hi
-      rw [h2]
 
 -- `let_fixed1 s n` is the stream acquired by
 --  letting `s` be fixed after `n`
@@ -260,16 +82,16 @@ lemma let_fixed1_denote_agree {A B: VType} {ns: Bool}
   have hc := ckt_causal c
   apply let_fixed1_causal_f_agree; tauto
 
-  -- A state fixedpoint is an index `n` such that:
+  -- A State Fixpoint is an index `n` such that:
   --  if after the outer iteration `n`, the input becomes fixed,
   --  then `n` will also be an internal fixedpoint.
-  -- It's called the state fixedpoint because
+  -- It's called the State Fixpoint because
   --   the state of the circuit after `n` is determined by the input up to `n`.
   def StFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ): Prop :=
     IntFP1 c (let_fixed1 x n) n
 
 -- The internal fixedpoint is equivalent to
--- the state fixedpoint with the input being fixed after `n`
+-- the State Fixpoint with the input being fixed after `n`
 theorem IntFP1_StFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns)
   (x: SOVType ns A):
     IntFP1 c x = SAnd (FixedAfter1 x) (StFP1 c x) := by
@@ -291,7 +113,7 @@ theorem StFP1_IntFP1 {A B: VType} {ns: Bool} {c: Ckt A B ns}
     IntFP1 c x n := by
   rw [IntFP1_StFP1]; simp; tauto
 
--- The state fixedpoint of a circuit on input `x`
+-- The State Fixpoint of a circuit on input `x`
 -- is equivalent to that on input `let_fixed1 p x`
 theorem StFP1_let_fixed1_eq {A B: VType} {ns: Bool} (c: Ckt A B ns)
   (x: SOVType ns A) (n: ℕ):
@@ -321,8 +143,7 @@ theorem StFP1_iff {A B: VType} {ns: Bool}
     apply h; apply agree_let_fixed1
     apply FixedAfter1_let_fixed1
 
--- A high-level specification of the outer-iteration fixedpoint checker
--- the idea is to check the state fixedpoint `StFP1` at runtime.
+-- A high-level algorithm to detect the State Fixpoint `StFP1` at runtime.
 -- For nested-circuits, this is run at the end of each outer iteration.
 noncomputable def FPDetector1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A): stream Prop :=
   match c with
@@ -344,19 +165,21 @@ noncomputable def FPDetector1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVTyp
   | Ckt.delay => fun n => x n = (z⁻¹ x) n
   -- For `c↑ c`, returns true since it has no states across outer iterations
   | Ckt.lifting c => STrue
-  -- The checking for loop is similar to that of delay, but more complicated
-  -- it checks the internal circuit
-  -- and also whether the output is equal to the stored state (i.e. the delayed output)
+  -- It's the same for `lifted_delay`
+  | Ckt.lifted_delay => STrue
+  -- The detection for loop is similar to that of delay, but more complicated
+  -- it detects the internal circuit
+  -- and also checks whether the output is equal to the stored state (i.e. the delayed output)
   | Ckt.loop c =>
     fun n => let o := denote (Ckt.loop c) x
       FPDetector1 c (sprodO ns (x, z⁻¹ o)) n ∧ o n = (z⁻¹ o) n
   -- The lifted_loop itself has no states across outer iterations
   -- but the internal circuit may have states across outer iterations
-  -- so we need to check the internal circuit
-  | Ckt.loop_lifted c => fun n => let o := denote (Ckt.loop_lifted c) x
+  -- so we need to detect the internal circuit
+  | Ckt.lifted_loop c => fun n => let o := denote (Ckt.lifted_loop c) x
       FPDetector1 c (sprod2 (x, ↑↑z⁻¹ o)) n
-  -- We need to check the internal circuit
-  -- for the same reason as loop_lifted
+  -- We need to detect the internal circuit
+  -- for the same reason as lifted_loop
   | Ckt.bracket c => fun n => FPDetector1 c (↑↑δ0 x) n
 
 lemma ExtFP1_lifted_Ckt_let_fixed1 {A B: VType} {ns: Bool}
@@ -455,7 +278,7 @@ lemma loop_FPDetector1_correct {A B: VType} {ns: Bool}
 
 -- The proof is similar to `loop_FixedAfter1_ind`
 -- but needs induction on both two dimensions
-lemma loop_lifted_FixedAfter1_ind {A B: VType}
+lemma lifted_loop_FixedAfter1_ind {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (n: ℕ)
   (hf: FixedAfter1 (denote c (sprod2 (x, let_fixed1 (↑↑z⁻¹ (denote (cloop2 c) x)) n))) n):
     FixedAfter1 (↑↑z⁻¹ (denote (cloop2 c) x)) n := by
@@ -482,7 +305,7 @@ lemma loop_lifted_FixedAfter1_ind {A B: VType}
     subst this; simp
   apply agreeUpto_extend; tauto
   simp
-  rw [loop_lifted_unfold]
+  rw [lifted_loop_unfold]
   have hca2 := ckt_causalO c; simp [CausalO] at hca2
   calc
     _ = denote c (sprod2 (x, let_fixed1 (↑↑z⁻¹ (denote (cloop2 c) x)) n)) (m+1) k := by
@@ -506,7 +329,7 @@ lemma loop_lifted_FixedAfter1_ind {A B: VType}
       apply agree_let_fixed1
 
 -- This proof is similar to `loop_FPDetector1_correct`, but simpler
-lemma loop_lifted_FPDetector1_correct {A B: VType} (c: Ckt (A ×ᵥB) B 1)
+lemma lifted_loop_FPDetector1_correct {A B: VType} (c: Ckt (A ×ᵥB) B 1)
   (x: SOVType 1 A) (n: ℕ):
     IntFP1 c (sprod2 (let_fixed1 x n, let_fixed1 (↑↑z⁻¹ (denote (cloop2 c) x)) n)) n <->
     IntFP1 c (sprod2 (let_fixed1 x n, ↑↑z⁻¹ (denote (cloop2 c) (let_fixed1 x n)))) n := by
@@ -532,7 +355,7 @@ lemma loop_lifted_FPDetector1_correct {A B: VType} (c: Ckt (A ×ᵥB) B 1)
     rw [<- hf]; tauto
   apply IntFP1_impl_ExtFP1 at hi
   rcases hi with ⟨_, hf⟩
-  apply loop_lifted_FixedAfter1_ind; tauto
+  apply lifted_loop_FixedAfter1_ind; tauto
 
 -- The corrrectness of `FPDetector1`
 -- It is sound and complete w.r.t. `StFP1`
@@ -544,7 +367,6 @@ theorem FPDetector1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
   -- base cases are trivial since they are lifted functions
   (try  apply ExtFP1_lifted_Ckt_let_fixed1) <;>
   (try unfold lifted_Ckt; simp [lifted_Ckt, denote, liftO]) <;>
-  (try tauto) <;>
   (try rename Bool => ns; rcases ns <;> simp <;> tauto)
   case seq c1 c2 ih1 ih2 =>
     simp at ih1 ih2
@@ -576,10 +398,10 @@ theorem FPDetector1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
     rcases n <;> simp [let_fixed1] <;> tauto
   case loop ns _ _ c ih =>
     rw [ih]; apply loop_FPDetector1_correct
-  case loop_lifted c ih =>
+  case lifted_loop c ih =>
     rw [ih, StFP1]
     rw [let_fixed1_sprod2]
-    apply loop_lifted_FPDetector1_correct
+    apply lifted_loop_FPDetector1_correct
   case bracket c ih =>
     rw [ih, StFP1]
     rw [iff_eq_eq]; congr
@@ -593,173 +415,10 @@ theorem FPDetector1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
 end FPDetector1
 
 
--- Fixedpoint checking theory
+-- Fixedpoint Detector
 -- for the inner iteration, i.e. the **2nd** time dimension
 section FPDetector2
 variable {A B C: VType}
--- FixedAfter2 is like FixedAfter1 but for a row of a nested stream
-def FixedAfter2 {T: Type} (s: stream (stream T)) (m n: ℕ): Prop :=
-  FixedAfter1 (s m) n
-
-lemma FixedAfter2_sprod2 {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)}
-  {m n: ℕ}:
-    FixedAfter2 (sprod2 (s1, s2)) m n  <->
-    FixedAfter2 (s1) m n ∧ FixedAfter2 (s2) m n := by
-  simp [FixedAfter2, FixedAfter1]; constructor <;> intros; swap; tauto
-  rename_i h; constructor <;> intros m hm <;> specialize h m hm <;> tauto
-
-lemma FixedAfter2_lifted_scalar {A B: Type} {s: stream (stream A)} {m n: ℕ}
-  {f: A -> B} (hx: FixedAfter2 s m n):
-    FixedAfter2 (liftO 1 f s) m n := by
-  simp [FixedAfter2, liftO] at hx ⊢
-  intro i hi; simp
-  apply congr; simp
-  apply hx; tauto
-
--- The nested fixedpoint is causal
--- in a stronger sense that it only depends on row `m` of the input
-theorem FixedAfter2_causal {T: Type} {m: ℕ}
-  (s1 s2: stream (stream T))
-  (heq: s1 m = s2 m):
-    FixedAfter2 s1 m = FixedAfter2 s2 m := by
-  funext n; simp [FixedAfter2]; rw [heq]
-
--- For nested circuits,
--- the nested external fixedpoint is a point `(m, n)`,
--- such that in row `m`, both the input and output become fixed after column `n`.
-def ExtFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m: ℕ) (n: ℕ): Prop :=
-  FixedAfter2 x m n ∧ FixedAfter2 (denote c x) m n
-
-theorem lifted_scalar_Ckt_ExtFP2 {A B: VType} (c: Ckt A B 1)
-  (x: SOVType 1 A) (hc: lifted_scalar_Ckt c):
-    ExtFP2 c x = FixedAfter2 x := by
-  funext m n; simp [ExtFP2]; intro h
-  rcases hc with ⟨f, hc⟩; rw [hc]
-  apply FixedAfter2_lifted_scalar h
-
--- The nested external fixedpoint is causal
-theorem ExtFP2_causal (c: Ckt A B 1):
-    Causal (ExtFP2 c) := by
-  intro x1 x2 m hca; funext n
-  simp [ExtFP2, FixedAfter2]
-  have : x1 m = x2 m := by
-    apply hca; rfl
-  rw [this]
-  have : denote c x1 m = denote c x2 m := by
-    have := ckt_causalO c
-    apply causalO_is_causal at this
-    apply this; tauto
-  rw [this]
-
--- For nested circuits,
--- the nested external fixedpoint is a point `(m, n)` such that,
--- in outer iteration `m`, for any internal circuit,
--- both the input and output become fixed after inner iteration `n`.
-def IntFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ): Prop :=
-  match c with
-  | Ckt.node1 f => ExtFP2 (Ckt.node1 f) x m n
-  | Ckt.node2 f => ExtFP2 (Ckt.node2 f) x m n
-  | Ckt.const k => ExtFP2 (Ckt.const k) x m n
-  | Ckt.id => ExtFP2 (Ckt.id) x m n
-  | Ckt.fst => ExtFP2 (Ckt.fst) x m n
-  | Ckt.snd => ExtFP2 (Ckt.snd) x m n
-  | Ckt.add => ExtFP2 (Ckt.add) x m n
-  | Ckt.sub => ExtFP2 (Ckt.sub) x m n
-  | Ckt.seq c1 c2 => let o := denote c1 x
-       IntFP2 c1 x m n ∧ IntFP2 c2 o m n
-  | Ckt.par c1 c2 => IntFP2 c1 x m n ∧ IntFP2 c2 x m n
-  | Ckt.delay => ExtFP2 Ckt.delay x m n
-  -- This is where `IntFP2` depends on `IntFP1`
-  -- For `c↑ c`, the nested internal fixedpoint is `(m, n)` means that
-  -- the internal fixedpoint of `c` on input `x m` is `n`
-  | Ckt.lifting c => IntFP1 c (x m) n
-  | Ckt.loop c =>  IntFP2 c (sprod2 (x, z⁻¹ (denote (Ckt.loop c) x))) m n
-  | Ckt.loop_lifted c => IntFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.loop_lifted c) x))) m n
-
--- The nested internal fixedpoint is causal
-theorem IntFP2_causal (c: Ckt A B 1):
-    Causal (IntFP2 c) := by
-  intro x1 x2 m hca; funext n; revert c; apply Ckt_generalize_ns_1
-  intro ns c hns; revert x1 x2; induction c <;>
-    (try subst hns) <;> (try tauto) <;>
-    intro x1 x2 hca <;> simp [IntFP2] <;>
-    (try rw [ExtFP2_causal]; tauto)
-  case seq c1 c2 ih1 ih2 =>
-    simp at ih1 ih2
-    specialize ih1 x1 x2 hca
-    rw [<- ih1]; simp; intro h1
-    apply ih2
-    apply causal_respects_agreeUpto
-    apply causalO_is_causal; apply ckt_causalO
-    tauto
-  case par c1 c2 ih1 ih2 =>
-    simp at ih1 ih2
-    specialize ih1 x1 x2 hca; specialize ih2 x1 x2 hca
-    rw [ih1, ih2]
-  case loop c ih =>
-    simp at ih; apply ih
-    intro j hj; funext k; simp
-    constructor
-    · specialize hca j hj; rw [hca]
-    rcases j <;> simp
-    apply congr _ (by simp)
-    have := ckt_causalO (cloop c)
-    apply causalO_is_causal at this
-    apply this
-    intro t ht; apply hca; omega
-  case loop_lifted c ih =>
-    simp at ih; apply ih
-    intro j hj; funext k; simp
-    constructor
-    · specialize hca j hj; rw [hca]
-    rcases k <;> simp
-    apply congr _ (by simp)
-    have := ckt_causalO (cloop2 c)
-    apply causalO_is_causal at this
-    apply this
-    intro t ht; apply hca; omega
-  case lifting c =>
-    have : x1 m = x2 m := by
-      apply hca; rfl
-    rw [this]
-
--- The nested internal fixedpoint implies the nested external fixedpoint
-theorem IntFP2_impl_ExtFP2 (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ):
-    IntFP2 c x m n -> ExtFP2 c x m n := by
-  revert c; apply Ckt_generalize_ns_1
-  intro ns c hns; revert x m n; induction c <;>
-    (try subst hns) <;> (try tauto) <;>
-    intro x m n <;> simp [IntFP2]
-  case seq c1 c2 ih1 ih2 =>
-    intro h1 h2; simp at ih1 ih2
-    apply ih1 at h1; apply ih2 at h2
-    simp [ExtFP2] at h1 h2 ⊢
-    simp [denote]; tauto
-  case par c1 c2 ih1 ih2 =>
-    intro h1 h2; simp at ih1 ih2
-    apply ih1 at h1; apply ih2 at h2
-    simp [ExtFP2] at h1 h2 ⊢
-    simp [denote, sprodO]; rw [FixedAfter2_sprod2]; tauto
-  case loop c ih =>
-    intro h; simp at ih
-    apply ih at h; clear ih
-    simp [ExtFP2] at *
-    rw [FixedAfter2_sprod2] at h
-    rw [loop_unfold]
-    tauto
-  case loop_lifted c ih =>
-    intro h; simp at ih
-    apply ih at h; clear ih
-    simp [ExtFP2] at *
-    rw [FixedAfter2_sprod2] at h
-    rw [loop_lifted_unfold]
-    tauto
-  case lifting c =>
-    intro h; simp [ExtFP2] at *
-    apply IntFP1_impl_ExtFP1 at h
-    constructor; apply h.1
-    simp [denote, FixedAfter2]
-    apply h.2
 
 -- Total order on time points
 -- essentially dictionary order on (m, n)
@@ -1007,14 +666,14 @@ lemma let_fixed2_sprod2 {A B: Type}
   split_ifs <;> simp
 
 -- Nested version of `StFP1`
--- A nested state fixedpoint is a point `(m, n)` such that:
+-- A nested State Fixpoint is a point `(m, n)` such that:
 --  if the input becomes fixed after `(m, n)`,
 --  then `(m, n)` will also be a nested internal fixedpoint.
 def StFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ): Prop :=
   IntFP2 c (let_fixed2 x m n) m n
 
 -- The nested internal fixedpoint is equivalent to
--- the nested state fixedpoint with the input being fixed after `(m, n)`
+-- the nested State Fixpoint with the input being fixed after `(m, n)`
 theorem IntFP2_StFP2 {A B: VType} (c: Ckt A B 1)
   (x: SOVType 1 A) :
     IntFP2 c x = SAnd2 (FixedAfter2 x) (StFP2 c x) := by
@@ -1030,14 +689,14 @@ theorem IntFP2_StFP2 {A B: VType} (c: Ckt A B 1)
     rw [<- let_fixed2_eq_iff] at h1
     rw [<- h1]; tauto
 
--- The nested state fixedpoint of a circuit on input `x`
+-- The nested State Fixpoint of a circuit on input `x`
 -- is equivalent to that on input `let_fixed2 m n x`
 theorem StFP2_let_fixed1_eq {A B: VType} (c: Ckt A B 1)
   (x: SOVType 1 A) (m n: ℕ):
     StFP2 c (let_fixed2 x m n) m n <-> StFP2 c x m n := by
   simp [StFP2]; rw [let_fixed2_idem]
 
--- The nested state fixedpoint is CausalT
+-- The nested State Fixpoint is CausalT
 theorem StFP2_CausalT {A B: VType} (c: Ckt A B 1):
     CausalT (StFP2 c) := by
   intro x1 x2 m n hca
@@ -1059,8 +718,7 @@ theorem StFP2_iff {A B: VType}
     apply h; symm; apply agreeT_let_fixed2
     apply FixedAfter2_let_fixed2
 
--- A high-level specification of the inner-level fixedpoint checker
--- the idea is to check the nested state fixedpoint `StFP2` at runtime:
+-- A high-level algorithm to detect the nested State Fixpoint `StFP2` at runtime
 noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stream (stream Prop) :=
   match c with
   -- primitive nodes and convenient constructs
@@ -1075,27 +733,29 @@ noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stre
   -- sequential and parallel composition
   | Ckt.seq c1 c2 => SAnd2 (FPDetector2 c1 x) (FPDetector2 c2 (denote c1 x))
   | Ckt.par c1 c2 => SAnd2 (FPDetector2 c1 x) (FPDetector2 c2 x)
-  -- Nested delay needs to check whether the input from last row has reached the fixedpoint
+  -- Nested delay needs to detect whether the input from last row has reached the fixedpoint
   -- which is assumed to be stored in the state at the end of last outer iteration
   | Ckt.delay => fun m n => FixedAfter2 (z⁻¹ x) m n
   -- This is where `FPDetector2` depends on `FPDetector1`
-  -- `c↑ c` checks the `StFP1` of the inner circuit `c`
+  -- `c↑ c` detects the `StFP1` of the inner circuit `c`
   | Ckt.lifting c => fun m n => FPDetector1 c (x m) n
-  -- The checking for loop is similar to that of delay, but more complicated
-  -- it checks the internal circuit
-  -- and also whether the output from last row has reached fixedpoint
+  -- For the lifted_delay, the following is just the simplication of `FPDetector1 delay (x m) n`
+  | Ckt.lifted_delay => fun m n => x m n = z⁻¹ (x m) n
+  -- The detection for loop is similar to that of delay, but more complicated
+  -- it detects the internal circuit
+  -- and also checks whether the output from last row has reached fixedpoint
   | Ckt.loop c => fun m n => let o := denote (Ckt.loop c) x
       FPDetector2 c (sprod2 (x, z⁻¹ o)) m n ∧ FixedAfter2 (z⁻¹ o) m n
-  -- The lifted_loop checks the internal circuit
-  -- and also whether the output is equal to the stored state (i.e. the lifting-delayed output)
-  | Ckt.loop_lifted c => fun m n => let o := denote (Ckt.loop_lifted c) x
+  -- The lifted_loop detects the internal circuit
+  -- and also checks whether the output is equal to the stored state (i.e. the lifting-delayed output)
+  | Ckt.lifted_loop c => fun m n => let o := denote (Ckt.lifted_loop c) x
       FPDetector2 c (sprod2 (x, ↑↑z⁻¹ o)) m n ∧ o m n = (↑↑z⁻¹ o) m n
 
-lemma ExtFP2_lifted_scalar_Ckt_let_fixed2 {A B: VType}
-  (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ) (hc: lifted_scalar_Ckt c):
+lemma ExtFP2_lifted_scalar_Ckt_let_fixed2 {A B: VType} {f}
+  (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ) (hc: DenoteLiftedScalar c f):
     ExtFP2 c (let_fixed2 x m n) m n := by
   have h1 := FixedAfter2_let_fixed2 x m n
-  have h2 := lifted_scalar_Ckt_ExtFP2 c (let_fixed2 x m n) hc
+  have h2 := DenoteLiftedScalar_ExtFP2 c (let_fixed2 x m n) hc
   rw [h2]; tauto
 
 lemma FixedAfter2_denote_let_fixed2_agree {A B: VType}
@@ -1132,7 +792,7 @@ lemma loop_FixedAfter2_StFP2_iff {A B: VType}
   calc
     _ <-> IntFP2 c (sprod2 (x, z⁻¹ (denote (cloop c) x))) m n := by
       rw [IntFP2_StFP2]; simp
-      rw [FixedAfter2_sprod2]; tauto
+      rw [FixedAfter2_sprod2_iff]; tauto
     _ <-> IntFP2 (cloop c) x m n := by
       simp [IntFP2]
     _ <-> _ := by
@@ -1166,7 +826,7 @@ lemma loop_FPDetector2_correct {A B: VType}
   case a => apply hy1
   apply loop_FixedAfter2_StFP2_iff; tauto
 
-lemma loop_lifted_FixedAfter2_ind {A B: VType}
+lemma lifted_loop_FixedAfter2_ind {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ)
   (he: denote (cloop2 c) x m n = z⁻¹ (denote (cloop2 c) x m) n)
   (h: FixedAfter2 (denote c (sprod2 (x, let_fixed2 (↑↑z⁻¹ (denote (cloop2 c) x)) m n))) m n):
@@ -1202,7 +862,7 @@ lemma loop_lifted_FixedAfter2_ind {A B: VType}
     symm; apply ihj <;> omega
   calc
     _ = denote c (sprod2 (x, let_fixed2 (↑↑z⁻¹ (denote (cloop2 c) x)) m n)) m j := by
-      nth_rw 1 [loop_lifted_unfold]
+      nth_rw 1 [lifted_loop_unfold]
       apply ckt_CausalNested
       apply agreeT_imply_AgreeNested
       rw [agreeT_sprod2]
@@ -1212,14 +872,14 @@ lemma loop_lifted_FixedAfter2_ind {A B: VType}
     _ = _ := h
     _ = _ := by
       rw [<- he]
-      nth_rw 2 [loop_lifted_unfold]
+      nth_rw 2 [lifted_loop_unfold]
       apply ckt_CausalNested
       apply agreeT_imply_AgreeNested
       rw [agreeT_sprod2]
       constructor; rfl
       apply het; simp [le_time]; omega
 
-lemma loop_lifted_FixedAfter2_StFP2_iff {A B: VType}
+lemma lifted_loop_FixedAfter2_StFP2_iff {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ)
   (hf: FixedAfter2 x m n):
     StFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (cloop2 c) x))) m n ∧
@@ -1232,7 +892,7 @@ lemma loop_lifted_FixedAfter2_StFP2_iff {A B: VType}
     constructor; swap
     -- This direction is easier
     · intro h
-      rw [FixedAfter2_sprod2] at h
+      rw [FixedAfter2_sprod2_iff] at h
       rcases h with ⟨_, h⟩
       specialize h (n+1) (by omega)
       simp at h; tauto
@@ -1245,15 +905,15 @@ lemma loop_lifted_FixedAfter2_StFP2_iff {A B: VType}
       rw [he] at hs
       apply IntFP2_impl_ExtFP2 at hs
       rcases hs with ⟨_, hf2⟩
-      rw [FixedAfter2_sprod2]
+      rw [FixedAfter2_sprod2_iff]
       constructor; tauto
-      apply loop_lifted_FixedAfter2_ind <;> tauto
+      apply lifted_loop_FixedAfter2_ind <;> tauto
   _ <-> IntFP2 (cloop2 c) x m n := by
     simp [IntFP2]
   _ <-> _ := by
     rw [IntFP2_StFP2]; simp [*]
 
-lemma loop_lifted_FPDetector2_correct {A B: VType}
+lemma lifted_loop_FPDetector2_correct {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ):
     StFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (cloop2 c) x))) m n ∧
     denote (cloop2 c) x m n = z⁻¹ (denote (cloop2 c) x m) n <->
@@ -1281,7 +941,7 @@ lemma loop_lifted_FPDetector2_correct {A B: VType}
     apply agreeT_imply_AgreeNested; tauto
     simp [le_time]; omega
   rw [this]
-  apply loop_lifted_FixedAfter2_StFP2_iff; tauto
+  apply lifted_loop_FixedAfter2_StFP2_iff; tauto
 
 -- The corrrectness of `FPDetector2`
 -- It is sound and complete w.r.t. `StFP2`
@@ -1294,12 +954,20 @@ theorem FPDetector2_correct {A B: VType}
   induction c <;> intro x m n <;> (try subst hns) <;>
   simp [FPDetector2] <;>
   -- base cases are trivial since they are lifted functions
-  try simp [StFP2, IntFP2]; apply ExtFP2_lifted_scalar_Ckt_let_fixed2; simp [lifted_scalar_Ckt]; tauto
+  try simp [StFP2, IntFP2]; apply ExtFP2_lifted_scalar_Ckt_let_fixed2; simp [DenoteLiftedScalar]; tauto
   -- For lifting, the correctness depends on that of `FPDetector1`
   case lifting c ih =>
     simp [StFP2, IntFP2]
     clear ih; rw [FPDetector1_correct]
     simp [StFP1]; rw [let_fixed2_row_m]
+  case lifted_delay =>
+    simp [StFP2, IntFP2, ExtFP2, denote, lifting, FixedAfter2]
+    have hf := FixedAfter1_let_fixed1 (x m) n
+    simp [hf, let_fixed2_row_m]
+    rw [<- FixedAfter1_extend]
+    rw [FixedAfter1_delay_succ]
+    simp [hf, let_fixed1]
+    rcases n <;> simp [let_fixed1] <;> tauto
   case seq c1 c2 ih1 ih2 =>
     simp [StFP2, IntFP2]
     simp at ih1 ih2
@@ -1325,8 +993,8 @@ theorem FPDetector2_correct {A B: VType}
   case loop c ih =>
     simp at ih; rw [ih]
     apply loop_FPDetector2_correct
-  case loop_lifted c ih =>
+  case lifted_loop c ih =>
     simp at ih; rw [ih]
-    apply loop_lifted_FPDetector2_correct
+    apply lifted_loop_FPDetector2_correct
 
 end FPDetector2

@@ -58,7 +58,7 @@ noncomputable def cost_f {ns} {a b: VType}: (Ckt a b ns) -> (CostFunType ns a)
   | Ckt.lifting c => ↑↑(cost_f c)
   | Ckt.loop c => fun x => let o := denote (Ckt.loop c) x
       cost_f c (sprodO ns (x, z⁻¹ o)) + extend_fun (liftO ns VType_space) o
-  | Ckt.loop_lifted c => fun x => let o := denote (Ckt.loop_lifted c) x
+  | Ckt.lifted_loop c => fun x => let o := denote (Ckt.lifted_loop c) x
       fun m n => cost_f c (sprod2 (x, ↑↑z⁻¹ o)) m n + (liftO 1 VType_space) o m n
   | Ckt.bracket c => fun x i =>
       let o := denote c (↑↑δ0 x)

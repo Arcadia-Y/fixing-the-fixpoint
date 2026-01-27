@@ -45,6 +45,16 @@ lemma ZeroAfter_ex_Minimal {A: Type} [Zero A]
       have := ZeroAfter_ge hzy _ this
       tauto
 
+lemma ZeroAfter_neg_iff {A: Type} [AddCommGroup A]
+  (s: stream A) (n: ℕ):
+    ZeroAfter (-s) n <-> ZeroAfter s n := by
+  constructor <;> intro h
+  · intro m hm
+    specialize h m hm
+    simp at h; assumption
+  · intro m hm; simp
+    apply h; assumption
+
 lemma Minimal_ZeroAfter
   {A: Type} [Zero A] (s: stream A) (m n: ℕ)
   (h: Minimal (ZeroAfter s) m) (hn: (ZeroAfter s) n):

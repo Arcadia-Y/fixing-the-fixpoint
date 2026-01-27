@@ -1,10 +1,7 @@
-import DBSP.StreamTheory.Stream
-import DBSP.StreamTheory.Linear
 import DBSP.Circuits.Circuits_v6
 import DBSP.Circuits.CktProp
 import DBSP.Termination.Spec
 import DBSP.Termination.FPProp
-import DBSP.Logic.SProp
 open CktBasic
 
 section Sequiv
@@ -82,7 +79,7 @@ theorem Sequiv_loop_congr {c1 c2: Ckt (A ×ᵥ B) B ns} (h: c1 ≃ c2):
     have := congr_fun d_loop
     rw [this]
 
-theorem Sequiv_loop_lifted_congr {c1 c2: Ckt (A ×ᵥ B) B 1} (h: c1 ≃ c2):
+theorem Sequiv_lifted_loop_congr {c1 c2: Ckt (A ×ᵥ B) B 1} (h: c1 ≃ c2):
     (cloop2 c1) ≃ (cloop2 c2) := by
   unfold Sequiv at *; rcases h with ⟨d1, t1⟩
   have d_loop : denote (cloop2 c1) = denote (cloop2 c2) := by
@@ -95,9 +92,147 @@ theorem Sequiv_loop_lifted_congr {c1 c2: Ckt (A ×ᵥ B) B 1} (h: c1 ≃ c2):
     simp [TerminateRow]
     rw [d_loop, t1]
 
--- incrementalize lemmas
+abbrev SemCkt (A B: VType) (ns: Bool) := Quotient (SetoidSequiv (A:=A) (B:=B) (ns:=ns))
+
+abbrev toSem {A B ns} (c: Ckt A B ns): SemCkt A B ns := Quotient.mk (SetoidSequiv) c
+
+theorem Sequiv_iff_toSem_eq {c1 c2 : Ckt A B ns}:
+    c1 ≃ c2 ↔ toSem c1 = toSem c2 := Iff.symm (@Quotient.eq _ SetoidSequiv c1 c2)
+
+def SemCkt.seq {A B C ns} (c1: SemCkt A B ns) (c2: SemCkt B C ns): SemCkt A C ns :=
+  Quotient.liftOn₂ c1 c2 (fun c1 c2 => toSem (c1 >>c c2)) (fun _ _ _ _ h1 h2 => Quotient.sound (s := SetoidSequiv) (Sequiv_seq_cong h1 h2))
+
+infixl:60 " >>s "  => SemCkt.seq
+
 @[simp]
-theorem Sequiv_incr_chain (c1: Ckt A B ns) (c2: Ckt B C ns):
+theorem SemCkt_seq_lift (c1: Ckt A B ns) (c2: Ckt B C ns):
+    (toSem c1 >>s toSem c2) = toSem (c1 >>c c2) := rfl
+
+def SemCkt.par {A B C ns} (c1: SemCkt A B ns) (c2: SemCkt A C ns): SemCkt A (B ×ᵥ C) ns :=
+  Quotient.liftOn₂ c1 c2 (fun c1 c2 => toSem (c1 &&c c2)) (fun _ _ _ _ h1 h2 => Quotient.sound (s := SetoidSequiv) (Sequiv_par_cong h1 h2))
+
+infixl:50 " &&s " => SemCkt.par
+
+@[simp]
+theorem SemCkt_par_lift (c1: Ckt A B ns) (c2: Ckt A C ns):
+    (toSem c1 &&s toSem c2) = toSem (c1 &&c c2) := rfl
+
+def SemCkt.lifting {A B} (c: SemCkt A B 0): SemCkt A B 1 :=
+  Quotient.liftOn c (fun c => toSem (Ckt.lifting c)) (fun _ _ h => Quotient.sound (s := SetoidSequiv) (Sequiv_lifting_congr h))
+
+notation:max "s↑ " c:max => SemCkt.lifting c
+
+@[simp]
+theorem SemCkt_lifting_lift (c: Ckt A B 0):
+    (s↑ (toSem c)) = toSem (c↑ c) := rfl
+
+def SemCkt.loop {A B ns} (c: SemCkt (A ×ᵥ B) B ns): SemCkt A B ns :=
+  Quotient.liftOn c (fun c => toSem (cloop c)) (fun _ _ h => Quotient.sound (s := SetoidSequiv) (Sequiv_loop_congr h))
+
+notation "sloop " c:max => SemCkt.loop c
+
+@[simp]
+theorem SemCkt_loop_lift (c: Ckt (A ×ᵥ B) B ns):
+    (sloop (toSem c)) = toSem (cloop c) := rfl
+
+def SemCkt.lifted_loop {A B} (c: SemCkt (A ×ᵥ B) B 1): SemCkt A B 1 :=
+  Quotient.liftOn c (fun c => toSem (cloop2 c)) (fun _ _ h => Quotient.sound (s := SetoidSequiv) (Sequiv_lifted_loop_congr h))
+
+notation "sloop2 " c:max => SemCkt.lifted_loop c
+
+@[simp]
+theorem SemCkt_lifted_loop_lift (c: Ckt (A ×ᵥ B) B 1):
+    (sloop2 (toSem c)) = toSem (cloop2 c) := rfl
+
+-- incrementalize lemmas
+lemma DenoteLiftedScalar_Sequiv_incr {ns} {a b} (c: Ckt a b ns)
+  (ht: ∀ x, Terminate c x)
+  {f: VType_interp a -> VType_interp b}
+  (hf: DenoteLiftedScalar c f)
+  (hfl: ∀ x y, f (x + y) = f x + f y):
+   (cΔ c) ≃ c := by
+  have ht: ∀ x n, TerminateRow c x n := by
+    intro x n
+    specialize ht x
+    rw [Terminate_iff] at ht
+    tauto
+  simp [Sequiv]; constructor; swap
+  · simp [cΔ, TerminateRow]
+    funext x i
+    rw [eq_iff_iff]
+    tauto
+  rw [lti_incremental]
+  rw [hf]
+  rcases ns <;> simp [liftO] <;> apply lifting_lti
+  · simp [hfl]
+  intro x y; funext t
+  simp [hfl]
+
+theorem Sequiv_incr_id:
+    cΔ cid ≃ (@Ckt.id ns A) := by
+  apply DenoteLiftedScalar_Sequiv_incr (f := id)
+  · intro; simp [Terminate]
+  · rfl
+  · intros; rfl
+
+theorem Sequiv_incr_fst:
+    cΔ c1st ≃ (@Ckt.fst ns A B) := by
+  apply DenoteLiftedScalar_Sequiv_incr (f := Prod.fst)
+  case ht => intro; simp [Terminate]
+  case hf => rfl
+  case hfl => intros; rfl
+
+theorem Sequiv_incr_snd:
+    cΔ c2nd ≃ (@Ckt.snd ns A B) := by
+  apply DenoteLiftedScalar_Sequiv_incr (f := Prod.snd)
+  case ht => intro; simp [Terminate]
+  case hf => rfl
+  case hfl => intros; rfl
+
+theorem Sequiv_incr_add:
+    cΔ cadd ≃ (@Ckt.add ns A) := by
+  apply DenoteLiftedScalar_Sequiv_incr (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 + x.2)
+  · intro; simp [Terminate]
+  · rfl
+  · intros x y; simp; abel
+
+theorem Sequiv_incr_sub:
+    cΔ csub ≃ (@Ckt.sub ns A) := by
+  apply DenoteLiftedScalar_Sequiv_incr (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 - x.2)
+  · intro; simp [Terminate]
+  · rfl
+  · intros x y; simp [sub_eq_add_neg]; abel
+
+theorem Sequiv_incr_const x:
+    cΔ (cconst x) ≃ (@Ckt.const ns A B x) >>c cD := by
+  simp [Sequiv]
+  constructor
+  · -- denote part
+    funext s; simp [denote, cΔ, cI, cD]
+    rcases ns <;> simp [incremental, I, D, liftO, delay]
+    · funext t; rcases t <;> simp
+    · funext m n; rcases m <;> simp
+  · -- TerminateRow part
+    funext y i; simp [TerminateRow, cΔ, cI, cD, denote]
+
+theorem Sequiv_incr_delay:
+    cΔ cz⁻¹ ≃ (@Ckt.delay ns A) := by
+  simp [Sequiv]; constructor
+  · simp [denote]
+    rcases ns <;>
+    apply delay_incremental
+  · simp [cΔ, TerminateRow]
+
+theorem Sequiv_incr_lifted_delay:
+    cΔ c↑z⁻¹ ≃ (@Ckt.lifted_delay A) := by
+  simp [Sequiv]; constructor
+  · simp [denote]
+    apply lti_incremental
+    apply lifting_lti
+    apply delay_linear
+  · simp [cΔ, TerminateRow]
+
+theorem Sequiv_incr_seq (c1: Ckt A B ns) (c2: Ckt B C ns):
     cΔ (c1 >>c c2) ≃ (cΔ c1 >>c cΔ c2) := by
   unfold Sequiv; constructor
   · funext x; simp [denote]
@@ -106,7 +241,6 @@ theorem Sequiv_incr_chain (c1: Ckt A B ns) (c2: Ckt B C ns):
     rw [<- cI, <- cI, <- cD]; intro _
     simp [denote]
 
-@[simp]
 theorem Sequiv_incr_par (c1: Ckt A B ns) (c2: Ckt A C ns):
     cΔ (c1 &&c c2) ≃ (cΔ c1 &&c cΔ c2) := by
   unfold Sequiv; constructor
@@ -117,7 +251,6 @@ theorem Sequiv_incr_par (c1: Ckt A B ns) (c2: Ckt A C ns):
       rcases m <;> simp
   · funext x i; unfold cΔ cI cD; simp [TerminateRow]
 
-@[simp]
 theorem Sequiv_incr_loop {c: Ckt (A ×ᵥ B) B ns}:
     cΔ (cloop c) ≃ cloop (cΔ c) := by
   have h_denote: denote (cΔ (cloop c)) = denote (cloop (cΔ c)) := by
@@ -153,7 +286,6 @@ theorem Sequiv_incr_loop {c: Ckt (A ×ᵥ B) B ns}:
     · rw [integral_sprod2]; rw [sprod2_eq_iff]
       rw [integral_timeInvariant]; simp [denote]
 
-@[simp]
 theorem Sequiv_incr_loop2 {c: Ckt (A ×ᵥ B) B 1}:
     cΔ (cloop2 c) ≃ cloop2 (cΔ c) := by
   have h_denote: denote (cΔ (cloop2 c)) = denote (cloop2 (cΔ c)) := by
@@ -179,7 +311,6 @@ theorem Sequiv_incr_loop2 {c: Ckt (A ×ᵥ B) B 1}:
     rw [integral_lift_comm]; simp [denote]
     apply delay_linear
 
-@[simp]
 theorem Sequiv_I_bracket {c: Ckt A B 1}:
     cI >>c (cbracket c) ≃ cbracket (cI >>c c) := by
   unfold Sequiv; constructor
@@ -202,12 +333,17 @@ theorem Sequiv_I_bracket {c: Ckt A B 1}:
     use (b+1)
     constructor; constructor
     · apply IntFP2_mono
-      apply IntFP2_cI; simp
+      apply I_IntFP2_delta; simp
     · apply IntFP2_mono; tauto; simp
     · apply ZeroAfter_ge; tauto; simp
 
 -- lifting lemmas
-@[simp]
+theorem Sequiv_lifting_delay:
+    c↑ (@Ckt.delay 0 A) ≃ Ckt.lifted_delay := by
+  unfold Sequiv; constructor
+  · funext x; simp [denote, lifting, liftO, delay]
+  · funext x i; simp [TerminateRow]
+
 theorem Sequiv_lifting_seq {c1: Ckt A B 0} {c2: Ckt B C 0}:
     (c↑ (c1 >>c c2)) ≃ (c↑ c1) >>c (c↑ c2) := by
   unfold Sequiv; constructor
@@ -218,7 +354,6 @@ theorem Sequiv_lifting_seq {c1: Ckt A B 0} {c2: Ckt B C 0}:
     · intro h; constructor <;> intro i <;> have := h i <;> tauto
     · intro h i; constructor <;> have := h.1 i <;> have := h.2 i <;> tauto
 
-@[simp]
 theorem Sequiv_lifting_par {c1: Ckt A B 0} {c2: Ckt A C 0}:
     c↑ (c1 &&c c2) ≃ (c↑ c1 &&c c↑ c2) := by
   unfold Sequiv; constructor
@@ -229,7 +364,6 @@ theorem Sequiv_lifting_par {c1: Ckt A B 0} {c2: Ckt A C 0}:
     · intro h; constructor <;> intro i <;> have := h i <;> tauto
     · intro h i; constructor <;> have := h.1 i <;> have := h.2 i <;> tauto
 
-@[simp]
 theorem Sequiv_lifting_loop {c: Ckt (A ×ᵥ B) B 0}:
     c↑ (cloop c) ≃ cloop2 (c↑ c) := by
   have eq_denote: denote c↑ (cloop c) = denote (cloop2 c↑ c) := by
@@ -250,47 +384,41 @@ theorem Sequiv_lifting_loop {c: Ckt (A ×ᵥ B) B 0}:
     simp [denote]
   rw [this]
 
--- Partial semantic equivalence
--- the output is equivalent only if both circuits terminate
-def Pequiv (c1 c2: Ckt A B ns): Prop :=
-  ∀ x, Terminate c1 x -> Terminate c2 x -> denote c1 x = denote c2 x
-infix:30 " ≃ₚ " => Pequiv
+-- SemCkt lemmas for incrementalization
 
-theorem Sequiv_to_Pequiv {c1 c2: Ckt A B ns}:
-    c1 ≃ c2 -> c1 ≃ₚ c2 := by
-  unfold Sequiv Pequiv; tauto
 
-theorem Pequiv_bracket_congr
-  {c1 c2: Ckt (A ×ᵥ B) B 1} (h: c1 ≃ₚ c2) :
-    (cbracket c1) ≃ₚ (cbracket c2) := by
-  unfold Pequiv at *
-  intro x ht1 ht2
-  simp [Terminate] at ht1 ht2
-  funext k; simp [denote]
-  apply congr; simp
-  rw [h] <;> tauto
+-- SemCkt lemmas for lifting
+@[simp]
+theorem SemCkt_lifting_delay {A: VType}:
+    s↑ (toSem (@Ckt.delay 0 A)) = toSem Ckt.lifted_delay := by
+  rw [SemCkt_lifting_lift]
+  apply Quotient.sound
+  apply Sequiv_lifting_delay
 
-lemma streamElim_D_comm
-  {a : Type} [AddCommGroup a] (x: stream (stream a))
-  (b: stream ℕ) (h: ZeroAfterVec x b):
-    D (↑↑∫0 x) = ↑↑∫0 (D x) := by
-  funext i; simp [D]
-  have := streamElim_linear (x i) (- z⁻¹ x i)
-  rcases i with _ | i; simp
-  simp at this ⊢
-  have hz1 := h (i+1)
-  have hz2 := ZeroAfter_neg.2 (h i)
-  specialize this _ hz1 _ hz2
-  rw [<- sub_eq_add_neg] at this
-  rw [this, streamElim_neg, sub_eq_add_neg]
+@[simp]
+theorem SemCkt_lifting_seq (c1: SemCkt A B 0) (c2: SemCkt B C 0):
+    (s↑ (c1 >>s c2)) = (s↑ c1) >>s (s↑ c2) := by
+  induction c1 using Quotient.inductionOn
+  induction c2 using Quotient.inductionOn
+  rw [SemCkt_seq_lift, SemCkt_lifting_lift, SemCkt_lifting_lift, SemCkt_lifting_lift, SemCkt_seq_lift]
+  apply Quotient.sound
+  apply Sequiv_lifting_seq
 
-theorem Pequiv_bracket_D {c: Ckt A B 1}:
-    (cbracket c) >>c cD ≃ₚ cbracket (c >>c cD) := by
-  unfold Pequiv
-  intro x h1 h2
-  simp [denote]
-  simp [Terminate] at h1
-  rcases h1 with ⟨⟨_, ⟨_, _⟩⟩, _⟩
-  rw [streamElim_D_comm] <;> tauto
+@[simp]
+theorem SemCkt_lifting_par (c1: SemCkt A B 0) (c2: SemCkt A C 0):
+    s↑ (c1 &&s c2) = (s↑ c1 &&s s↑ c2) := by
+  induction c1 using Quotient.inductionOn
+  induction c2 using Quotient.inductionOn
+  rw [SemCkt_par_lift, SemCkt_lifting_lift, SemCkt_lifting_lift, SemCkt_lifting_lift, SemCkt_par_lift]
+  apply Quotient.sound
+  apply Sequiv_lifting_par
+
+@[simp]
+theorem SemCkt_lifting_loop {A B : VType} (c : SemCkt (A ×ᵥ B) B 0) :
+    s↑ (sloop c) = sloop2 (s↑ c) := by
+  induction c using Quotient.inductionOn
+  rw [SemCkt_loop_lift, SemCkt_lifting_lift, SemCkt_lifting_lift, SemCkt_lifted_loop_lift]
+  apply Quotient.sound
+  apply Sequiv_lifting_loop
 
 end Sequiv

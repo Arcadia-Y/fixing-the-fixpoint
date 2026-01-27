@@ -94,12 +94,14 @@ inductive Ckt: VType -> VType -> Bool -> Type 1
   | par {ns a b c} (c1 : Ckt a b ns) (c2 : Ckt a c ns) : Ckt a (b ×ᵥ c) ns
   -- delay
   | delay {ns a} : Ckt a a ns
+  -- lifted delay
+  | lifted_delay {a} : Ckt a a 1
   -- lifting
   | lifting {a b} (c: Ckt a b 0) : Ckt a b 1
   -- feedback loop with normal delay
   | loop {ns a b} (c: Ckt (a ×ᵥ b) b ns): Ckt a b ns
   -- loop with lifted delay (delay by column)
-  | loop_lifted {a b} (c: Ckt (a ×ᵥ b) b 1): Ckt a b 1
+  | lifted_loop {a b} (c: Ckt (a ×ᵥ b) b 1): Ckt a b 1
   -- stream introduction and elimination
   | bracket {a b} (c: Ckt a b 1) : Ckt a b 0
 
@@ -115,8 +117,9 @@ notation "c1st" => Ckt.fst
 notation "c2nd" => Ckt.snd
 notation:max "c↑ " c:max => Ckt.lifting c
 notation "cz⁻¹" => Ckt.delay
+notation "c↑z⁻¹" => Ckt.lifted_delay
 notation "cloop " c:max => Ckt.loop c
-notation "cloop2 " c:max => Ckt.loop_lifted c
+notation "cloop2 " c:max => Ckt.lifted_loop c
 notation:max "c₁ " f => Ckt.node1 f
 notation:max "c₂ " f => Ckt.node2 f
 notation "cbracket " => Ckt.bracket
@@ -228,9 +231,10 @@ noncomputable def denote {a b: VType} {ns: Bool}: (Ckt a b ns) -> DenoteType ns 
   | Ckt.seq c1 c2 => denote c2 ∘ denote c1
   | Ckt.par c1 c2 => fun x => sprodO ns (denote c1 x, denote c2 x)
   | Ckt.delay => delay
+  | Ckt.lifted_delay => ↑↑ delay
   | Ckt.lifting c => lifting (denote c)
   | Ckt.loop c =>  fun a => fix (fun s => denote c (sprodO ns (a, z⁻¹ s)))
-  | Ckt.loop_lifted c => fun a => fix2 (fun s => denote c (sprod2 (a, ↑↑z⁻¹ s)))
+  | Ckt.lifted_loop c => fun a => fix2 (fun s => denote c (sprod2 (a, ↑↑z⁻¹ s)))
   | Ckt.bracket c => ↑↑∫0 ∘ denote c ∘ ↑↑δ0
 
 -- I and D circuits

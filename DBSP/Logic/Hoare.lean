@@ -127,7 +127,7 @@ theorem Hoare_loop {c: Ckt ns (A ×ᵥ B) B}
     rw [loop_unfold]
     apply hn
 
-theorem Hoare_loop_lifted {c: Ckt true (A ×ᵥ B) B}
+theorem Hoare_lifted_loop {c: Ckt true (A ×ᵥ B) B}
   {x: stream (stream (VType_interp A))}
   (I: SPred (stream (VType_interp B)))
   (ih: ∀ y n, TrueUntil n (later I (TP y)) -> Hoare c (sprod2 (x, y)) (TP_SPred I) n) {n: ℕ}:
@@ -136,14 +136,14 @@ theorem Hoare_loop_lifted {c: Ckt true (A ×ᵥ B) B}
   · specialize ih (↑↑z⁻¹ (denote (cloop2 c) x)) 0 (by
       rw [TP_delay]; simp [TrueUntil]
     )
-    rw [loop_lifted_unfold]
+    rw [lifted_loop_unfold]
     apply ih
   · rename_i n hn
     simp at hn
     rw [later_delay_TrueUntil] at hn
     rw [<- TP_delay] at hn
     apply ih at hn
-    rw [loop_lifted_unfold]
+    rw [lifted_loop_unfold]
     apply hn
 
 theorem Hoare_bracket {c: Ckt 1 A B} {fc}
