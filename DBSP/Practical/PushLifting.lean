@@ -1,4 +1,4 @@
-import DBSP.Circuits.Circuits_v6
+import DBSP.Circuits.Circuits
 import DBSP.Practical.Sequiv
 open CktBasic
 

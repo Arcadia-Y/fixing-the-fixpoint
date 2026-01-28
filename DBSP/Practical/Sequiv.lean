@@ -1,4 +1,4 @@
-import DBSP.Circuits.Circuits_v6
+import DBSP.Circuits.Circuits
 import DBSP.Circuits.CktProp
 import DBSP.Termination.Spec
 import DBSP.Termination.FPProp

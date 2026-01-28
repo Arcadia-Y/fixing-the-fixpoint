@@ -1,5 +1,5 @@
 -- Some basic properties about Ckt, mainly related to causality
-import DBSP.Circuits.Circuits_v6
+import DBSP.Circuits.Circuits
 
 namespace CktBasic
 

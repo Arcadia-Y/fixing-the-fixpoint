@@ -8,6 +8,7 @@ variable {A B C: VType} {ns: Bool}
 -- `c1` terminates implies that `c2` terminates and they have the same output
 def Refine (c1 c2: Ckt A B ns): Prop :=
   ∀ x, Terminate c1 x -> Terminate c2 x ∧ denote c1 x = denote c2 x
+
 infix:30 " ⊑ " => Refine
 
 @[refl]

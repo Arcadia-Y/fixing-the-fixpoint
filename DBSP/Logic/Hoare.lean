@@ -1,5 +1,5 @@
 -- Hoare logic for partial correctness
-import DBSP.Circuits.Circuits_v6
+import DBSP.Circuits.Circuits
 import DBSP.StreamTheory.Linear
 import DBSP.Logic.SProp
 import DBSP.Practical.Sequiv

@@ -1,4 +1,4 @@
-import DBSP.Circuits.Circuits_v6
+import DBSP.Circuits.Circuits
 import DBSP.Practical.Sequiv
 import DBSP.Practical.Refine
 import DBSP.Practical.Preserve

@@ -114,8 +114,6 @@ theorem HoareT_conj {Q1: SOVType ns B -> Prop} {Q2: SOVType ns B -> Prop}
   · assumption
   · constructor <;> assumption
 
-theorem HoareT_lifting {c: Ckt A B 0}
-
 theorem HoareT_loop {c: Ckt (A ×ᵥ B) B ns}
   {P: SPred (OVType ns A)} {Q: SPred (OVType ns B)}
   (hh: Hoare P (cloop c) Q)

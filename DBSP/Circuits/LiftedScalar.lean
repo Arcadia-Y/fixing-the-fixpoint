@@ -1,6 +1,6 @@
 -- Since our formal definition only covers circuits with streams and nested streams
 -- we need a predicate to denote those lifted scalar circuits for lifted relational queries
-import DBSP.Circuits.Circuits_v6
+import DBSP.Circuits.Circuits
 open CktBasic
 
 -- A lifted scalar circuit is a circuit without any delay, loops and brackets
