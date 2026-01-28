@@ -51,18 +51,17 @@ variable {A: Type} [Zero A] {n: ℕ}
 def SPred (A: Type) := Operator A Prop
 
 -- The `later` modality in step indexing
-@[simp]
 def later (P: SPred A): SPred A :=
   fun s n =>
     if n = 0 then s 0 = 0
      else P (drop 1 s) (n-1)
 
 lemma later_delay (P: SPred A) (s: stream A) (n: ℕ):
-    P s n <-> later P (z⁻¹ s) (n+1) := by simp
+    P s n <-> later P (z⁻¹ s) (n+1) := by simp [later]
 
 lemma later_delay_TrueUntil (P: SPred A) (s: stream A) (n: ℕ):
     TrueUntil n (P s) <-> TrueUntil (n+1) (later P (z⁻¹ s)) := by
-  simp [TrueUntil]; constructor
+  simp [TrueUntil, latticeClosure_mono, later]; constructor
   · intro hp m hm hm0
     apply hp; omega
   · intro h m hm
@@ -70,14 +69,16 @@ lemma later_delay_TrueUntil (P: SPred A) (s: stream A) (n: ℕ):
     rw [this]; apply h <;> omega
 
 lemma later_delay_forall (P: SPred A) (s: stream A):
-    (∀ n, P s n) <-> (∀ n, later P (z⁻¹ s) (n+1)) := by simp
+    (∀ n, P s n) <-> (∀ n, later P (z⁻¹ s) (n+1)) := by simp [later]
 
 lemma later_delay_TrueUntil_forall (P: SPred A) (s: stream A):
     (∀ n, TrueUntil n (P s)) <-> (∀ n, TrueUntil n (later P (z⁻¹ s))) := by
   constructor
-  · intro h n; cases n; simp [TrueUntil]
+  · intro h n; cases n; simp [TrueUntil, later]
     rw [<- later_delay_TrueUntil]; tauto
   · intro h n
     rw [later_delay_TrueUntil]; tauto
 
 end SProp
+
+infix:60 " ∧ₛ " => SAnd

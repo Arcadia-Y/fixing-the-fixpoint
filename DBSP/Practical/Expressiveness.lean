@@ -100,8 +100,8 @@ variable {A B: VType}
 -- Here we prove that with our new foundation, while programs will always terminate when the
 -- fixpoint exists, thus DBSP is still Turing-complete.
 namespace WhileLoop
--- Let's assume `c0` is a circuit whose denotation is an arbitrary scalar query and whose ExtFP implies its IntFP.
--- This can be any LiftedScalar circuit, but also include more, which we will see later.
+-- Let's assume `c0` is a circuit whose denotation is an arbitrary scalar query, whose ExtFP implies its IntFP and terminates on specific inputs.
+-- An example of such circuit is a LiftedScalar circuit.
 -- `i` is the scalar input, i.e. initial value
 variable (c0: Ckt A A 0) (hei: ∀ x n, ExtFP1 c0 x n -> IntFP1 c0 x n) (i: VType_interp A)
 -- `f` is the scalar function expressed by `c0`
@@ -183,10 +183,11 @@ lemma ZeroAfter_body_IntFP1 (n: ℕ)
     apply FixedAfter1_mono; tauto; omega
 
 include hei in
-lemma Terminate_body:
+lemma Terminate_body
+  (ht: Terminate c0 (funcIterStream f i)):
     Terminate (body c0) (δ0 i) := by
   simp [body, Terminate]
-  apply Terminate_LiftedScalar; tauto
+  sorry
 
 -- The (streaming) while loop query
 def query: Ckt A A 0 :=

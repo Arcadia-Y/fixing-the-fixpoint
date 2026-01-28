@@ -171,6 +171,14 @@ lemma lift_fst_sprod (a b: Type) (x: stream a × stream b):
 lemma lift_snd_sprod (a b: Type) (x: stream a × stream b):
     (↑↑ Prod.snd) (sprod x) = x.2 := by rfl
 
+@[simp]
+lemma lift_fst_sprod2 (a b: Type) (x: stream (stream a) × stream (stream b)):
+    (↑↑↑↑ Prod.fst) (sprod2 x) = x.1 := by rfl
+
+@[simp]
+lemma lift_snd_sprod2 (a b: Type) (x: stream (stream a) × stream (stream b)):
+    (↑↑↑↑ Prod.snd) (sprod2 x) = x.2 := by rfl
+
 lemma liftO_id (ns: Bool) {a: Type}:
     liftO ns (@id a) = id := by
   funext x
