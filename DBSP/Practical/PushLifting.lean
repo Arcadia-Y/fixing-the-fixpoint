@@ -32,7 +32,7 @@ theorem pushLifting_Sequiv {a b} (c: Ckt a b 0):
     apply Quotient.sound
     change Sequiv _ _
     unfold Sequiv
-    simp [denote, TerminateRow, lifting, liftO]
+    simp [denote, Terminate, lifting, liftO]
     try rfl
   case delay =>
     simp only [pushLifting]

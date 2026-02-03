@@ -44,26 +44,27 @@ def Hoare (P: SPred (OVType ns A))
     TrueUntil n (P x) ->
     TrueUntil n (Q (denote c x))
 
+
 lemma Hoare_impl_forall
   (h: Hoare P c Q):
     ∀ x, (∀ i, P x i) -> (∀ j, Q (denote c x) j) := by
   tauto
 
-theorem Hoare_conseq_post_strong
+theorem Hoare_conseq_post
   (Q': SPred (OVType ns B))
   (h: Hoare P c Q')
   (hy: ∀ y n, TrueUntil n (Q' y) -> TrueUntil n (Q y)):
     Hoare P c Q := by
   tauto
 
-theorem Hoare_conseq_post
+theorem Hoare_conseq_post'
   (Q': SPred (OVType ns B))
   (h: Hoare P c Q')
   (hy: ∀ y i, Q' y i -> Q y i):
     Hoare P c Q := by
   tauto
 
-theorem Hoare_conseq_pre_strong
+theorem Hoare_conseq_pre
   (P': SPred (OVType ns A))
   (h: Hoare P' c Q)
   (hx: ∀ x n, TrueUntil n (P x) -> TrueUntil n (P' x)):
@@ -72,12 +73,12 @@ theorem Hoare_conseq_pre_strong
   apply h
   apply hx; assumption
 
-theorem Hoare_conseq_pre
+theorem Hoare_conseq_pre'
   (P': SPred (OVType ns A))
   (h: Hoare P' c Q)
   (hx: ∀ x i, P x i -> P' x i):
     Hoare P c Q := by
-  apply Hoare_conseq_pre_strong P' h
+  apply Hoare_conseq_pre P' h
   intro x n hp m hm
   apply hx
   apply hp; assumption
@@ -124,25 +125,17 @@ theorem Hoare_par_ncausal {c1: Ckt A B ns} {c2: Ckt A C ns}
     Hoare P (c1 &&c c2) (fun y _ => Q1 (liftO ns Prod.fst y) ∧ Q2 (liftO ns Prod.snd y)) := by
   apply Hoare_par h1 h2
 
--- when precondition is row-indexed
-theorem Hoare_lifting_row {c: Ckt A B 0}
-  {P: SPred (OVType 1 A)} {Q: SPred (OVType 0 B)}
-  (h: ∀ y k, TrueUntil k (P y) -> Hoare (fun x _ => x = y k) c Q):
-    Hoare P (c↑ c) (fun y i => ∀ n, Q (y i) n) := by
+theorem Hoare_lifting {c: Ckt A B 0}
+  {P: ℕ -> SPred (OVType 0 A)} {Q: ℕ -> SPred (OVType 0 B)}
+  (h: ∀ j, Hoare (P j) c (Q j)):
+    Hoare (fun x i => ∀ j, P j (x j) i) (c↑ c) (fun y i => ∀ j, Q j (y j) i) := by
   intro x n hx
   simp [denote]
-  intro m hm
-  specialize h x m (by apply TrueUntil_mono hx; omega)
-  apply Hoare_impl_forall at h
-  simp at h
+  intro m hm j; simp at hx
   apply h
-
--- when precondition is column-indexed
-theorem Hoare_lifting_column {c: Ckt A B 0}
-  {P: SPred (OVType 1 A)} {Q: SPred (OVType 0 B)}
-  (h: ∀ y k, Hoare (fun x i => P y i ∧ x i = y k i) c Q):
-    Hoare P (c↑ c) (fun y i => ∀ n, Q (y i) n) := by
-  sorry
+  intro k hk
+  apply hx
+  all_goals omega
 
 theorem Hoare_loop {c: Ckt (A ×ᵥ B) B ns} (I: SPred (OVType ns B))
   (h: Hoare
@@ -185,7 +178,7 @@ theorem Hoare_lifted_loop {c: Ckt (A ×ᵥ B) B 1}
     · apply hp; omega
     rcases m with _ | m
     · funext k; simp
-    · simp; rw [TP_delay, <- later_delay]
+    · simp; rw [TP_delay]; simp
       apply ih
       apply TrueUntil_mono
       tauto; omega; omega
@@ -213,8 +206,26 @@ theorem Hoare_conj_ncausal
   {Q1: (SOVType ns B) -> Prop} {Q2: (SOVType ns B) -> Prop}
   (h1: Hoare P c (fun y _ => Q1 y)) (h2: Hoare P c (fun y _ => Q2 y)):
     Hoare P c (fun y _ => Q1 y ∧ Q2 y) := by
-  apply Hoare_conseq_post
+  apply Hoare_conseq_post'
   apply Hoare_conj; apply h1; apply h2
   simp
+
+lemma Hoare_D {s: SOVType ns A}:
+    Hoare
+      (fun x i => x i = s i)
+      cD
+      (fun y i => y i = D s i) := by
+  simp [Hoare, TrueUntil]
+  intro x n h m hm
+  rcases m with _ | m
+  · simp; rw [h]
+    simp
+  · simp [D]
+    rw [h]; rw [h]
+    all_goals omega
+
+lemma Hoare_True:
+    Hoare P c (fun _ _ => True) := by
+  tauto
 
 end Hoare

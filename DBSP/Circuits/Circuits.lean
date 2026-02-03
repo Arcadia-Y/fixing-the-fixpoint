@@ -142,12 +142,28 @@ lemma liftO_false {a b: Type} (f: a -> b) (x: stream (Optstream false a)):
     liftO false f x = ↑↑ f x := by rfl
 
 @[simp]
+lemma liftO_0 {a b: Type} (f: a -> b) (x: stream (Optstream false a)):
+    liftO 0 f x = ↑↑ f x := by rfl
+
+@[simp]
 lemma liftO_true {a b: Type} (f: a -> b) (x: stream (Optstream true a)):
     liftO true f x = ↑↑↑↑ f x := by rfl
 
 @[simp]
+lemma liftO_1 {a b: Type} (f: a -> b) (x: stream (Optstream true a)):
+    liftO 1 f x = ↑↑↑↑ f x := by rfl
+
+@[simp]
 lemma sprodO_false {a b: Type} (x: stream (Optstream false a) × stream (Optstream false b)):
     sprodO false x = sprod (x.1, x.2) := by rfl
+
+@[simp]
+lemma sprodO_0 {a b: Type} (x: stream (Optstream false a) × stream (Optstream false b)):
+    sprodO 0 x = sprod (x.1, x.2) := by rfl
+
+@[simp]
+lemma sprodO_1 {a b: Type} (x: stream (Optstream true a) × stream (Optstream true b)):
+    sprodO 1 x = sprod2 (x.1, x.2) := by rfl
 
 @[simp]
 lemma sprodO_true {a b: Type} (x: stream (Optstream true a) × stream (Optstream true b)):
@@ -207,6 +223,9 @@ lemma SOVType_false (A: VType):
 @[simp]
 lemma SOVType_true (A: VType):
     SOVType true A = stream (stream (VType_interp A)) := by rfl
+@[simp]
+lemma SOVType_0 (A: VType):
+    SOVType 0 A = stream (VType_interp A) := by rfl
 @[simp]
 lemma SOVType_1 (A: VType):
     SOVType 1 A = stream (stream (VType_interp A)) := by rfl

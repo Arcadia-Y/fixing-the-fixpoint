@@ -27,8 +27,7 @@ lemma Sequiv_to_Refine {c1 c2: Ckt A B ns}:
   intros h x hx
   rcases h with ⟨hd, ht⟩
   simp [hd]
-  rw [Terminate_iff] at hx ⊢
-  intros; rw [<- ht]; tauto
+  rw [<- ht]; tauto
 
 -- Refinement congruence lemmas
 

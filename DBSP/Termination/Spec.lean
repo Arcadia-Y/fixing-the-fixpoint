@@ -124,8 +124,8 @@ def IntFP2Vec (c: Ckt A B 1) (x: SOVType 1 A) (b: stream ℕ): Prop :=
 def ZeroAfterVec {A: Type} [Zero A] (x:  stream (stream A)) (b: stream ℕ): Prop :=
   ∀ i, ZeroAfter (x i) (b i)
 
--- The vectorized version of `Terminate`
--- This definition is for convenience when used
+-- Termination (Streaming Progress) Specification
+-- `Terminate c x` means that circuit `c` will always terminate when computing any finite prefix of the output on input `x`
 def Terminate {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
   match c with
   -- the core definition

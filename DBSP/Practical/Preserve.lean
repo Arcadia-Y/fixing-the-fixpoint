@@ -290,7 +290,6 @@ lemma Preserve2_loop {c1 c2: Ckt (A ×ᵥ B) B 1}
   simp [Terminate] at ht
   rw [this]
   simp [IntFP2] at hi
-  simp [sprodO] at ht
   apply h <;> tauto
 
 -- The proof is almost identical to Preserve1_lifted_loop

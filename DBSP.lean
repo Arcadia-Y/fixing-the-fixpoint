@@ -12,6 +12,10 @@ import DBSP.Termination.FPDetector
 import DBSP.Practical.Sequiv
 import DBSP.Practical.Refine
 
+-- The expressiveness of DBSP circuits (i.e., terminating circuits)
+import DBSP.Practical.Expressiveness
+import DBSP.Practical.RegularCkt
+
 -- The correctness and efficiency (in terms of iteration bounds) of DBSP optimization transformations
 import DBSP.Practical.PushLifting
 import DBSP.Practical.Incrementalize

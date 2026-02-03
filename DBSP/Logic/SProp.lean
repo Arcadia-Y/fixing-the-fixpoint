@@ -9,6 +9,7 @@ section SProp
 @[reducible, simp]
 def SProp := stream Prop
 
+@[simp]
 def STrue: SProp := fun _ => True
 @[simp]
 lemma STrue_apply {n: ℕ}:
@@ -55,6 +56,16 @@ def later (P: SPred A): SPred A :=
   fun s n =>
     if n = 0 then s 0 = 0
      else P (drop 1 s) (n-1)
+
+@[simp]
+lemma later_0 (P: SPred A) (s: stream A):
+    later P s 0 = (s 0 = 0) := by
+  simp [later]
+
+@[simp]
+lemma later_succ (P: SPred A) (s: stream A) (n: ℕ):
+    later P s (n+1) = P (drop 1 s) n := by
+  simp [later]
 
 lemma later_delay (P: SPred A) (s: stream A) (n: ℕ):
     P s n <-> later P (z⁻¹ s) (n+1) := by simp [later]

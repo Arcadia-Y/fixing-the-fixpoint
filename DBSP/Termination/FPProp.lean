@@ -201,6 +201,12 @@ lemma FixedAfter1_sub {A: Type} [AddCommGroup A]
   have h2m := h2 (max m n) (by omega)
   rw [h1k, h2k, h1m, h2m]
 
+@[simp]
+lemma FixedAfter1_const {A: Type} {a: A} {n: ℕ}:
+    FixedAfter1 (fun _ => a) n := by
+  intro m hm
+  simp
+
 -- ExtFP1 Props
 
 lemma ExtFP1_mono {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n1 n2: ℕ)
@@ -741,10 +747,6 @@ end FPProp2
 
 section TerminateProp
 variable {A B C: VType} {ns: Bool}
-@[simp]
-lemma TerminateRow_cI {ns: Bool} {A: VType}{x: SOVType ns A} n:
-    TerminateRow cI x n := by
-  simp [cI, TerminateRow]
 
 @[simp]
 lemma Terminate_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
@@ -752,27 +754,9 @@ lemma Terminate_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
   simp [cI, Terminate]
 
 @[simp]
-lemma TerminateRow_cD {ns: Bool} {A: VType}{x: SOVType ns A} n:
-    TerminateRow cD x n := by
-  simp [cD, TerminateRow]
-
-@[simp]
 lemma Terminate_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
     Terminate cD x := by
   simp [cD, Terminate]
-
--- The equivalent definition of `Terminate` based on `TerminateRow`
-theorem Terminate_iff (c: Ckt A B ns) (x: SOVType ns A):
-    Terminate c x <-> ∀ i, TerminateRow c x i := by
-  induction c <;> try simp [TerminateRow, Terminate, forall_and_iff, *]
-  case bracket c IH =>
-    intro _
-    simp [IntFP2Vec, ZeroAfterVec, ←forall_and_iff]
-    apply Iff.intro
-    · intro ⟨b, hb⟩ i; exact ⟨b i, hb i⟩
-    · intro h
-      have ⟨f, hf⟩ := Classical.axiom_of_choice h
-      exact ⟨f, hf⟩
 
 lemma Terminate_cΔ {c: Ckt A B ns}
   {x: SOVType ns A} (h: Terminate c x):

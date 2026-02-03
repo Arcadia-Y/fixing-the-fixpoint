@@ -31,6 +31,12 @@ lemma sprod_eq_iff {a b: Type}
   · rintro ⟨h1, h2⟩;
     subst h1 h2; simp
 
+@[simp]
+lemma lifting_spord_add {a: Type}
+  [AddCommMonoid a] (x y: stream a):
+    ↑↑(fun x => x.1 + x.2) (sprod (x, y)) = x + y := by
+  funext k; simp
+
 lemma sprod2_eq_iff {a b: Type}
   (x1 x2: stream (stream a)) (y1 y2: stream (stream b)):
     sprod2 (x1, y1) = sprod2 (x2, y2) <-> x1 = x2 ∧ y1 = y2 := by
@@ -318,5 +324,9 @@ lemma lifted_Ckt_const {ns} {A B: VType} (x: VType_interp B):
 lemma lifted_Ckt_lifted_delay {A: VType}:
     lifted_Ckt (@Ckt.lifted_delay A) := by
   use z⁻¹; simp [denote, liftO]
+@[simp]
+lemma lifted_Ckt_lifting {A B: VType} (c: Ckt A B 0):
+    lifted_Ckt (c↑ c) := by
+  use denote c; simp [lifted_Ckt, denote]
 
 end CktBasic
