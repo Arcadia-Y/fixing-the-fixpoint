@@ -60,12 +60,12 @@ instance VType_interp_Group (a: VType) : AddCommGroup (VType_interp a) :=
   | VType.prod a b => by haveI := VType_interp_Group a; haveI := VType_interp_Group b; infer_instance
 
 -- Primitive node structure
-structure UnaryNode {A B: Type} [BaseType A] [BaseType B] where
+structure UnaryNode (A B: Type) [BaseType A] [BaseType B] where
   f: A -> B
   -- The cost of the operation is assumed to be bounded by `cost`
   cost: A -> ℕ
 
-structure BinaryNode {A B C: Type} [BaseType A] [BaseType B] [BaseType C] where
+structure BinaryNode (A B C: Type) [BaseType A] [BaseType B] [BaseType C] where
   f: (A × B) -> C
   -- The cost of the operation is assumed to be bounded by `cost`
   cost: A × B -> ℕ
@@ -215,8 +215,14 @@ def SOVType (ns: Bool) (A: VType) :=
 lemma OVType_false (A: VType):
     OVType false A = VType_interp A := by rfl
 @[simp]
+lemma OVType_0 (A: VType):
+    OVType 0 A = VType_interp A := by rfl
+@[simp]
 lemma OVType_true (A: VType):
     OVType true A = stream (VType_interp A) := by rfl
+@[simp]
+lemma OVType_1 (A: VType):
+    OVType 1 A = stream (VType_interp A) := by rfl
 @[simp]
 lemma SOVType_false (A: VType):
     SOVType false A = stream (VType_interp A) := by rfl
@@ -233,8 +239,14 @@ lemma SOVType_1 (A: VType):
 lemma SOType_false (T: Type):
     SOType false T = stream T := by rfl
 @[simp]
+lemma SOType_0 (T: Type):
+    SOType 0 T = stream T := by rfl
+@[simp]
 lemma SOType_true (T: Type):
     SOType true T = stream (stream T) := by rfl
+@[simp]
+lemma SOType_1 (T: Type):
+    SOType 1 T = stream (stream T) := by rfl
 
 -- Type of the denotational semantics of circuits
 -- both input and output types are streams

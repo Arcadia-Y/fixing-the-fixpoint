@@ -1,5 +1,6 @@
 -- Propositions of ExtFP and IntFP
 import DBSP.Circuits.CktProp
+import DBSP.Circuits.LiftedScalar
 import DBSP.Termination.Spec
 open CktBasic
 
@@ -762,5 +763,15 @@ lemma Terminate_cΔ {c: Ckt A B ns}
   {x: SOVType ns A} (h: Terminate c x):
     Terminate (cΔ c) (D x) := by
   simp [cΔ, Terminate]; tauto
+
+lemma Terminate_bracket_alt {c: Ckt A B 1} {x: SOVType 0 A}
+  (h: Terminate (cbracket c) x):
+    Terminate c (↑↑δ0 x) ∧
+    ∀ i, ∃ b, IntFP2 c (↑↑δ0 x) i b ∧ ZeroAfter (denote c (↑↑δ0 x) i) b := by
+  simp [Terminate] at h
+  rcases h with ⟨h1, ⟨b, ⟨h2, h3⟩⟩⟩
+  simp [h1]
+  intro i; use (b i)
+  tauto
 
 end TerminateProp

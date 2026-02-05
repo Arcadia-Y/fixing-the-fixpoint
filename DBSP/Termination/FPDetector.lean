@@ -737,7 +737,7 @@ noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stre
   -- which is assumed to be stored in the state at the end of last outer iteration
   | Ckt.delay => fun m n => FixedAfter2 (z⁻¹ x) m n
   -- This is where `FPDetector2` depends on `FPDetector1`
-  -- `c↑ c` detects the `StFP1` of the inner circuit `c`
+  -- For `c↑ c`, it detects the `StFP1` of the inner circuit `c`
   | Ckt.lifting c => fun m n => FPDetector1 c (x m) n
   -- For the lifted_delay, the following is just the simplication of `FPDetector1 delay (x m) n`
   | Ckt.lifted_delay => fun m n => x m n = z⁻¹ (x m) n

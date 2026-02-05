@@ -23,3 +23,7 @@ import DBSP.Practical.Incrementalize
 -- The Hoare logics
 import DBSP.Logic.Hoare
 import DBSP.Logic.HoareT
+
+-- The cost model and logic for resource analysis
+import DBSP.ResourceAnalysis.CktCost
+import DBSP.ResourceAnalysis.HoareR

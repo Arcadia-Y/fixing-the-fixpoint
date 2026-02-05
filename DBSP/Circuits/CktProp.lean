@@ -272,14 +272,14 @@ def lifted_Ckt {ns} {A B: VType} (c: Ckt A B ns): Prop :=
   ∃ f, denote c = ↑↑f
 
 @[simp]
-lemma lifted_Ckt_node1 {ns} {A B} [BaseType A] [BaseType B] (f: UnaryNode):
+lemma lifted_Ckt_node1 {ns} {A B} [BaseType A] [BaseType B] (f: UnaryNode A B):
     lifted_Ckt (@Ckt.node1 ns A B _ _ f) := by
   rcases ns
   · use f.f; simp [denote, liftO]
   · use ↑↑f.f; simp [denote, liftO]
 
 @[simp]
-lemma lifted_Ckt_node2 {ns} {A B C} [BaseType A] [BaseType B] [BaseType C] (f: BinaryNode):
+lemma lifted_Ckt_node2 {ns} {A B C} [BaseType A] [BaseType B] [BaseType C] (f: BinaryNode A B C):
     lifted_Ckt (@Ckt.node2 ns A B C _ _ _ f) := by
   rcases ns
   · use f.f; simp [denote, liftO]

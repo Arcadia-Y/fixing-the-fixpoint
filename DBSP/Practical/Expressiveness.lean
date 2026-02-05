@@ -251,6 +251,20 @@ theorem query_ExtFP1_IntFP1 {n: ℕ}
 
 include hf htv hei hfa
 
+theorem lifted_body_HoareI2:
+  HoareI2
+    (fun x => x = ↑↑δ0 is)
+    (c↑ (body c0))
+    (fun _ => True)
+    (fun i => b i + 1) := by
+  rw [fun_stream_eq_forall]; simp
+  apply HoareI2_conseq_post
+  apply HoareI2_lifting (P := fun j x => x = δ0 (is j))
+    (Q := fun _ _ => True)
+  intro j; apply body_HoareI1
+  all_goals try tauto
+  apply FixedAt_mono; tauto; omega
+
 theorem query_HoareT:
   HoareT
     (fun x => x = is)
@@ -262,13 +276,7 @@ theorem query_HoareT:
     apply HoareT_lifting (P := fun j x => x = δ0 (is j))
       (Q := fun j y => y = bodyOutput f (is j))
     intro j; apply body_HoareT <;> tauto
-  · simp; rw [fun_stream_eq_forall]; simp
-    apply HoareI2_conseq_post
-    apply HoareI2_lifting (P := fun j x => x = δ0 (is j))
-      (Q := fun _ _ => True)
-    intro j; apply body_HoareI1
-    all_goals try tauto
-    apply FixedAt_mono; tauto; omega
+  · simp; apply lifted_body_HoareI2 <;> tauto
   · intro z; rw [<- funext_iff]
     intro hz; subst hz
     intro j; simp
@@ -435,6 +443,20 @@ theorem query_ExtFP1_IntFP1 {n: ℕ}
 
 include hf htv hei hfa
 
+theorem lifted_body_HoareI2:
+  HoareI2
+    (fun x => x = ↑↑δ0 is)
+    (c↑ (body c0))
+    (fun _ => True)
+    (fun i => b i + 1) := by
+  rw [fun_stream_eq_forall]; simp
+  apply HoareI2_conseq_post
+  apply HoareI2_lifting (P := fun j x => x = δ0 (is j))
+    (Q := fun _ _ => True)
+  intro j; apply body_HoareI1
+  all_goals try tauto
+  apply FixedAt_mono; tauto; omega
+
 theorem query_HoareT:
   HoareT
     (fun x => x = is)
@@ -446,13 +468,7 @@ theorem query_HoareT:
     apply HoareT_lifting (P := fun j x => x = δ0 (is j))
       (Q := fun j y => y = bodyOutput R (is j))
     intro j; apply body_HoareT <;> tauto
-  · simp; rw [fun_stream_eq_forall]; simp
-    apply HoareI2_conseq_post
-    apply HoareI2_lifting (P := fun j x => x = δ0 (is j))
-      (Q := fun _ _ => True)
-    intro j; apply body_HoareI1
-    all_goals try tauto
-    apply FixedAt_mono; tauto; omega
+  · simp; apply lifted_body_HoareI2 <;> tauto
   · intro z; rw [<- funext_iff]
     intro hz; subst hz
     intro j; simp

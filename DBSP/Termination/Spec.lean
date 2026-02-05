@@ -1,6 +1,5 @@
 -- Specification for termination, or streaming progress
 import DBSP.Circuits.Circuits
-import DBSP.Circuits.LiftedScalar
 open CktBasic
 
 -- Fixpoint Specification
