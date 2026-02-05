@@ -510,7 +510,6 @@ theorem map_support_image (f : A → B) (m : Z[A]) :
 
 end Map
 
-@[simp]
 def size (m : Z[A]) : ℕ :=
   m.support.card
 

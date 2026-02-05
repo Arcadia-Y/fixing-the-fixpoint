@@ -98,11 +98,22 @@ theorem le_integral [CanonicallyOrderedAdd A] {s b: stream A} (h: s ≤ b):
   apply le_trans (h m)
   simp
 
+
+
+theorem mono_delay:
+    Monotone (@delay A _) := by
+  intro s1 s2 h
+  intro m
+  simp [delay]; split_ifs; simp
+  apply h
+
+variable [CanonicallyOrderedAdd A]
+
 theorem mono_integral:
-    Monotone (@I ℕ _) := by
+    Monotone (@I A _) := by
   intro x y hl
   intro i; induction i
-  case zero => apply hl
+  case zero => simp; apply hl
   case succ n ih =>
     simp_rw [integral_sumVals] at ih ⊢
     simp at ih ⊢
@@ -110,9 +121,7 @@ theorem mono_integral:
     apply hl
     apply ih
 
-variable [CanonicallyOrderedAdd A]
-
-theorem mono_integral_stream {s: stream ℕ}:
+theorem mono_integral_stream {s: stream A}:
     Monotone (I s) := by
   intro a b h; simp_rw [integral_sumVals]
   revert a; induction b; simp
@@ -123,20 +132,5 @@ theorem mono_integral_stream {s: stream ℕ}:
     simp
   · have : a = n + 1 := by omega
     rw [this]
-
-theorem delay_Monotone {s b: stream A}
-  (hs: s ≤ k1 • b) (hb: Monotone b) :
-    z⁻¹ s ≤ k1 • b := by
-  have h1 : z⁻¹ s ≤ z⁻¹ (k1 • b) := by
-    intro n
-    simp [delay]
-    split_ifs; simp
-    apply hs
-  apply le_trans h1
-  intro n
-  simp [delay]; split_ifs; simp
-  apply nsmul_le_nsmul_right
-  apply hb
-  omega
 
 end dominate

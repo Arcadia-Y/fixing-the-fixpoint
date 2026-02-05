@@ -337,6 +337,11 @@ theorem integral_sumVals (s : stream a) (n : ℕ) : I s n = sumVals s n.succ :=
     rw [n_ih]; rfl
 
 @[simp]
+theorem integral_succ (s : stream a) (n : ℕ) : I s (n + 1) = s (n+1) + I s n  := by
+  rw [integral_sumVals, integral_sumVals]
+  simp
+
+@[simp]
 theorem integral_zpp : I (0 : stream a) = 0 :=
   by
   funext t

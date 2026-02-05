@@ -122,6 +122,23 @@ theorem HoareR_par {c1: Ckt A B ns} {c2: Ckt A C ns}
     · apply h1.cost x hx
     · apply h2.cost x hx
 
+theorem HoareR_par' {c1: Ckt A B ns} {c2: Ckt A C ns}
+  {Q1: SOVType ns B -> Prop} {Q2: SOVType ns C -> Prop}
+  {r1 r2: SOType ns ℕ}
+  (h1: HoareR P c1 Q1 r1)
+  (h2: HoareR P c2 Q2 r2):
+    HoareR P (c1 &&c c2)
+      (fun y => ∃ y1 y2, y = sprodO ns (y1, y2) ∧ Q1 y1 ∧ Q2 y2)
+      (r1 + r2) := by
+  apply HoareR_conseq_post
+  apply HoareR_par h1 h2
+  rintro y ⟨hy1, hy2⟩
+  use liftO ns Prod.fst y, liftO ns Prod.snd y
+  simp [*]
+  rcases ns <;> simp
+  funext _; simp
+  funext _ _; simp
+
 theorem HoareR_delay:
     HoareR (fun y => y = x) (@Ckt.delay ns A) (fun y => y = z⁻¹ x) (liftO ns VType_space x) := by
   constructor
@@ -154,6 +171,29 @@ theorem HoareR_snd {x: SOVType ns (A×ᵥB)}:
   constructor
   case post =>
     intro y hy; subst hy; simp [Terminate, denote]
+  case cost =>
+    intro y hy; subst hy; simp [cost_f]
+
+theorem HoareR_add {x1 x2: SOVType ns A}:
+    HoareR (fun y => y = sprodO ns (x1, x2)) Ckt.add
+      (fun y => y = x1 + x2) (liftO ns add_cost (sprodO ns (x1, x2)))  := by
+  constructor
+  case post =>
+    intro y hy; subst hy; simp [Terminate, denote]
+    rcases ns <;> simp
+    funext _ _; simp
+  case cost =>
+    intro y hy; subst hy; simp [cost_f]
+
+theorem HoareR_sub {x1 x2: SOVType ns A}:
+    HoareR (fun y => y = sprodO ns (x1, x2)) Ckt.sub
+      (fun y => y = x1 - x2) (liftO ns sub_cost (sprodO ns (x1, x2)))  := by
+  constructor
+  case post =>
+    intro y hy; subst hy; simp [Terminate, denote]
+    rcases ns <;> simp
+    funext _; simp
+    funext _ _; simp
   case cost =>
     intro y hy; subst hy; simp [cost_f]
 
@@ -223,5 +263,45 @@ theorem HoareR_bracket {c: Ckt A B 1}
       apply hc
     apply mono_integral
     apply hic; tauto
+
+lemma HoareR_sintro
+  (h: ∀ v, P v -> HoareR (fun x => x = v) c Q r):
+    HoareR P c Q r := by
+  constructor
+  case post =>
+    intro x hx; specialize h x hx
+    apply h.post; simp
+  case cost =>
+    intro x hx; specialize h x hx
+    apply h.cost; simp
+
+lemma HoareR_I:
+    HoareR
+      (fun y => y = x) cI (fun y => y = I x)
+      (liftO ns add_cost (sprodO ns (x, z⁻¹ (I x))) + liftO ns VType_space (I x)) := by
+  unfold cI
+  apply HoareR_loop
+  case ht =>
+    rw [<- cI]; simp [HoareT]
+    rcases ns <;> simp
+  case hc =>
+    intro a b ha hb ; subst a b
+    apply HoareR_conseq_post
+    apply HoareR_add; tauto
+  case hs =>
+    simp
+
+lemma HoareR_D:
+    HoareR
+      (fun y => y = x) cD (fun y => y = D x)
+      (liftO ns VType_space x + liftO ns sub_cost (sprodO ns (x, z⁻¹ x))) := by
+  constructor
+  case post =>
+    simp [HoareT]
+  case cost =>
+    intro y hy; subst hy
+    rcases ns <;> simp [cD, cost_f, denote]
+    · intro _; simp
+    · intro _ _; simp
 
 end HoareR

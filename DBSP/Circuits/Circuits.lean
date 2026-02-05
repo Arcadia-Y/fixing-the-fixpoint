@@ -75,10 +75,10 @@ structure BinaryNode (A B C: Type) [BaseType A] [BaseType B] [BaseType C] where
 -- `ns` indicates whether the circuit is on nested streams
 inductive Ckt: VType -> VType -> Bool -> Type 1
   -- primitive nodes (ns = 0 means ↑node, ns = 1 means ↑↑node)
-  | node1 {ns} {A B: Type} [BaseType A] [BaseType B] (f: @UnaryNode A B _ _) :
+  | node1 {ns} {A B: Type} [BaseType A] [BaseType B] (f: UnaryNode A B) :
       Ckt (VType.base A) (VType.base B) ns
   | node2 {ns} {A B C: Type} [BaseType A] [BaseType B] [BaseType C]
-      (f: @BinaryNode A B C _ _ _) : Ckt (VType.base A ×ᵥ VType.base B) (VType.base C) ns
+      (f: BinaryNode A B C) : Ckt (VType.base A ×ᵥ VType.base B) (VType.base C) ns
   -- constant
   | const {ns} {a b: VType} (x: VType_interp b) : Ckt a b ns
   -- product combinators
