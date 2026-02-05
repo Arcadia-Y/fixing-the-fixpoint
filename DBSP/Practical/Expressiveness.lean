@@ -286,6 +286,7 @@ theorem query_HoareT:
   rw [<- funext_iff]
   intro hy; subst hy; simp
   intro h i; specialize h i
+  simp [bodyOutput, D] at h
   rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply] at h
   rw [h]; specialize hfa i
   rw [FixedAt_funcIterStream_iff] at hfa
@@ -478,6 +479,7 @@ theorem query_HoareT:
   rw [<- funext_iff]
   intro hy; subst hy; simp
   intro h i; specialize h i
+  simp [bodyOutput, D] at h
   rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply] at h
   rw [h]; specialize hfa i
   rw [FixedAt_funcIterStream_iff] at hfa
