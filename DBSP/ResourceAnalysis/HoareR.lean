@@ -152,9 +152,6 @@ theorem HoareR_id:
   constructor
   case post =>
     intro y hy; subst hy; simp [Terminate, denote]
-    rcases ns <;> simp
-    funext _; simp
-    funext _ _; simp
   case cost =>
     intro y hy; subst hy; simp [cost_f]
 
@@ -301,7 +298,5 @@ lemma HoareR_D:
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp [cD, cost_f, denote]
-    · intro _; simp
-    · intro _ _; simp
 
 end HoareR

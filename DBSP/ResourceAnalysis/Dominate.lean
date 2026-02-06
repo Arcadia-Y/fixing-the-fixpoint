@@ -69,11 +69,11 @@ theorem mul_le_mul_of_le (x1 x2 y1 y2: stream ℕ)
   intro m
   apply mul_le_mul' (h1 m) (h2 m)
 
-theorem add_self_le_two_co [CanonicallyOrderedAdd A] {s: stream A}:
+theorem add_self_le_two [CanonicallyOrderedAdd A] {s: stream A}:
     s + s ≤ 2 • s := by
   simp [two_smul]
 
-theorem add_le_two_co [CanonicallyOrderedAdd A] {s1 s2 b: stream A}
+theorem add_le_two [CanonicallyOrderedAdd A] {s1 s2 b: stream A}
   (h1: s1 ≤ b) (h2: s2 ≤ b):
     s1 + s2 ≤ 2 • b := by
   simp [two_smul]
@@ -91,14 +91,10 @@ theorem Dom_add_ignore [CanonicallyOrderedAdd A] (s1 s2: stream A) (h: s2 ≤ k 
   apply add_le_add h
   rfl
 
-theorem le_integral [CanonicallyOrderedAdd A] {s b: stream A} (h: s ≤ b):
-    s ≤ I b := by
+theorem le_integral [CanonicallyOrderedAdd A] (s: stream A):
+    s ≤ I s := by
   intro m
   simp [integral_sumVals]
-  apply le_trans (h m)
-  simp
-
-
 
 theorem mono_delay:
     Monotone (@delay A _) := by

@@ -32,6 +32,47 @@ macro "solve_preserve1_basic" : tactic => `(tactic| (
   · simp
 ))
 
+lemma Preserve1_node1_self {A B: Type}
+  [BaseType A] [BaseType B] (un: UnaryNode A B):
+    (Ckt.node1 (ns:=ns) un) ↝₁ (Ckt.node1 un) := by
+  solve_preserve1_basic
+
+lemma Preserve1_node2_self {A B C: Type}
+  [BaseType A] [BaseType B] [BaseType C] (bn: BinaryNode A B C):
+    (Ckt.node2 (ns:=ns) bn) ↝₁ (Ckt.node2 bn) := by
+  solve_preserve1_basic
+
+lemma Preserve1_node2_bilinear {A B C: Type}
+  [BaseType A] [BaseType B] [BaseType C] (bn: BinaryNode A B C):
+    (Ckt.node2 (ns:=ns) bn) ↝₁ (bilinear_opt (c₂ bn)) := by
+  simp [Preserve1, IntFP1]
+  rintro x n ht ⟨hx, _⟩
+  simp [bilinear_opt, IntFP1, denote]
+  have eqx := unfold_sprodO x
+  set a := liftO ns Prod.fst x
+  set b := liftO ns Prod.snd x
+  rw [eqx] at ht hx ⊢; simp [D_sprodO]
+  have hab := FixedAfter1_sprodO.1 hx
+  rcases hab with ⟨ha, hb⟩
+  rw [<- ZeroAfter_succ_D_FixedAfter1] at hx
+  simp [D_sprodO] at hx; apply ZeroAfter_impl_FixedAfter1 at hx
+  have hda := ZeroAfter_succ_D_FixedAfter1.2 ha
+  have hdb := ZeroAfter_succ_D_FixedAfter1.2 hb
+  have ha' := FixedAfter1_mono (n2:=n+1) ha (by simp)
+  have hb' := FixedAfter1_mono (n2:=n+1) hb (by simp)
+  have hdaf := ZeroAfter_impl_FixedAfter1 hda
+  have hdbf := ZeroAfter_impl_FixedAfter1 hdb
+  have hzb := FixedAfter1_delay_succ.2 hb
+  have hj1 := FixedAfter1_sprodO.2 ⟨ha', hdbf⟩
+  have hj2 := FixedAfter1_sprodO.2 ⟨hdaf, hzb⟩
+  have hadd1 := FixedAfter1_liftO (f:= bn.f) hj1
+  have hadd2 := FixedAfter1_liftO (f:= bn.f) hj2
+  have haddi := FixedAfter1_sprodO.2 ⟨hadd1, hadd2⟩
+  have haddo := FixedAfter1_liftO (f:= fun a => a.1+ a.2) haddi
+  simp [ExtFP1, *, denote]
+  constructor <;> apply I_IntFP1 <;>
+  rcases ns <;> simp [*]
+
 lemma Preserve1_id:
     cid ↝₁ (@Ckt.id ns A) := by
   solve_preserve1_basic
@@ -169,6 +210,63 @@ macro "solve_preserve2_basic" : tactic => `(tactic| (
   rw [<- ExtFP2Vec, ExtFP2Vec_iff] at hef
   tauto
 ))
+
+lemma Preserve2_node1_self {A B: Type}
+  [BaseType A] [BaseType B] (un: UnaryNode A B):
+    (Ckt.node1 un) ↝₂ (Ckt.node1 un) := by
+  solve_preserve2_basic
+
+lemma Preserve2_node2_self {A B C: Type}
+  [BaseType A] [BaseType B] [BaseType C] (bn: BinaryNode A B C):
+    (Ckt.node2 bn) ↝₂ (Ckt.node2 bn) := by
+  solve_preserve2_basic
+
+lemma Preserve2_node2_bilinear {A B C: Type}
+  [BaseType A] [BaseType B] [BaseType C] (bn: BinaryNode A B C):
+    (Ckt.node2 bn) ↝₂ (bilinear_opt (c₂ bn)) := by
+  simp [Preserve2, IntFP2]
+  rintro x r ht hix
+  have eqx := unfold_sprodO x; simp at eqx
+  set a := ↑↑↑↑Prod.fst x
+  set b := ↑↑↑↑Prod.snd x
+  rw [eqx] at ht hix ⊢; simp [D_sprod2]
+  intro i; simp [bilinear_opt, denote, IntFP2]
+  simp [IntFP2Vec, IntFP2, ExtFP2] at hix
+  rw [forall_and_iff] at hix; rcases hix with ⟨hx, _⟩
+  rw [<- FixedAfter2Vec] at hx
+  have hdx := FixedAfter2Vec_D hx
+  rw [D_sprod2] at hdx
+  have hx' := FixedAfter2Vec_sprod2.1 hdx
+  rw [FixedAfter2Vec_sprod2] at hx; rcases hx with ⟨ha, hb⟩
+  rcases hx' with ⟨hda, hdb⟩
+  set r' := fun i => max (r i) (z⁻¹ r i)
+  have ha' := FixedAfter2Vec_mono (b2:= r') ha (by intro i; simp [r'])
+  have hb' := FixedAfter2Vec_mono (b2:= r') hb (by intro i; simp [r'])
+  have hzb := FixedAfter2Vec_delay.1 hb
+  have hzb' := FixedAfter2Vec_mono (b2:= r') hzb (by intro i; simp [r'])
+  have hj1 := FixedAfter2Vec_sprod2.2 ⟨ha', hdb⟩
+  have hj2 := FixedAfter2Vec_sprod2.2 ⟨hda, hzb'⟩
+  have hadd1 := FixedAfter2Vec_lifting (f:= bn.f) hj1
+  have hadd2 := FixedAfter2Vec_lifting (f:= bn.f) hj2
+  have haddi := FixedAfter2Vec_sprod2.2 ⟨hadd1, hadd2⟩
+  have haddo := FixedAfter2Vec_lifting (f:= fun a => a.1+ a.2) haddi
+  unfold r' at *
+  specialize hdx i
+  specialize hda i
+  specialize hdb i
+  specialize ha' i
+  specialize hb' i
+  specialize hzb i
+  specialize hzb' i
+  specialize hj1 i
+  specialize hj2 i
+  specialize hadd1 i
+  specialize hadd2 i
+  specialize haddi i
+  specialize haddo i
+  simp at *
+  simp [ExtFP2, *, denote]
+  constructor <;> apply I_IntFP2Vec <;> tauto
 
 lemma Preserve2_id:
     cid ↝₂ (@Ckt.id 1 A) := by

@@ -121,3 +121,13 @@ theorem pushLifting_IntFP2Vec {a b} (c: Ckt a b 0)
   apply pushLifting_IntFP2
   simp [IntFP2Vec, IntFP2] at h
   exact h i
+
+@[simp]
+lemma pushlifting_I {a}:
+    pushLifting (cI (a:=a)) = c↑I := by
+  simp [cI, lifted_I, pushLifting]
+
+@[simp]
+lemma pushlifting_D {a}:
+    pushLifting (cD (a:=a)) = c↑D := by
+  simp [cD, lifted_D, pushLifting]

@@ -437,6 +437,22 @@ theorem FixedAfter2_causal {T: Type} {m: ℕ}
   funext n; simp [FixedAfter2]; rw [heq]
 
 -- FixedAfter2Vec Props
+lemma FixedAfter2Vec_mono {A: Type} {s: stream (stream A)} {b1 b2: stream ℕ}
+  (h: FixedAfter2Vec s b1) (hb: b1 ≤ b2):
+    FixedAfter2Vec s b2 := by
+  intro i
+  apply FixedAfter2_mono <;> tauto
+
+lemma FixedAfter2Vec_sprod2 {A B: Type}
+  {s1: stream (stream A)} {s2: stream (stream B)} {b: stream ℕ}:
+    FixedAfter2Vec (sprod2 (s1, s2)) b <->
+    FixedAfter2Vec s1 b ∧ FixedAfter2Vec s2 b := by
+  constructor
+  · intro h; constructor <;> intro i <;>
+    specialize h i <;>
+    rw [FixedAfter2_sprod2_iff] at h <;> tauto
+  · rintro ⟨h1, h2⟩
+    intro i; rw [FixedAfter2_sprod2_iff]; tauto
 
 lemma FixedAfter2Vec_delay {A: Type} [Zero A]
   {x: stream (stream A)} {b: stream ℕ}:
@@ -449,6 +465,13 @@ lemma FixedAfter2Vec_delay {A: Type} [Zero A]
   · specialize h (i+1)
     simp [FixedAfter2] at h ⊢
     tauto
+
+lemma FixedAfter2Vec_lifting {A B: Type} {s: stream (stream A)} {b: stream ℕ}
+  {f: A -> B} (hx: FixedAfter2Vec s b):
+    FixedAfter2Vec (↑↑↑↑f s) b := by
+  intro i
+  apply FixedAfter2_lifted_scalar
+  apply hx
 
 lemma FixedAfter2Vec_sub {A: Type} [AddCommGroup A]
   {s1 s2: stream (stream A)} {b1 b2: stream ℕ}

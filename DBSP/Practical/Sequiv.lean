@@ -145,13 +145,12 @@ theorem SemCkt_lifted_loop_lift (c: Ckt (A ×ᵥ B) B 1):
     (sloop2 (toSem c)) = toSem (cloop2 c) := rfl
 
 -- incrementalize lemmas
-lemma DenoteLiftedScalar_Sequiv_incr {ns} {a b} (c: Ckt a b ns)
+lemma Sequiv_incr_linear {ns} {a b} (c: Ckt a b ns)
   (ht: ∀ x, Terminate c x)
   {f: VType_interp a -> VType_interp b}
   (hf: DenoteLiftedScalar c f)
   (hfl: ∀ x y, f (x + y) = f x + f y):
    (cΔ c) ≃ c := by
-  have ht: ∀ x, Terminate c x := ht
   simp [Sequiv]; constructor; swap
   · simp [cΔ, Terminate]
     funext x
@@ -164,37 +163,98 @@ lemma DenoteLiftedScalar_Sequiv_incr {ns} {a b} (c: Ckt a b ns)
   intro x y; funext t
   simp [hfl]
 
+lemma Sequiv_incr_linear_node1 {ns}
+  {a b} [BaseType a] [BaseType b]
+  (un: UnaryNode a b)
+  (hfl: ∀ x y, un.f (x + y) = un.f x + un.f y):
+   (cΔ (Ckt.node1 (ns:=ns) un)) ≃ c₁ un := by
+  apply Sequiv_incr_linear <;> tauto
+
+lemma Sequiv_incr_linear_node2 {ns}
+  {a b c} [BaseType a] [BaseType b] [BaseType c]
+  (bn: BinaryNode a b c)
+  (hfl: ∀ x y, bn.f (x + y) = bn.f x + bn.f y):
+   (cΔ (Ckt.node2 (ns:=ns) bn)) ≃ c₂ bn := by
+  apply Sequiv_incr_linear <;> tauto
+
+def bilinear_opt {ns} {a b c} (x: Ckt (a ×ᵥ b) c ns) :=
+  ((c1st >>c cI &&c c2nd) >>c x
+    &&c
+    (c1st &&c c2nd >>c cI >>c cz⁻¹) >>c x)
+  >>c cadd
+
+lemma Sequiv_incr_bilinear {ns} {A B C} (c: Ckt (A ×ᵥ B) C ns)
+  (ht: ∀ x, Terminate c x)
+  {f: VType_interp A × VType_interp B -> VType_interp C}
+  (hf: DenoteLiftedScalar c f)
+  (hb1: ∀ x y z, f (x+y, z) = f (x, z) + f (y, z))
+  (hb2: ∀ x y z, f (x, y+z) = f (x, y) + f (x, z)):
+    (cΔ c) ≃ bilinear_opt c := by
+  simp [Sequiv]; constructor; swap
+  · simp [cΔ, bilinear_opt, Terminate]
+    funext x
+    rw [eq_iff_iff]
+    tauto
+  simp [bilinear_opt, denote]
+  rw [hf]
+  funext x
+  have := unfold_sprodO x
+  set a := liftO ns Prod.fst x
+  set b := liftO ns Prod.snd x
+  rw [this]; rcases ns
+  · funext i; simp [incremental, D]
+    simp_rw [integral_sprod]; simp
+    rcases i with _ | i <;> simp
+    · specialize hb2 (a 0) 0 0
+      simp at hb2; tauto
+    · rw [hb2, hb1 (z:= I b i)]
+      abel
+  · funext i j; simp [incremental, D]
+    simp_rw [integral_sprod2]; simp
+    rcases i with _ | i <;> simp
+    · specialize hb2 (a 0 j) 0 0
+      simp at hb2; tauto
+    · rw [hb2, hb1 (z:= I b i j)]
+      abel
+
+theorem Sequiv_incr_bilinear_node2 {ns} {A B C} [BaseType A] [BaseType B] [BaseType C]
+  (bn: BinaryNode A B C)
+  (hfl1: ∀ x y z, bn.f (x+y, z) = bn.f (x, z) + bn.f (y, z))
+  (hfl2: ∀ x y z, bn.f (x, y+z) = bn.f (x, y) + bn.f (x, z)):
+    (cΔ (Ckt.node2 (ns:=ns) bn)) ≃ bilinear_opt (Ckt.node2 bn) := by
+  apply Sequiv_incr_bilinear <;> tauto
+
 theorem Sequiv_incr_id:
     cΔ cid ≃ (@Ckt.id ns A) := by
-  apply DenoteLiftedScalar_Sequiv_incr (f := id)
+  apply Sequiv_incr_linear (f := id)
   · intro; simp [Terminate]
   · rfl
   · intros; rfl
 
 theorem Sequiv_incr_fst:
     cΔ c1st ≃ (@Ckt.fst ns A B) := by
-  apply DenoteLiftedScalar_Sequiv_incr (f := Prod.fst)
+  apply Sequiv_incr_linear (f := Prod.fst)
   case ht => intro; simp [Terminate]
   case hf => rfl
   case hfl => intros; rfl
 
 theorem Sequiv_incr_snd:
     cΔ c2nd ≃ (@Ckt.snd ns A B) := by
-  apply DenoteLiftedScalar_Sequiv_incr (f := Prod.snd)
+  apply Sequiv_incr_linear (f := Prod.snd)
   case ht => intro; simp [Terminate]
   case hf => rfl
   case hfl => intros; rfl
 
 theorem Sequiv_incr_add:
     cΔ cadd ≃ (@Ckt.add ns A) := by
-  apply DenoteLiftedScalar_Sequiv_incr (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 + x.2)
+  apply Sequiv_incr_linear (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 + x.2)
   · intro; simp [Terminate]
   · rfl
   · intros x y; simp; abel
 
 theorem Sequiv_incr_sub:
     cΔ csub ≃ (@Ckt.sub ns A) := by
-  apply DenoteLiftedScalar_Sequiv_incr (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 - x.2)
+  apply Sequiv_incr_linear (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 - x.2)
   · intro; simp [Terminate]
   · rfl
   · intros x y; simp [sub_eq_add_neg]; abel

@@ -37,6 +37,18 @@ lemma lifting_spord_add {a: Type}
     ↑↑(fun x => x.1 + x.2) (sprod (x, y)) = x + y := by
   funext k; simp
 
+@[simp]
+lemma lifting_binary_sprod {a b c: Type}
+  (f: a -> b -> c) x y:
+    ↑↑ (fun x => f x.1 x.2) (sprod (x, y)) = (fun i => f (x i) (y i)) := by
+  funext k; simp
+
+@[simp]
+lemma lifting2_binary_sprod2 {a b c: Type}
+  (f: a -> b -> c) x y:
+    ↑↑↑↑ (fun x => f x.1 x.2) (sprod2 (x, y)) = (fun i j => f (x i j) (y i j)) := by
+  funext i j; simp
+
 lemma sprod2_eq_iff {a b: Type}
   (x1 x2: stream (stream a)) (y1 y2: stream (stream b)):
     sprod2 (x1, y1) = sprod2 (x2, y2) <-> x1 = x2 ∧ y1 = y2 := by
@@ -54,6 +66,13 @@ lemma sprodO_eq_iff {ns: Bool} {a b: Type}
   rcases ns <;> simp [sprodO]
   · apply sprod_eq_iff
   · apply sprod2_eq_iff
+
+lemma unfold_sprodO {ns: Bool} {a b: Type}
+  (x: stream (Optstream ns (a × b))):
+    x = sprodO ns (liftO ns Prod.fst x, liftO ns Prod.snd x) := by
+  rcases ns
+  · funext _; simp
+  · funext _ _; simp
 
 lemma sprod_causal {a b: Type}
   (x1 x2: stream a) (y1 y2: stream b) (n: ℕ):
@@ -194,7 +213,7 @@ theorem causalO_delay {ns} {a: Type} [Zero a]:
     apply h <;> omega
 
 theorem ckt_causalO {ns} {a b: VType} (c: Ckt a b ns): CausalO ns (denote c) := by
-  induction c <;> simp [denote] <;> try apply causalO_liftO
+  induction c <;> simp [denote, -liftO_id] <;> try apply causalO_liftO
   case seq ns _ _ _ c1 c2 ih1 ih2 =>
     apply causalO_comp <;> tauto
   case par c1 c2 ih1 ih2 =>

@@ -234,7 +234,7 @@ theorem HoareR_Zset_I {x: SOType ns Z[A]}:
   apply HoareR_weaken_bound
   apply HoareR_I
   have h1: Zsize x ≤ I (Zsize x) := by
-    apply le_integral; rfl
+    apply le_integral
   have h2 := Zsize_I x
   have h3 : Zsize (z⁻¹ (I x)) ≤ I (Zsize x) := by
     rw [Zsize_delay]
@@ -425,8 +425,7 @@ theorem HoareR_ZSB_join {π1 : A → C} {π2 : B → C}
 theorem HoareR_ZSB_delay {x: SOType ns Z[A]} {b}
   (h: ZSB x b):
     HoareR (fun y => y = x) (Ckt.delay (ns := ns) (a := [Z[A]]v))
-      (fun y => ZSB y (z⁻¹ b))
-      (Zsize x) := by
+      (fun y => ZSB y (z⁻¹ b)) b := by
   constructor
   case post =>
     intro y hy; subst hy
@@ -445,8 +444,21 @@ theorem HoareR_ZSB_delay {x: SOType ns Z[A]} {b}
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, liftO, Zset.size]
-    · intro i; simp [VType_space, BaseType.size]
-    · intro i j; simp [VType_space, BaseType.size]
+    · intro i; simp [VType_space, BaseType.size]; apply h
+    · intro i j; simp [VType_space, BaseType.size]; apply h
+
+theorem HoareR_ZSB_I {x: SOType ns Z[A]} {b}
+  (h: ZSB x b):
+    HoareR (fun y => y = x) (cI (a := [Z[A]]v) (ns := ns))
+      (fun y => ZSB y (I b))
+      (3 • I b) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_I
+  · apply smul_mono_right
+    apply mono_integral; tauto
+  · intro y _; subst y
+    apply ZSB_I h
 
 --- stream_id_distinct lemmas (ns = false only)
 section sid_lemmas

@@ -8,33 +8,78 @@ open CktBasic
 class IncUnary {A B} [BaseType A] [BaseType B] (f :@UnaryNode A B _ _) where
   opt: {ns: Bool} -> Ckt (VType.base A) (VType.base B) ns
   sequiv: ∀ ns, cΔ (c₁ f) ≃ @opt ns
-  refine1: ∀ ns, (Ckt.node1 (ns:=ns) f) ↝₁ opt
-  refine2: (c₁ f) ↝₂ opt
+  preserve1: ∀ ns, (Ckt.node1 (ns:=ns) f) ↝₁ opt
+  preserve2: (c₁ f) ↝₂ opt
 
 -- a default low-priority instance
 -- the incremental version is simply unoptimized
-instance (priority := low) {A B} [BaseType A] [BaseType B]
-  (f :@UnaryNode A B _ _): IncUnary f where
+instance (priority := low) IncUnaryDefault
+  {A B} [BaseType A] [BaseType B]
+  (f: UnaryNode A B): IncUnary f where
   opt := cΔ (Ckt.node1 f)
   sequiv := by intro ns; rfl
-  refine1 := by intro ns; apply Preserve1_incr
-  refine2 := by apply Preserve2_incr
+  preserve1 := by intro ns; apply Preserve1_incr
+  preserve2 := by apply Preserve2_incr
+
+-- linear unary functions
+instance IncUnaryLinear
+  {A B} [BaseType A] [BaseType B]
+  (un: UnaryNode A B)
+  (hfl: ∀ x y, un.f (x + y) = un.f x + un.f y):
+    IncUnary un where
+  opt := c₁ un
+  sequiv := by
+    intro ns; apply Sequiv_incr_linear_node1; tauto
+  preserve1 := by
+    intro ns; apply Preserve1_node1_self
+  preserve2 := by
+    apply Preserve2_node1_self
 
 -- incrementalizable binary nodes
-class IncBinary {A B C} [BaseType A] [BaseType B] [BaseType C] (f :@BinaryNode A B C _ _ _) where
+class IncBinary {A B C} [BaseType A] [BaseType B] [BaseType C] (f :BinaryNode A B C) where
   opt: {ns: Bool} -> Ckt (VType.base A ×ᵥ VType.base B) (VType.base C) ns
   sequiv: ∀ ns, cΔ (c₂ f) ≃ @opt ns
-  refine1: ∀ ns, (Ckt.node2 (ns:=ns) f) ↝₁ opt
-  refine2: (c₂ f) ↝₂ opt
+  preserve1: ∀ ns, (Ckt.node2 (ns:=ns) f) ↝₁ opt
+  preserve2: (c₂ f) ↝₂ opt
 
 -- a default low-priority instance
 -- the incremental version is simply unoptimized
-instance (priority := low) {A B C} [BaseType A] [BaseType B] [BaseType C]
-  (f :@BinaryNode A B C _ _ _): IncBinary f where
+instance (priority := low) IncBinaryDefault
+  {A B C} [BaseType A] [BaseType B] [BaseType C]
+  (f :BinaryNode A B C): IncBinary f where
   opt := cΔ (Ckt.node2 f)
   sequiv := by intro ns; rfl
-  refine1 := by intro ns; apply Preserve1_incr
-  refine2 := by apply Preserve2_incr
+  preserve1 := by intro ns; apply Preserve1_incr
+  preserve2 := by apply Preserve2_incr
+
+-- linear binary functions
+instance IncBinaryLinear
+  {A B C} [BaseType A] [BaseType B] [BaseType C]
+  (bn: BinaryNode A B C)
+  (hfl: ∀ x y, bn.f (x + y) = bn.f x + bn.f y):
+    IncBinary bn where
+  opt := c₂ bn
+  sequiv := by
+    intro ns; apply Sequiv_incr_linear_node2; tauto
+  preserve1 := by
+    intro ns; apply Preserve1_node2_self
+  preserve2 := by
+    apply Preserve2_node2_self
+
+-- bilinear binary functions
+instance IncBinaryBilinear
+  {A B C} [BaseType A] [BaseType B] [BaseType C]
+  (bn: BinaryNode A B C)
+  (hb1: ∀ x y z, bn.f (x+y, z) = bn.f (x, z) + bn.f (y, z))
+  (hb2: ∀ x y z, bn.f (x, y+z) = bn.f (x, y) + bn.f (x, z)):
+    IncBinary bn where
+  opt := bilinear_opt (c₂ bn)
+  sequiv := by
+    intro ns; apply Sequiv_incr_bilinear_node2 <;> tauto
+  preserve1 := by
+    intro ns; apply Preserve1_node2_bilinear
+  preserve2 := by
+    apply Preserve2_node2_bilinear
 
 -- The recursive evidence for incrementalizability
 inductive IncEvidence : ∀ {a b ns}, Ckt a b ns -> Type 1
@@ -121,7 +166,20 @@ instance {a b}(c: Ckt (a ×ᵥ b) b 1) [IncCkt c]: IncCkt (Ckt.lifted_loop c) :=
 instance {a b} (c: Ckt a b 1) [IncCkt c] : IncCkt (Ckt.bracket c) :=
   ⟨IncEvidence.bracket c IncCkt.evidence⟩
 
+instance {ns a}: IncCkt (@cD a ns) := by
+  unfold cD; infer_instance
+
+instance {ns a}: IncCkt (@cI a ns) := by
+  unfold cI; infer_instance
+
+instance {a}: IncCkt (@lifted_I a) := by
+  unfold lifted_I; infer_instance
+
+instance {a}: IncCkt (@lifted_D a) := by
+  unfold lifted_D; infer_instance
+
 -- The incremental optimization algorithm helper function
+@[simp]
 def incOptOfEvidence {a b ns} {c: Ckt a b ns} (e: IncEvidence c) : Ckt a b ns :=
   match e with
   | IncEvidence.node1 n => IncUnary.opt n
@@ -169,9 +227,9 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
     constructor
     · apply Sequiv_to_Refine; apply h.sequiv
     constructor
-    · apply h.refine1
+    · apply h.preserve1
     · cases ns <;> simp
-      exact h.refine2
+      exact h.preserve2
   case id | fst | snd | add | sub =>
     constructor
     · apply Sequiv_to_Refine
@@ -327,3 +385,19 @@ theorem incOpt_Preserve2 {A B} (c: Ckt A B 1) [hic: IncCkt c] :
     c ↝₂ (incOpt c) := by
   have h := IncrementalizeProof.incOpt_correctness c
   simp at h; tauto
+
+@[simp]
+lemma incOpt_I {ns A}:
+    incOpt (@cI A ns) = cI := rfl
+
+@[simp]
+lemma incOpt_D {ns A}:
+    incOpt (@cD A ns) = cD := rfl
+
+@[simp]
+lemma incOpt_lifted_I {A}:
+    incOpt (@lifted_I A) = c↑I := rfl
+
+@[simp]
+lemma incOpt_lifted_D {A}:
+    incOpt (@lifted_D A) = c↑D := rfl

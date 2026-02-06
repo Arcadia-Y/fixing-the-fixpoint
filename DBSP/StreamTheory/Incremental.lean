@@ -171,6 +171,20 @@ theorem incremental_sprod (f : Operator (a × b) c) (s1 : stream a) (s2 : stream
   unfold incremental incremental2
   rw [integral_sprod]
 
+omit [AddCommGroup a] [AddCommGroup b] in
+lemma sprod_eq_self (s : stream (a × b)) :
+    sprod ((↑↑Prod.fst) s, (↑↑Prod.snd) s) = s := by
+  funext n; simp
+
+/-- Rewrite the incremental of an operator on products into incremental2 form.
+This is the converse direction of `incremental_sprod`: given any stream
+`s : stream (a × b)`, we can decompose it and express `(f^Δ) s` using
+`incremental2`. -/
+theorem incremental_as_incremental2 (f : Operator (a × b) c) (s : stream (a × b)) :
+    (f^Δ) s = ((fun s1 s2 => f (sprod (s1, s2)))^Δ2) ((↑↑Prod.fst) s) ((↑↑Prod.snd) s) := by
+  conv_lhs => rw [← sprod_eq_self s]
+  exact incremental_sprod f ((↑↑Prod.fst) s) ((↑↑Prod.snd) s)
+
 omit [AddCommGroup a] in
 theorem lifting_cycle_body_strict2 (T : Operator2 a b b) (hcausal : Causal (uncurryOp T)) :
     ∀ s, Strict2 fun α : stream (stream b) => (↑²T) s ((↑↑z⁻¹) α) :=

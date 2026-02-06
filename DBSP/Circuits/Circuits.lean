@@ -195,20 +195,26 @@ lemma lift_fst_sprod2 (a b: Type) (x: stream (stream a) × stream (stream b)):
 lemma lift_snd_sprod2 (a b: Type) (x: stream (stream a) × stream (stream b)):
     (↑↑↑↑ Prod.snd) (sprod2 x) = x.2 := by rfl
 
+@[simp]
+lemma lift1_id {a: Type}:
+     ↑↑(@id a) = id := rfl
+
+@[simp]
+lemma lift2_id {a: Type}:
+     ↑↑↑↑(@id a) = id := rfl
+
+@[simp]
 lemma liftO_id (ns: Bool) {a: Type}:
     liftO ns (@id a) = id := by
   funext x
   rcases ns <;> rfl
 
 -- Type abbreviations
-@[reducible]
-def OVType (ns: Bool) (A: VType) :=
+abbrev OVType (ns: Bool) (A: VType) :=
   Optstream ns (VType_interp A)
-@[reducible]
-def SOType (ns: Bool) (T: Type) :=
+abbrev SOType (ns: Bool) (T: Type) :=
   stream (Optstream ns T)
-@[reducible]
-def SOVType (ns: Bool) (A: VType) :=
+abbrev SOVType (ns: Bool) (A: VType) :=
   SOType ns (VType_interp A)
 
 @[simp]
@@ -280,6 +286,8 @@ noncomputable def denote {a b: VType} {ns: Bool}: (Ckt a b ns) -> DenoteType ns 
 def cI {a: VType} {ns: Bool}: Ckt a a ns := cloop cadd
 def cD {a: VType} {ns: Bool}: Ckt a a ns := (cid &&c cz⁻¹) >>c csub
 def cΔ {a b: VType} {ns: Bool} (c: Ckt a b ns) := cI >>c c >>c cD
+def lifted_I {a: VType}: Ckt a a 1 := cloop2 cadd
+def lifted_D {a: VType}: Ckt a a 1 := (cid &&c c↑z⁻¹) >>c csub
 
 @[simp]
 lemma cI_denote {ns} {a: VType}:
@@ -296,5 +304,21 @@ lemma cΔ_denote {ns} {a b: VType} (c: Ckt a b ns):
     denote (cΔ c) = ((denote c)^Δ) := by
   simp [cΔ, denote]
   funext x; simp [incremental]
+
+@[simp]
+lemma lifted_I_denote {a: VType}:
+    denote lifted_I = ↑↑(@I (VType_interp a) AddCommGroup.toAddCommMonoid) := by
+  simp [lifted_I, denote]
+  funext x i j; simp [fix2]
+  induction j <;> simp [*]
+
+@[simp]
+lemma lifted_D_denote {a: VType}:
+    denote lifted_D = ↑↑(@D (VType_interp a) _) := by
+  simp [lifted_D, denote]
+  funext x; simp; rfl
+
+notation "c↑I" => lifted_I
+notation "c↑D" => lifted_D
 
 end CktBasic

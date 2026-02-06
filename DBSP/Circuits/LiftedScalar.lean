@@ -65,7 +65,7 @@ def DenoteLiftedScalar {ns} {A B: VType} (c: Ckt A B ns) (f: VType_interp A -> V
 theorem LiftedScalar_Denote {ns} {A B: VType} (c: Ckt A B ns):
     LiftedScalar c -> ∃f, DenoteLiftedScalar c f := by
   intro h
-  induction h <;> simp [DenoteLiftedScalar, denote]
+  induction h <;> simp [DenoteLiftedScalar, denote, -liftO_id]
   case seq ns a b c c1 c2 h1 h2 ih1 ih2 =>
     rcases ih1 with ⟨f1, hf1⟩
     rcases ih2 with ⟨f2, hf2⟩
