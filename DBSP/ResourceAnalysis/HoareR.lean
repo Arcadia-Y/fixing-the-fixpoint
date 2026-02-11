@@ -64,9 +64,9 @@ theorem HoareT_to_HoareR
     intro x hx
     apply hr; tauto
 
-theorem HoareT_to_HoareR'
+theorem HoareT_to_HoareR' {Q'}
   (ht: HoareT P c Q)
-  (hr: HoareR P c (fun _ => True) r):
+  (hr: HoareR P c Q' r):
     HoareR P c Q r := by
   constructor
   case post => exact ht
@@ -230,6 +230,19 @@ theorem HoareR_lifted_loop {c: Ckt (A ×ᵥ B) B 1}
     · apply hc.cost; rfl
     · apply hs; tauto
 
+theorem HoareR_lifting {c: Ckt A B 0}
+  {P: ℕ -> SOVType 0 A -> Prop} {Q: ℕ -> SOVType 0 B -> Prop} {r: stream (stream ℕ)}
+  (h: ∀ j, HoareR (P j) c (Q j) (r j)):
+    HoareR (fun x => ∀ j, P j (x j)) (c↑ c) (fun y => ∀ j, Q j (y j)) r := by
+  constructor
+  case post =>
+    apply HoareT_lifting
+    intro j; apply (h j).post
+  case cost =>
+    intro x hx j; simp [cost_f]
+    have hc := (h j).cost
+    apply hc; tauto
+
 open Classical in
 theorem HoareR_bracket {c: Ckt A B 1}
   {P: SOVType 0 A -> Prop} {Q: SOVType 1 B -> Prop}
@@ -237,7 +250,7 @@ theorem HoareR_bracket {c: Ckt A B 1}
   (hr: ∀ y, P y -> HoareR (fun x => x = ↑↑δ0 y) c Q r1)
   (hi: ∀ y, P y -> HoareI2 (fun x => x = ↑↑δ0 y) c (fun _ => True) b)
   (hb: ∀ z, Q z -> ZeroAfterVec z b)
-  (hic: ∀ z, Q z -> ∀ i, ↑↑add_cost (sprod (z i, z⁻¹ (I (z i)))) + ↑↑VType_space (I (z i)) ≤ r2 i):
+  (hic: ∀ z, Q z -> ∀ i, HoareR (fun x => x = z i) (cI (ns:=0)) (fun _ => True) (r2 i)):
     HoareR P (cbracket c) (fun y => ∃ z, Q z ∧ ∀ i, y i = I (z i) (b i)) (fun i => I (r1 i + r2 i) (b i)) := by
   constructor
   case post =>
@@ -259,7 +272,9 @@ theorem HoareR_bracket {c: Ckt A B 1}
     · apply mono_integral
       apply hc
     apply mono_integral
-    apply hic; tauto
+    specialize hic _ (by tauto) i
+    have hic := hic.cost _ rfl
+    apply hic
 
 lemma HoareR_sintro
   (h: ∀ v, P v -> HoareR (fun x => x = v) c Q r):

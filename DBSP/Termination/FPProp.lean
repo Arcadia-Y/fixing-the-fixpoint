@@ -734,6 +734,12 @@ lemma IntFP2Vec_par {c1: Ckt A B 1} {c2: Ckt A C 1}
     IntFP2Vec c1 x b ∧ IntFP2Vec c2 x b := by
   simp [IntFP2Vec, IntFP2]; aesop
 
+lemma IntFP2Vec_mono {c: Ckt A B 1} {x: SOVType 1 A} {b1 b2: stream ℕ}
+  (h: b1 ≤ b2) (h1: IntFP2Vec c x b1):
+    IntFP2Vec c x b2 := by
+  intro i
+  apply IntFP2_mono <;> tauto
+
 lemma I_IntFP2Vec {x: SOVType 1 A} {b}
   (h: FixedAfter2Vec x b):
     IntFP2Vec cI (D x) (fun i => max (b i) (z⁻¹ b i)) := by

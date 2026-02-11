@@ -235,13 +235,35 @@ theorem isSet_or (s : Z[A]) : IsSet s ↔ ∀ a, s a = 0 ∨ s a = 1 :=
   · have h' := h a
     rw [elem_mp]; tauto
 
+omit [DecidableEq A] in
+theorem add_pos: FunPositive2 (fun (m1 m2: Z[A]) => m1 + m2) := by
+  intro m1 m2 h1 h2
+  intro a; simp
+  have h1a := h1 a; have h2a := h2 a
+  simp at h1a h2a
+  omega
+
 @[simp]
 theorem isSet_0 : IsSet (0 : Z[A]) := by rw [isSet_or]; tauto
+
+omit [DecidableEq A] in
+@[simp]
+theorem isBag_0 : IsBag (0 : Z[A]) := by simp [IsBag]
+
+@[simp]
+lemma fromSet_isSet (s : Finset A) : IsSet (Zset.fromSet s) := by
+  simp [isSet_or, fromSet_apply]
+  tauto
 
 theorem set_isBag (s : Z[A]) : IsSet s → IsBag s :=
   by
   intro hset a
   cases' (isSet_or _).mp hset a with h_a h_a <;> rw [h_a] <;> rw [DFinsupp.zero_apply]; simp
+
+@[simp]
+lemma fromSet_isBag (s : Finset A) : IsBag (Zset.fromSet s) := by
+  apply set_isBag
+  apply fromSet_isSet
 
 @[simp]
 theorem elem_single (a x : A) : x ∈ ({a} : Z[A]) ↔ a = x := by rw [elem_mp]; simp
@@ -262,6 +284,17 @@ theorem distinct_apply (m : Z[A]) (a : A) : distinct m a = if m a > 0 then 1 els
 
 theorem distinct_support (m : Z[A]) : (distinct m).support = m.support.filter fun a => m a > 0 := by
   ext a; simp [distinct]
+
+theorem isSet_support_fromSet (m: Z[A]) (s: Finset A):
+    IsSet m ∧ m.support = s ↔ m = Zset.fromSet s := by
+  constructor
+  · rintro ⟨hset, hsupp⟩
+    ext a; simp only [fromSet_apply]
+    split_ifs with ha
+    · exact hset a (by rw [elem_eq, hsupp]; exact ha)
+    · exact (not_elem_mp a m).mp (by rw [elem_eq, hsupp]; exact ha)
+  · rintro rfl
+    exact ⟨fun a ha => by rw [elem_fromSet] at ha; simp [ha], fromSet_support s⟩
 
 section SumLinear
 
@@ -508,9 +541,36 @@ theorem map_support_image (f : A → B) (m : Z[A]) :
   intro a ah; simp at ah
   specialize h a ah; simp; tauto
 
+theorem isBag_map_support (f : A → B) (m : Z[A])
+  (h: IsBag m) :
+    (m.map f).support = m.support.image f := by
+  apply Finset.Subset.antisymm (map_support_image f m)
+  intro b hb; simp at hb
+  obtain ⟨a, ha_mem, rfl⟩ := hb
+  simp only [Finset.mem_coe, DFinsupp.mem_support_toFun, ne_eq]
+  rw [map_apply]
+  have hpos := ((map_at_pos f m (f a) h).mpr ⟨a, by rwa [elem_eq, DFinsupp.mem_support_toFun], rfl⟩)
+  rw [flatmap_map_at] at hpos
+  omega
+
+theorem isBag_add_support (m1 m2 : Z[A]) (h1: IsBag m1) (h2: IsBag m2):
+    (m1 + m2).support = m1.support ∪ m2.support := by
+  rw [add_support]
+  apply Finset.filter_true_of_mem
+  intro a ha; simp only [Finset.mem_union, DFinsupp.mem_support_toFun] at ha
+  have h1a := h1 a; have h2a := h2 a
+  simp [Zset, zset_le_ext] at h1a h2a
+  rcases ha with h | h <;> omega
+
 end Map
 
 def size (m : Z[A]) : ℕ :=
   m.support.card
+
+@[simp]
+lemma zero_size: (0: Z[A]).size = 0  := by
+  unfold size
+  rw [Finset.card_eq_zero]
+  simp
 
 end Zset

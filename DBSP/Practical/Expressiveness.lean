@@ -4,6 +4,8 @@ import DBSP.Termination.FPProp
 import DBSP.Circuits.LiftedScalar
 import DBSP.Logic.Hoare
 import DBSP.Logic.HoareT
+import DBSP.Practical.Incrementalize
+import DBSP.Practical.PushLifting
 open CktBasic
 
 -- We first prove some lemmas for LiftedScalar circuits
@@ -77,8 +79,13 @@ def funcIterStream {A: Type} (f: A -> A) (x: A): stream A :=
   fun n => f^[n] x
 
 @[simp]
-def funcIterStream_apply {A: Type} (f: A -> A) (x: A) (n: ℕ):
+lemma funcIterStream_apply {A: Type} (f: A -> A) (x: A) (n: ℕ):
     funcIterStream f x n = f^[n] x := by rfl
+
+lemma funcIterStream_0_delay {A: Type} (f: A -> A) [Zero A]:
+    funcIterStream f 0 = z⁻¹ (funcIterStream f (f 0)) := by
+  funext n; simp [funcIterStream]
+  rcases n with _ | n <;> simp
 
 lemma f_apply_funcIterStream {A: Type} (f: A -> A) (x: A):
      ↑↑f (funcIterStream f x) = funcIterStream f (f x) := by
@@ -269,7 +276,7 @@ theorem query_HoareT:
   HoareT
     (fun x => x = is)
     (query c0)
-    (fun y => ∀ i, y i = f^[b i] (is i)) := by
+    (fun y => y = fun i => f^[b i] (is i)) := by
   unfold query; apply HoareT_conseq_post
   apply HoareT_bracket (fun i => b i + 1)
   · simp; rw [fun_stream_eq_forall]; simp
@@ -285,7 +292,7 @@ theorem query_HoareT:
   simp; intro x y
   rw [<- funext_iff]
   intro hy; subst hy; simp
-  intro h i; specialize h i
+  intro h; funext i; specialize h i
   simp [bodyOutput, D] at h
   rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply] at h
   rw [h]; specialize hfa i
@@ -378,6 +385,33 @@ lemma FixedAt_iff_ZeroAfter (n: ℕ):
     rw [<- h]; rw [<- Function.iterate_succ_apply]
     congr; omega
 
+include hf ht hei in
+lemma loop_HoareI1 {n: ℕ}
+  (hfa: FixedAt (f R iv) 0 (n+1)):
+    HoareI1
+      (fun x => x = fun _ => iv)
+      (cloop c0)
+      (fun y => y = funcIterStream (f R iv) (f R iv 0)) (n+1) := by
+  rw [FixedAt_iff_ZeroAfter] at hfa
+  rw [bodyOutput, ZeroAfter_succ_D_FixedAfter1] at hfa
+  apply HoareI1_loop (by apply loop_HoareT <;> tauto)
+  · intro x y hx hy; simp
+    simp [HoareI1]; apply hei
+    simp [ExtFP1]
+    have : denote c0 (sprod (x, z⁻¹ y)) = funcIterStream (f R iv) (f R iv 0) := by
+      rw [hf, hx, hy]; simp
+      funext k; simp
+      rw [<- f_unfold R]
+      rcases k with _ | k
+      · simp
+      · simp; set g := (f R iv)
+        rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply]
+        rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply' g]
+    rw [this, hx, hy]; constructor
+    · rw [FixedAfter1_sprod]; simp
+      rw [FixedAfter1_delay_succ]; tauto
+    · apply FixedAfter1_mono; tauto; omega
+
 include hf ht in
 lemma body_HoareT:
   HoareT
@@ -404,23 +438,7 @@ lemma body_HoareI1 {n: ℕ}
   apply HoareI1_mono
   apply HoareI1_I; apply δ0_ZeroAfter; omega
   rw [integral_delta]
-  apply HoareI1_loop (by apply loop_HoareT <;> tauto)
-  · intro x y hx hy; simp
-    simp [HoareI1]; apply hei
-    simp [ExtFP1]
-    have : denote c0 (sprod (x, z⁻¹ y)) = funcIterStream (f R iv) (f R iv 0) := by
-      rw [hf, hx, hy]; simp
-      funext k; simp
-      rw [<- f_unfold R]
-      rcases k with _ | k
-      · simp
-      · simp; set g := (f R iv)
-        rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply]
-        rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply' g]
-    rw [this, hx, hy]; constructor
-    · rw [FixedAfter1_sprod]; simp
-      rw [FixedAfter1_delay_succ]; tauto
-    · apply FixedAfter1_mono; tauto; omega
+  apply loop_HoareI1 <;> tauto
   apply HoareI1_conseq_post (hq:= by tauto)
   apply HoareI1_D; tauto
 
@@ -431,19 +449,7 @@ def query: Ckt A B 0 :=
 variable {b: stream ℕ} {is: stream (VType_interp A)}
   (hfa: ∀ j, FixedAt (f R (is j)) 0 (b j)) (htv: ∀ j, Terminate c0 (c0_input R (is j)))
 
-theorem query_ExtFP1_IntFP1 {n: ℕ}
-  (he: ExtFP1 (query c0) is n):
-    IntFP1 (query c0) is n := by
-  simp [query, IntFP1]
-  rw [lifted_Ckt_ExtFP1 (hc:=by simp)]
-  rcases he with ⟨hf, _⟩
-  intro m hm
-  specialize hf m hm
-  funext k; simp
-  rw [hf]
-
-include hf htv hei hfa
-
+include hf htv hei hfa in
 theorem lifted_body_HoareI2:
   HoareI2
     (fun x => x = ↑↑δ0 is)
@@ -458,11 +464,12 @@ theorem lifted_body_HoareI2:
   all_goals try tauto
   apply FixedAt_mono; tauto; omega
 
+include hf htv hei hfa in
 theorem query_HoareT:
   HoareT
     (fun x => x = is)
     (query c0)
-    (fun y => ∀ i, y i = (f R (is i))^[b i] 0) := by
+    (fun y => y = fun i => (f R (is i))^[b i] 0) := by
   unfold query; apply HoareT_conseq_post
   apply HoareT_bracket (fun i => b i + 1)
   · simp; rw [fun_stream_eq_forall]; simp
@@ -478,16 +485,142 @@ theorem query_HoareT:
   simp; intro x y
   rw [<- funext_iff]
   intro hy; subst hy; simp
-  intro h i; specialize h i
+  intro h; funext i; specialize h i
   simp [bodyOutput, D] at h
   rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply] at h
   rw [h]; specialize hfa i
   rw [FixedAt_funcIterStream_iff] at hfa
   apply hfa; omega
 
+include hf htv hei hfa in
 theorem query_Terminate:
     Terminate (query c0) is := by
   apply And.left
   apply query_HoareT <;> tauto
+
+theorem query_ExtFP1_IntFP1 {n: ℕ}
+  (he: ExtFP1 (query c0) is n):
+    IntFP1 (query c0) is n := by
+  simp [query, IntFP1]
+  rw [lifted_Ckt_ExtFP1 (hc:=by simp)]
+  rcases he with ⟨hf, _⟩
+  intro m hm
+  specialize hf m hm
+  funext k; simp
+  rw [hf]
+
+-- theorems about the incremental optimized query
+variable [hic: IncCkt c0]
+
+include hf ht in
+lemma opt_body_HoareT:
+  HoareT
+    (fun x => x = δ0 iv)
+    (cloop (incOpt c0))
+    (fun y => y = bodyOutput R iv) := by
+  apply HoareT_Refine (h1:= by apply body_HoareT <;> tauto)
+  apply incOpt_Refine
+
+include hf ht hei in
+lemma opt_body_HoareI1 {n: ℕ}
+  (hfa: FixedAt (f R iv) 0 (n+1)):
+    HoareI1
+      (fun x => x = δ0 iv)
+      (cloop (incOpt c0))
+      (fun _ => True) (n+2) := by
+  rw [delta_D_const]
+  apply HoareI1_Preserve1
+  case ht => apply loop_HoareT <;> tauto
+  case h1 => apply loop_HoareI1 <;> tauto
+  apply incOpt_Preserve1
+
+include hf htv in
+lemma lifted_opt_body_HoareT:
+    HoareT
+      (fun x => x = ↑↑δ0 is)
+      (cloop2 (pushLifting (incOpt c0)))
+      (fun y => y =  ↑↑(bodyOutput R) is) := by
+  rw [<- pushLifting]
+  rw [fun_stream_eq_forall]; simp
+  apply HoareT_conseq_post
+  apply HoareT_pushLifting (P := fun j x => x = δ0 (is j))
+  intro j; apply opt_body_HoareT <;> tauto
+  intros; funext _; tauto
+
+variable [hpic: IncCkt (pushLifting (incOpt c0))]
+
+include hf htv in
+theorem opt_lifted_body_HoareT :
+    HoareT
+      (fun x => x = ↑↑δ0 (D is))
+      (cloop2 (incOpt (pushLifting (incOpt c0))))
+      (fun y => y = D (↑↑(bodyOutput R) is)) := by
+  apply HoareT_Refine
+  apply incOpt_Refine (c:= cloop2 (pushLifting (incOpt c0)))
+  rw [<- D_lifting_delta_comm]
+  apply HoareT_Δ
+  apply lifted_opt_body_HoareT <;> tauto
+
+include hf htv hei hfa in
+theorem opt_lifted_body_HoareI2:
+    HoareI2
+      (fun x => x = ↑↑δ0 (D is))
+      (cloop2 (incOpt (pushLifting (incOpt c0))))
+      (fun _ => True)
+      (fun i => max (b i + 2) (z⁻¹ (fun j => b j + 2) i)) := by
+  rw [<- D_lifting_delta_comm]
+  apply HoareI2_bound_mono
+  case hi =>
+    apply HoareI2_Preserve2 (c1:= cloop2 (pushLifting (incOpt c0)))
+    case h => apply incOpt_Preserve2
+    case ht => apply lifted_opt_body_HoareT <;> tauto
+    case h1 =>
+      rw [<- pushLifting]
+      rw [fun_stream_eq_forall]; simp
+      apply HoareI2_pushLifting (P := fun j x => x = δ0 (is j))
+      intro j; apply opt_body_HoareI1 <;> try tauto
+      apply FixedAt_mono; tauto; tauto
+  simp
+
+def opt_query := cbracket (cloop2 (incOpt (pushLifting (incOpt c0))))
+
+include hf htv hei hfa in
+theorem opt_query_HoareT:
+    HoareT
+      (fun x => x = D is)
+      (opt_query c0)
+      (fun y => y = D (fun i => (f R (is i))^[b i] 0)) := by
+  unfold opt_query; apply HoareT_conseq_post
+  apply HoareT_bracket
+  case hi =>
+    intro y _; subst y
+    apply opt_lifted_body_HoareI2 <;> tauto
+  case ht =>
+    intro y _; subst y
+    apply opt_lifted_body_HoareT <;> tauto
+  case hb =>
+    intro z hz; subst hz
+    intro j; simp
+    apply ZeroAfterVec_D
+    intro k; simp
+    rw [<- FixedAt_iff_ZeroAfter]
+    apply FixedAt_mono; tauto; omega
+  simp; intro x h
+  funext i; specialize h i
+  rw [h]; unfold D; simp
+  rw [linear_sub integral_linear]
+  have hfa: ∀ (j : ℕ), FixedAfter1 (funcIterStream (f R (is j)) 0) (b j) := by
+    intro j; specialize hfa j
+    rw [FixedAt_funcIterStream_iff] at hfa; tauto
+  rcases i with _ | i
+  · simp
+    repeat rw [<- Function.iterate_succ_apply]
+    apply hfa; omega
+  · simp
+    apply congr
+    apply congr; rfl
+    all_goals
+    repeat rw [<- Function.iterate_succ_apply]
+    apply hfa; omega
 
 end Datalog

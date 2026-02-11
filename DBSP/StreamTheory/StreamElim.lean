@@ -18,6 +18,11 @@ theorem δ0_apply (x : a) (n : ℕ) : δ0 x n = if n = 0 then x else 0 :=
 @[simp]
 theorem δ0_0 : δ0 (0 : a) = 0 := by funext n; simp
 
+lemma delta_D_const {a: Type} [AddCommGroup a] (x: a): δ0 x = D (fun _ => x) := by
+  funext n
+  simp [δ0, D]
+  rcases n <;> simp
+
 def ZeroAfter (s : stream a) (n : ℕ) :=
   ∀ t ≥ n, s t = 0
 

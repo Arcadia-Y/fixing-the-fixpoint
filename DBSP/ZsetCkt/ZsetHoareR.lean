@@ -27,6 +27,10 @@ lemma Zsize_delay (x: SOType ns Z[A]):
   rcases ns <;> funext i <;> rcases i <;> simp [Zset.size]
   funext _; simp [Zset.size]
 
+lemma Zsize_delta (x: Z[A]):
+    Zsize (ns:=0) (δ0 x) = (δ0 (x.size)) := by
+  funext i; rcases i <;> simp [Zset.size]
+
 def ZSB (x: SOType ns Z[A]) (b: SOType ns ℕ) :=
   Zsize x ≤ b
 
@@ -225,6 +229,17 @@ theorem HoareR_Zset_join (π1 : A → C) (π2 : B → C)
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, BinaryNode.cost, EquiJoinBinaryNode, liftO, Zset.size, sprodO, sprod, sprod2] <;> rfl
 
+theorem HoareR_Zset_I_ns0 {x: SOType 0 Z[A]}:
+    HoareR
+      (fun y => y = x)
+      (@cI [Z[A]]v 0)
+      (fun y => y = I x)
+      (fun i => (x i).size + (z⁻¹ (I x) i).size + (I x i).size) := by
+  apply HoareR_weaken_bound
+  apply HoareR_I
+  intro i
+  simp [add_cost, BaseType.add_cost, VType_space]
+
 theorem HoareR_Zset_I {x: SOType ns Z[A]}:
     HoareR
       (fun y => y = x)
@@ -256,6 +271,136 @@ theorem HoareR_Zset_I {x: SOType ns Z[A]}:
     simp [add_cost, BaseType.add_cost, VType_space, BaseType.size]
     apply le_trans; apply h5
     simp; omega
+
+theorem HoareR_Zset_D {x: SOType ns Z[A]}:
+    HoareR
+      (fun y => y = x)
+      (@cD [Z[A]]v ns)
+      (fun y => y = D x)
+      (2 • Zsize x + z⁻¹ (Zsize x)) := by
+  apply HoareR_weaken_bound
+  apply HoareR_D
+  rcases ns
+  · intro i
+    simp [sub_cost, VType_space]
+    rcases i <;> simp <;> omega
+  · intro i j
+    simp [sub_cost, VType_space]
+    rcases i <;> simp <;> omega
+
+theorem HoareR_ZSB_D {x: SOType ns Z[A]} {b: SOType ns ℕ}
+  (h: ZSB x b):
+    HoareR
+      (fun y => y = x)
+      (@cD [Z[A]]v ns)
+      (fun y => y = D x)
+      (2 • b + z⁻¹ b) := by
+  apply HoareR_weaken_bound
+  apply HoareR_D
+  rcases ns
+  · intro i
+    simp [sub_cost, VType_space]
+    rcases i with _ | i<;> simp
+    · specialize h 0; simp at h
+      omega
+    · have h1 := h i
+      have h2 := h (i + 1)
+      simp at h1 h2
+      omega
+  · intro i j
+    simp [sub_cost, VType_space]
+    rcases i with _ | i<;> simp
+    · specialize h 0 j; simp at h
+      omega
+    · have h1 := h i j
+      have h2 := h (i + 1) j
+      simp at h1 h2
+      omega
+
+theorem HoareR_ZSB_D_mono {x: SOType ns Z[A]} {b: SOType ns ℕ}
+  (h: ZSB x b) (hm: Monotone b):
+    HoareR
+      (fun y => y = x)
+      (@cD [Z[A]]v ns)
+      (fun y => y = D x)
+      (3 • b) := by
+  apply HoareR_weaken_bound
+  apply HoareR_ZSB_D h
+  rcases ns
+  · intro i
+    rcases i with _ | i <;> simp
+    · omega
+    · specialize hm (Nat.le_succ i); simp at hm
+      omega
+  · intro i j
+    rcases i with _ | i <;> simp
+    · omega
+    · specialize hm (Nat.le_succ i) j; simp at hm
+      omega
+
+theorem HoareR_join_support_ns0 (π1 : A → C) (π2 : B → C)
+  {x1: stream Z[A]} {x2: stream Z[B]}
+  {S1: stream (Finset A)} {S2: stream (Finset B)}
+  (h1s: ∀j, (x1 j).support = S1 j) (h1b: ∀j, (x1 j).IsBag)
+  (h2s: ∀j, (x2 j).support = S2 j) (h2b: ∀j, (x2 j).IsBag):
+    HoareR (fun y => y = sprod (x1, x2)) (Ckt.node2 (ns:=0) (EquiJoinBinaryNode π1 π2))
+      (fun y => (∀ j, (y j).support = {t ∈ S1 j ×ˢ S2 j | π1 t.1 = π2 t.2}) ∧ (∀ j, (y j).IsBag))
+      (fun j => (S1 j).card * (S2 j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_join
+  · intro j; simp
+    unfold Zset.size
+    rw [h1s, h2s]
+  · simp; constructor <;> intro j
+    · simp [equiJoin_support, h1s, h2s]
+    · apply equiJoin_pos <;> tauto
+
+theorem HoareR_map_support_ns0 (f: A → B)
+  {x: stream Z[A]} {S: stream (Finset A)}
+  (h1s: ∀j, (x j).support = S j) (h1b: ∀j, (x j).IsBag):
+    HoareR (fun y => y = x) (Ckt.node1 (ns:=0) (MapUnaryNode f))
+      (fun y => (∀ j, (y j).support = Finset.image f (S j)) ∧ (∀ j, (y j).IsBag))
+      (fun j => (S j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_map
+  · intro j; simp
+    unfold Zset.size
+    rw [h1s]
+  · simp; constructor <;> intro j
+    · rw [Zset.isBag_map_support, h1s]; tauto
+    · apply map_pos; tauto
+
+theorem HoareR_add_support_ns0 {x1 x2: stream Z[A]} {S1 S2: stream (Finset A)}
+  (h1s: ∀j, (x1 j).support = S1 j) (h1b: ∀j, (x1 j).IsBag)
+  (h2s: ∀j, (x2 j).support = S2 j) (h2b: ∀j, (x2 j).IsBag):
+    HoareR (fun y => y = sprod (x1, x2)) (Ckt.add (ns:=0) (a := [Z[A]]v))
+      (fun y => (∀ j, (y j).support = S1 j ∪ S2 j) ∧ (∀ j, (y j).IsBag))
+      (fun j => (S1 j).card + (S2 j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_add
+  · intro j; simp
+    unfold Zset.size
+    rw [h1s, h2s]
+  · simp; constructor <;> intro j
+    · rw [Zset.isBag_add_support, h1s, h2s] <;> tauto
+    · apply Zset.add_pos <;> tauto
+
+theorem HoareR_distinct_support_ns0 {x: stream Z[A]} {S: stream (Finset A)}
+  (h1s: ∀j, (x j).support = S j) (h1b: ∀j, (x j).IsBag):
+    HoareR (fun y => y = x) (Ckt.node1 (ns:=0) DistinctUnaryNode)
+      (fun y => (∀ j, (y j).support = S j) ∧ (∀ j, (y j).IsSet))
+      (fun j => (S j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_distinct
+  · intro j; simp
+    unfold Zset.size
+    rw [h1s]
+  · simp; intro j
+    rw [isBag_distinct_support, h1s]; tauto
 
 --- HoareR with ZSB - using ZSB as hypothesis (polymorphic w.r.t. ns)
 theorem HoareR_ZSB_add {x1 x2: SOType ns Z[A]} {b1 b2}

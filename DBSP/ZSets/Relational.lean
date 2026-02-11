@@ -40,6 +40,13 @@ theorem distinct_elem {m : Z[A]} {a : A} : IsBag m → (a ∈ m.distinct ↔ a �
   have h := hpos a; simp at h
   split_ifs <;> simp <;> omega
 
+theorem isBag_distinct_support (m : Z[A]) (hb: IsBag m):
+    (distinct m).support = m.support := by
+  ext a; simp
+  rw [distinct_apply]
+  have h := hb a; simp at h
+  split_ifs <;> simp <;> omega
+
 theorem distinct_pos : FunPositive (@distinct A _) := by intro f hp; simp
 
 @[simp]
@@ -74,6 +81,17 @@ theorem union_ok (s1 s2 : Finset A) : Zset.toSet (Zset.fromSet s1 ∪ Zset.fromS
   repeat' rw [<- DFinsupp.toFun_eq_coe]
   simp [DFinsupp.mk]
   split_ifs <;> aesop
+
+lemma isBag_union_support (m1 m2 : Z[A]) (h1 : IsBag m1) (h2 : IsBag m2) :
+    (m1 ∪ m2).support = m1.support ∪ m2.support := by
+  rw [union_eq]; unfold union
+  rw [distinct_support, add_support]
+  ext a; simp
+  have h1a := h1 a; have h2a := h2 a
+  simp [Zset, zset_le_ext] at h1a h2a
+  constructor
+  · rintro ⟨_, h⟩; omega
+  · intro h; omega
 
 theorem union_pos : FunPositive2 (@union A _) :=
   by

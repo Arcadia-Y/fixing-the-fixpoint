@@ -11,14 +11,12 @@ import DBSP.Termination.FPDetector
 -- Equivalence and refinement between DBSP circuits
 import DBSP.Practical.Sequiv
 import DBSP.Practical.Refine
-
--- The expressiveness of DBSP circuits (i.e., terminating circuits)
-import DBSP.Practical.Expressiveness
-import DBSP.Practical.RegularCkt
-
 -- The correctness and efficiency (in terms of iteration bounds) of DBSP optimization transformations
 import DBSP.Practical.PushLifting
 import DBSP.Practical.Incrementalize
+-- The expressiveness of DBSP circuits (i.e., terminating circuits)
+import DBSP.Practical.Expressiveness
+import DBSP.Practical.RegularCkt
 
 -- The Hoare logics
 import DBSP.Logic.Hoare
@@ -27,6 +25,7 @@ import DBSP.Logic.HoareT
 -- The cost model and logic for resource analysis
 import DBSP.ResourceAnalysis.CktCost
 import DBSP.ResourceAnalysis.HoareR
-
 -- The ZsetCkt case study
 import DBSP.ZsetCkt.ZsetCkt
+import DBSP.ZsetCkt.JoinExample
+import DBSP.ZsetCkt.GraphExample

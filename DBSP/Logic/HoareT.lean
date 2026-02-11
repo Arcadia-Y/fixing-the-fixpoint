@@ -1,5 +1,8 @@
 -- Hoare logic for total correctness
 import DBSP.Logic.Hoare
+import DBSP.Practical.Refine
+import DBSP.Practical.Preserve
+import DBSP.Practical.PushLifting
 open CktBasic
 
 section HoareT
@@ -86,6 +89,16 @@ theorem HoareT_Sequiv_cong {c1 c2: Ckt A B ns}
   unfold Sequiv at h; rcases h with ⟨hd, ht⟩
   rw [hd, ht]
 
+theorem HoareT_Refine {c1 c2: Ckt A B ns}
+  (h: c1 ⊑ c2) (h1: HoareT P c1 Q):
+    HoareT P c2 Q := by
+  unfold HoareT at h1 ⊢
+  intro x hx
+  specialize h1 _ hx
+  specialize h x (by tauto)
+  rcases h with ⟨h2, h3⟩
+  rw [<- h3]; tauto
+
 theorem HoareT_seq {c1: Ckt A B ns} {c2: Ckt B C ns}
   {Q1: SOVType ns B -> Prop} {Q2: SOVType ns C -> Prop}
   (h1: HoareT P c1 Q1) (h2: HoareT Q1 c2 Q2):
@@ -156,6 +169,14 @@ theorem HoareT_lifting {c: Ckt A B 0}
   intro j; simp [denote]
   apply h; tauto
 
+theorem HoareT_pushLifting {c: Ckt A B 0}
+  {P: ℕ -> SOVType 0 A -> Prop} {Q: ℕ -> SOVType 0 B -> Prop}
+  (h: ∀ j, HoareT (P j) c (Q j)):
+    HoareT (fun x => ∀ j, P j (x j)) (pushLifting c) (fun y => ∀ j, Q j (y j)) := by
+  rw [HoareT_Sequiv_cong]
+  apply HoareT_lifting <;> tauto
+  symm; apply pushLifting_Sequiv
+
 -- Here's where HoareT relies on HoareI2
 theorem HoareT_bracket {c: Ckt A B 1}
   {P: SOVType 0 A -> Prop} {Q: SOVType 1 B -> Prop}
@@ -179,6 +200,25 @@ theorem HoareT_bracket {c: Ckt A B 1}
     rw [streamElim_zeroAfter (pf:= hb i)]
     rw [integral_sumVals]
     simp; apply hb; omega
+
+lemma HoareT_I {x0: SOVType ns A}:
+    HoareT (fun x => x = x0) cI (fun y => y = I x0) := by
+  intro x hx; subst x0
+  simp; rcases ns <;> rfl
+
+lemma HoareT_D {x0: SOVType ns A}:
+    HoareT (fun x => x = x0) cD (fun y => y = D x0) := by
+  intro x hx; subst x0; simp
+
+lemma HoareT_Δ {x0: SOVType ns A} {y0: SOVType ns B}
+  (h: HoareT (fun x => x = x0) c (fun y => y = y0)):
+    HoareT (fun x => x = D x0) (cΔ c) (fun y => y = D y0) := by
+  apply HoareT_seq; apply HoareT_seq
+  apply HoareT_I
+  have : I (D x0) = x0 := by
+    rcases ns <;> simp
+  rw [this]; apply h
+  apply HoareT_D
 
 end HoareT
 
@@ -205,6 +245,17 @@ theorem HoareI1_conseq_post {Q': SOVType ns B -> Prop}
   constructor
   · assumption
   · apply hq; assumption
+
+theorem HoareI1_Preserve1 {c1 c2: Ckt A B ns} {x0: SOVType ns A}
+  (h: c1 ↝₁ c2) {Q'} (ht: HoareT (fun x => x = x0) c1 Q')
+  (h1: HoareI1 (fun x => x = x0) c1 Q b1):
+    HoareI1 (fun x => x = D x0) c2 (fun _ => True) (b1 + 1) := by
+  unfold HoareI1 at h1 ⊢
+  intro x hx
+  specialize h1 _ (by rfl)
+  specialize ht _ (by rfl)
+  specialize h x0 b1 ht.1 h1.1
+  rw [hx]; tauto
 
 theorem HoareI1_mono {b1': ℕ}
   (h: HoareI1 P c Q b1) (hb: b1 <= b1'):
@@ -387,6 +438,26 @@ theorem HoareI2_conseq_post {Q': SOVType 1 B -> Prop}
   · assumption
   · apply hq; assumption
 
+theorem HoareI2_bound_mono {b1 b2: stream ℕ}
+  (h: b1 ≤ b2) (hi: HoareI2 P c Q b1):
+    HoareI2 P c Q b2 := by
+  intro x hx
+  rcases hi x hx with ⟨ht, hQ⟩
+  constructor
+  · apply IntFP2Vec_mono <;> tauto
+  · apply hQ
+
+theorem HoareI2_Preserve2 {c1 c2: Ckt A B 1} {x0: SOVType 1 A}
+  (h: c1 ↝₂ c2) {Q'} (ht: HoareT (fun x => x = x0) c1 Q')
+  (h1: HoareI2 (fun x => x = x0) c1 Q b2):
+    HoareI2 (fun x => x = D x0) c2 (fun _ => True) (fun i => max (b2 i) (z⁻¹ b2 i)) := by
+  unfold HoareI2 at h1 ⊢
+  intro x hx
+  specialize h1 _ (by rfl)
+  specialize ht _ (by rfl)
+  specialize h x0 b2 ht.1 h1.1
+  rw [hx]; tauto
+
 theorem HoareI2_True:
     HoareI2 P c (fun _ => True) b2 <-> (∀ x, P x -> IntFP2Vec c x b2) := by
   simp [HoareI2]
@@ -524,5 +595,18 @@ theorem HoareI2_lifting {c: Ckt A B 0}
   · intro j
     specialize h j (x j) (by apply hx)
     simp [IntFP2, h]
+
+theorem HoareI2_pushLifting {c: Ckt A B 0}
+  {P: ℕ -> SOVType 0 A -> Prop} {Q: ℕ -> SOVType 0 B -> Prop}
+  (h: ∀ i, HoareI1 (P i) c (Q i) (b2 i)):
+    HoareI2 (fun x => ∀ i, P i (x i)) (pushLifting c) (fun y => ∀ j, Q j (y j)) b2 := by
+  intro x hx; simp
+  constructor
+  · intro j; apply pushLifting_IntFP2
+    specialize h j (x j) (by apply hx)
+    tauto
+  · intro j
+    specialize h j (x j) (by apply hx)
+    rw [<- (pushLifting_Sequiv c).1]; tauto
 
 end HoareI2
