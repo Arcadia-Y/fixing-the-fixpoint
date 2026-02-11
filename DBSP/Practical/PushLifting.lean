@@ -131,3 +131,15 @@ lemma pushlifting_I {a}:
 lemma pushlifting_D {a}:
     pushLifting (cD (a:=a)) = c↑D := by
   simp [cD, lifted_D, pushLifting]
+
+def lifted_bilinear_opt {A B C: VType} (x: Ckt (A ×ᵥ B) C 1) :=
+  ((c1st >>c c↑I &&c c2nd) >>c x
+    &&c
+    (c1st &&c c2nd >>c c↑I >>c c↑z⁻¹) >>c x)
+  >>c cadd
+
+@[simp]
+lemma pushlifting_biliear_opt {A B C: VType}
+  (x: Ckt (A ×ᵥ B) C 0):
+    pushLifting (bilinear_opt x) = lifted_bilinear_opt (pushLifting x) := by
+  simp [bilinear_opt, lifted_bilinear_opt, pushLifting]

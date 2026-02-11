@@ -4,7 +4,7 @@ import DBSP.ZSets.Zset
 import DBSP.ZSets.Relational
 import DBSP.ZSets.RelationalIncremental
 import DBSP.Practical.Incrementalize
-import DBSP.Practical.Sequiv
+import DBSP.Practical.PushLifting
 open CktBasic
 
 section ZsetCkt
@@ -84,11 +84,11 @@ instance (π1 : A → C) (π2 : B → C):
   apply (equiJoin_bilinear _ _).1
   apply (equiJoin_bilinear _ _).2
 
-def incr_dist {ns: Bool}: Ckt [Z[A]]v [Z[A]]v ns :=
-  (cI >>c cz⁻¹ &&c cid) >>c (c₂ HBinaryNode)
+def incr_dist {ns: Bool} (c: Ckt ([Z[A]]v ×ᵥ [Z[A]]v) ([Z[A]]v) ns): Ckt [Z[A]]v [Z[A]]v ns :=
+  (cI >>c cz⁻¹ &&c cid) >>c c
 
 lemma Sequiv_incr_dist {ns: Bool}:
-    cΔ (c₁ (DistinctUnaryNode (A:=A))) ≃ incr_dist (ns:=ns) := by
+    cΔ (c₁ (DistinctUnaryNode (A:=A))) ≃ incr_dist (Ckt.node2 (ns:=ns) HBinaryNode) := by
   constructor; swap
   · simp [Terminate, cΔ, incr_dist]
   simp [denote, incr_dist]
@@ -102,7 +102,7 @@ lemma Sequiv_incr_dist {ns: Bool}:
     omega
 
 lemma Preserve1_incr_dist {ns: Bool}:
-    (c₁ (DistinctUnaryNode (A:=A))) ↝₁ incr_dist (ns:=ns) := by
+    (c₁ (DistinctUnaryNode (A:=A))) ↝₁ incr_dist (Ckt.node2 (ns:=ns) HBinaryNode) := by
   intro x n _ h
   simp [IntFP1, ExtFP1] at h
   rcases h with ⟨hx, _⟩
@@ -116,7 +116,7 @@ lemma Preserve1_incr_dist {ns: Bool}:
   apply I_IntFP1; rcases ns <;> simp [hx]
 
 lemma Presreve2_incr_dist:
-    (c₁ (DistinctUnaryNode (A:=A))) ↝₂ incr_dist := by
+    (c₁ (DistinctUnaryNode (A:=A))) ↝₂ incr_dist (c₂ HBinaryNode) := by
   intro x r _ h
   simp [IntFP2Vec, IntFP2, ExtFP2] at h
   rw [forall_and_iff] at h; rcases h with ⟨hx, _⟩
@@ -140,10 +140,18 @@ lemma Presreve2_incr_dist:
   apply FixedAfter2_mono; tauto; simp
 
 instance : IncUnary (@DistinctUnaryNode A _) where
-  opt := incr_dist
+  opt := incr_dist (c₂ HBinaryNode)
   sequiv := by intro _; apply Sequiv_incr_dist
   preserve1 := by intro _; apply Preserve1_incr_dist
   preserve2 := Presreve2_incr_dist
+
+def lifted_incr_dist (c: Ckt ([Z[A]]v ×ᵥ [Z[A]]v) ([Z[A]]v) 1): Ckt [Z[A]]v [Z[A]]v 1 :=
+  (c↑I >>c c↑z⁻¹ &&c cid) >>c c
+
+@[simp]
+lemma pushLifting_incr_dist c:
+    pushLifting (incr_dist (A:= A) (ns:=0) c) = lifted_incr_dist (pushLifting c):= by
+  simp [incr_dist, lifted_incr_dist, pushLifting]
 
 -- H can use the default unoptimized instance
 

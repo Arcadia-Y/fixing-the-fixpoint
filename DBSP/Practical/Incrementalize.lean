@@ -203,6 +203,75 @@ def incOptOfEvidence {a b ns} {c: Ckt a b ns} (e: IncEvidence c) : Ckt a b ns :=
 def incOpt {a b ns} (c: Ckt a b ns) [h: IncCkt c] : Ckt a b ns :=
   incOptOfEvidence h.evidence
 
+-- simp lemmas to make `incOpt` compute by structure, without exposing evidence
+@[simp] lemma incOpt_node1 {ns A B} [BaseType A] [BaseType B]
+  (n : @UnaryNode A B _ _) [IncUnary n] :
+  incOpt (Ckt.node1 (ns:=ns) n) = IncUnary.opt n := by
+  rfl
+
+@[simp] lemma incOpt_node2 {ns A B C} [BaseType A] [BaseType B] [BaseType C]
+  (n : @BinaryNode A B C _ _ _) [IncBinary n] :
+  incOpt (Ckt.node2 (ns:=ns) n) = IncBinary.opt n := by
+  rfl
+
+@[simp] lemma incOpt_const {ns a b} (x: VType_interp b) :
+  incOpt (@Ckt.const ns a b x) = Ckt.const x >>c cD := by
+  rfl
+
+@[simp] lemma incOpt_id {ns A} :
+  incOpt (@Ckt.id ns A) = Ckt.id := by
+  rfl
+
+@[simp] lemma incOpt_fst {ns a b} :
+  incOpt (@Ckt.fst ns a b) = Ckt.fst := by
+  rfl
+
+@[simp] lemma incOpt_snd {ns a b} :
+  incOpt (@Ckt.snd ns a b) = Ckt.snd := by
+  rfl
+
+@[simp] lemma incOpt_add {ns a} :
+  incOpt (@Ckt.add ns a) = Ckt.add := by
+  rfl
+
+@[simp] lemma incOpt_sub {ns a} :
+  incOpt (@Ckt.sub ns a) = Ckt.sub := by
+  rfl
+
+@[simp] lemma incOpt_seq {ns a b c} (c1 : Ckt a b ns) (c2 : Ckt b c ns)
+  [IncCkt c1] [IncCkt c2] :
+  incOpt (Ckt.seq c1 c2) = (incOpt c1) >>c (incOpt c2) := by
+  rfl
+
+@[simp] lemma incOpt_par {ns a b c} (c1 : Ckt a b ns) (c2 : Ckt a c ns)
+  [IncCkt c1] [IncCkt c2] :
+  incOpt (Ckt.par c1 c2) = ((incOpt c1) &&c (incOpt c2)) := by
+  rfl
+
+@[simp] lemma incOpt_delay {ns a} :
+  incOpt (@Ckt.delay ns a) = Ckt.delay := by
+  rfl
+
+@[simp] lemma incOpt_lifted_delay {a} :
+  incOpt (@Ckt.lifted_delay a) = Ckt.lifted_delay := by
+  rfl
+
+@[simp] lemma incOpt_lifting {a b} (c: Ckt a b 0) [IncCkt c] :
+  incOpt (Ckt.lifting c) = cΔ (c↑ c) := by
+  rfl
+
+@[simp] lemma incOpt_loop {ns a b} (c: Ckt (a ×ᵥ b) b ns) [IncCkt c] :
+  incOpt (Ckt.loop c) = Ckt.loop (incOpt c) := by
+  rfl
+
+@[simp] lemma incOpt_lifted_loop {a b} (c: Ckt (a ×ᵥ b) b 1) [IncCkt c] :
+  incOpt (Ckt.lifted_loop c) = Ckt.lifted_loop (incOpt c) := by
+  rfl
+
+@[simp] lemma incOpt_bracket {a b} (c: Ckt a b 1) [IncCkt c] :
+  incOpt (Ckt.bracket c) = Ckt.bracket (incOpt c) := by
+  rfl
+
 namespace IncrementalizeProof
 variable {ns: Bool} {A B: VType} (c: Ckt A B ns) [hic: IncCkt c]
 

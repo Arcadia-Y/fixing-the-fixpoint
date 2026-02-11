@@ -547,27 +547,31 @@ lemma lifted_opt_body_HoareT:
   intro j; apply opt_body_HoareT <;> tauto
   intros; funext _; tauto
 
-variable [hpic: IncCkt (pushLifting (incOpt c0))]
+-- Let's assume `pushLifting (incOpt c0)` simplifies to `c1` which is incrementalizable
+variable {c1: Ckt (A×ᵥB) B 1} (hc1: pushLifting (incOpt c0) = c1) [h1ic: IncCkt c1]
+include hc1
 
 include hf htv in
 theorem opt_lifted_body_HoareT :
     HoareT
       (fun x => x = ↑↑δ0 (D is))
-      (cloop2 (incOpt (pushLifting (incOpt c0))))
+      (cloop2 (incOpt c1))
       (fun y => y = D (↑↑(bodyOutput R) is)) := by
   apply HoareT_Refine
-  apply incOpt_Refine (c:= cloop2 (pushLifting (incOpt c0)))
+  apply incOpt_Refine (c:= cloop2 c1)
   rw [<- D_lifting_delta_comm]
   apply HoareT_Δ
+  subst hc1
   apply lifted_opt_body_HoareT <;> tauto
 
 include hf htv hei hfa in
 theorem opt_lifted_body_HoareI2:
     HoareI2
       (fun x => x = ↑↑δ0 (D is))
-      (cloop2 (incOpt (pushLifting (incOpt c0))))
+      (cloop2 (incOpt c1))
       (fun _ => True)
       (fun i => max (b i + 2) (z⁻¹ (fun j => b j + 2) i)) := by
+  subst hc1
   rw [<- D_lifting_delta_comm]
   apply HoareI2_bound_mono
   case hi =>
@@ -582,22 +586,21 @@ theorem opt_lifted_body_HoareI2:
       apply FixedAt_mono; tauto; tauto
   simp
 
-def opt_query := cbracket (cloop2 (incOpt (pushLifting (incOpt c0))))
-
 include hf htv hei hfa in
 theorem opt_query_HoareT:
     HoareT
       (fun x => x = D is)
-      (opt_query c0)
+      (cbracket (cloop2 (incOpt c1)))
       (fun y => y = D (fun i => (f R (is i))^[b i] 0)) := by
-  unfold opt_query; apply HoareT_conseq_post
+  subst hc1
+  apply HoareT_conseq_post
   apply HoareT_bracket
   case hi =>
     intro y _; subst y
-    apply opt_lifted_body_HoareI2 <;> tauto
+    apply opt_lifted_body_HoareI2 (hc1:=rfl) <;> tauto
   case ht =>
     intro y _; subst y
-    apply opt_lifted_body_HoareT <;> tauto
+    apply opt_lifted_body_HoareT (hc1:=rfl) <;> tauto
   case hb =>
     intro z hz; subst hz
     intro j; simp

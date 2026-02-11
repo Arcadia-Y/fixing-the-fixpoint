@@ -10,7 +10,7 @@ def ckt1 : Ckt ([Z[ℤ×ℤ×ℤ]]v ×ᵥ [Z[ℤ×ℤ×ℤ]]v) ([Z[ℤ×ℤ]]v) 
   zjoin Prod.snd Prod.fst >>c
   zmap (fun (t1, t2) => (t1.1, t2.1)) >>c zdistinct
 
-instance : IncCkt ckt1 := by
+instance instIncCkt1 : IncCkt ckt1 := by
   unfold ckt1; infer_instance
 
 -- the optimized incremental circuit
@@ -18,10 +18,10 @@ def ckt2 : Ckt ([Z[ℤ×ℤ×ℤ]]v ×ᵥ [Z[ℤ×ℤ×ℤ]]v) ([Z[ℤ×ℤ]]v) 
   (c1st >>c zfilter (fun x => x.1 > 2) >>c zmap (fun x => x.2) &&c
     c2nd >>c zfilter (fun x => x.1 > 5) >>c zmap (fun x => x.2)) >>c
   bilinear_opt (zjoin Prod.snd Prod.fst) >>c
-  zmap (fun (t1, t2) => (t1.1, t2.1)) >>c incr_dist
+  zmap (fun (t1, t2) => (t1.1, t2.1)) >>c incr_dist (c₂ HBinaryNode)
 
 lemma incOpt_ckt1_ckt2:
-  incOpt ckt1 = ckt2 := rfl
+    incOpt ckt1 = ckt2 := rfl
 
 theorem ckt1_HoareR {x1 x2: SOType 0 Z[ℤ×ℤ×ℤ]} {b1 b2: stream ℕ}
   (h1: ZSB x1 b1) (h2: ZSB x2 b2):
@@ -116,7 +116,7 @@ lemma HoareR_incr_dist {A: Type} [DecidableEq A] {x: SOType 0 Z[A]} {b: SOType 0
   (h: ZSB x b):
     HoareR
       (fun y => y = x)
-      (incr_dist (A:=A) (ns:=0))
+      (incr_dist (A:=A) (ns:=0) (c₂ HBinaryNode))
       (fun y => ZSB y (I b + b))
       (fun i => 6 * I b i) := by
   unfold incr_dist
