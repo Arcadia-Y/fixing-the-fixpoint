@@ -314,4 +314,27 @@ lemma HoareR_D:
     intro y hy; subst hy
     rcases ns <;> simp [cD, cost_f, denote]
 
+theorem HoareR_lifted_delay (x: SOVType 1 A):
+    HoareR (fun y => y = x) (c↑z⁻¹) (fun y => y = ↑↑z⁻¹ x) (↑↑↑↑VType_space x) := by
+  constructor
+  case post =>
+    intro y hy; subst hy; simp [Terminate, denote]
+  case cost =>
+    intro y hy; subst hy; simp [cost_f]
+
+theorem HoareR_lifted_I (x: SOVType 1 A):
+    HoareR (fun y => y = x) (c↑I) (fun y => y = ↑↑I x)
+      (liftO 1 add_cost (sprod2 (x, ↑↑z⁻¹ (↑↑I x))) + ↑↑↑↑VType_space (↑↑I x)) := by
+  unfold lifted_I
+  apply HoareR_lifted_loop
+  case ht =>
+    rw [<- lifted_I]; simp [HoareT, Terminate]
+    unfold lifted_I; simp [Terminate]
+  case hc =>
+    intro a b ha hb; subst a b
+    apply HoareR_conseq_post
+    apply HoareR_add; tauto
+  case hs =>
+    simp
+
 end HoareR

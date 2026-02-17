@@ -80,7 +80,7 @@ lemma mono_D_sdiff {A: Type} [DecidableEq A]
   (s: ℕ -> Finset A) (h: Monotone s):
     D (fun i => Zset.fromSet (s i)) =
     (fun i => Zset.fromSet
-      (if i = 0 then s i else s i \ s (i-1))) := by
+      (s i \ z⁻¹ s i)) := by
   funext i; rcases i with _ | i <;> simp [D]
   ext x; rw [Zset.sub_apply]
   simp only [Zset.fromSet_apply, Finset.mem_sdiff]
@@ -104,7 +104,7 @@ lemma DS2_eq (i: ℕ):
   funext j; rw [<- Zset.isSet_support_fromSet]; simp
   rcases j with _ | j
   · simp [DS2, S]; ext ⟨a, b⟩; simp; omega
-  · simp only [Nat.succ_ne_zero, ↓reduceIte, Nat.add_one_sub_one]
+  · simp only [delay, Nat.succ_ne_zero, ↓reduceIte, Nat.add_one_sub_one]
     ext ⟨a, b⟩; simp [DS2, S, Finset.mem_sdiff]; constructor
     · rintro ⟨⟨x, ⟨hx1, hx2⟩, k, hk, rfl⟩, hns⟩
       have hx : x = j + 1 := by
@@ -122,6 +122,10 @@ lemma DS2_card (i j: ℕ):
   rw [Finset.card_image_of_injective]
   · exact Finset.card_range _
   · intro a b h; exact (Prod.mk.inj h).1
+
+lemma DS2_card_bound (i j: ℕ):
+    (DS2 i j).card ≤ i := by
+  rw [DS2_card]; omega
 
 private lemma sum_decr (c n : ℕ) (h : n ≤ c) :
     2 * ∑ x ∈ Finset.range n, (c - x) = n * (2 * c + 1 - n) := by
@@ -165,6 +169,15 @@ lemma S_card (i j: ℕ):
 
 lemma S_card_bound (i j: ℕ):
     (S i j).card ≤ i * (j+1) := by
+  rw [S_card]
+  split_ifs
+  · apply Nat.div_le_of_le_mul
+    nlinarith [Nat.sub_le (2 * i) j]
+  · apply Nat.div_le_of_le_mul
+    nlinarith
+
+lemma S_card_bound' (i j: ℕ):
+    (S i j).card ≤ i * (i+1) := by
   rw [S_card]
   split_ifs
   · apply Nat.div_le_of_le_mul
@@ -410,59 +423,5 @@ theorem query_HoareR:
     intro t ht; rw [stream_add_apply]
     nlinarith
   nlinarith
-
--- Incremental part starts here
-instance c0_IncCkt: IncCkt c0 := by unfold c0; infer_instance
-
-def c1 : Ckt ([Z[ℕ × ℕ]]v ×ᵥ [Z[ℕ × ℕ]]v) ([Z[ℕ × ℕ]]v) 1 :=
-  (c1st &&c lifted_bilinear_opt (zjoin Prod.snd Prod.fst) >>c zmap (fun (x, y) => (x.1, y.2))) >>c
-      cadd >>c lifted_incr_dist (c₂ HBinaryNode)
-
-lemma hc1:
-    pushLifting (incOpt c0) = c1:= by
-  unfold c0 c1;
-  simp [IncBinary.opt, IncUnary.opt, pushLifting]
-
-instance c1_IncCkt: IncCkt c1 := by
-  unfold c1 lifted_bilinear_opt lifted_incr_dist
-  infer_instance
-
-lemma opt_c1_eq:
-  incOpt c1 =
-  (c1st &&c lifted_bilinear_opt (bilinear_opt (zjoin Prod.snd Prod.fst)) >>c zmap (fun (x, y) => (x.1, y.2))) >>c
-    cadd >>c (lifted_incr_dist (cΔ (c₂ HBinaryNode))) := rfl
-
--- `Dis n` contains exactly `(n-1, n)` for `n > 0`, and is empty for `n = 0`
-abbrev Dis (n: ℕ): Finset (ℕ × ℕ) :=
-  if n = 0 then ∅ else {(n-1, n)}
-
-lemma Dis_card (n: ℕ):
-    (Dis n).card = if n = 0 then 0 else 1 := by
-  split_ifs <;> simp [Dis]
-
--- `DS1 i j` contains all edges pointing to the new node `i` in `P_i`
---   that are at most `j+1` hops long
--- `1` means `D` operates on the first time dimension
-abbrev DS1 (i j: ℕ): Finset (ℕ × ℕ) :=
-  (Finset.range (min i (j+1))).image fun x => (x, i)
-
-lemma DS1_card (i j: ℕ):
-    (DS1 i j).card = min i (j + 1) := by
-  simp [DS1]
-  rw [Finset.card_image_of_injective]
-  · rw [Finset.card_range]
-  · intro a b h; exact (Prod.mk.inj h).1
-
--- `DS12 i j` contains all edges pointing to the new node `i` in `P_i`
---   that are exactly `j+1` hops long
--- `12` means `D` operates on both time dimensions
-abbrev DS12 (i j: ℕ): Finset (ℕ × ℕ) :=
-  if j + 1 ≤ i then {(i-j-1, i)} else ∅
-
-lemma DS12_card (i j: ℕ):
-    (DS12 i j).card = if j + 1 ≤ i then 1 else 0 := by
-  simp [DS12]
-  split_ifs <;> simp
-
 
 end GraphExample

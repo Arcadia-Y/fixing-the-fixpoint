@@ -60,6 +60,12 @@ def EquiJoinBinaryNode {A B C: Type}
   cost := fun x => x.fst.size * x.snd.size
 }
 
+-- Zero instance for Finset [A]
+instance {A: Type}: Zero (Finset A) := ⟨∅⟩
+@[simp]
+lemma finset_zero_eq {A: Type}:
+  (0 : Finset A) = ∅ := rfl
+
 -- incrementalizable instances and theorems
 instance (f: A -> B): IncUnary (@MapUnaryNode A B _ _ f) := by
   apply IncUnaryLinear

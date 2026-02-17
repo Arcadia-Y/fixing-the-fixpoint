@@ -22,6 +22,16 @@ theorem distinctH_apply (i d : Z[A]) (x : A) : distinctH i d x = distinctHAt i d
   intro h1 h2
   simp [distinctHAt]; split_ifs <;> omega
 
+theorem distinctH_support_isBag (i d : Z[A])
+  (hb1: IsBag i) (hb2: IsBag d) :
+    distinctH i d = Zset.fromSet (d.support \ i.support) := by
+  ext a
+  simp only [distinctH_apply, distinctHAt, fromSet_apply, Finset.mem_sdiff, DFinsupp.mem_support_iff]
+  have h1 : 0 ≤ i a := hb1 a
+  have h2 : 0 ≤ d a := hb2 a
+  have h3 : (i + d) a = i a + d a := DFinsupp.add_apply i d a
+  rw [h3]; split_ifs <;> omega
+
 def distinctIncremental : stream Z[A] → stream Z[A] := fun d => (↑²distinctH) (z⁻¹ (I d)) d
 
 theorem distinctIncremental_ok : ↑↑distinct^Δ = @distinctIncremental A _ :=

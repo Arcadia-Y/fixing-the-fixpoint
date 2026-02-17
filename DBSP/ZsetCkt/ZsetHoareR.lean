@@ -338,6 +338,8 @@ theorem HoareR_ZSB_D_mono {x: SOType ns Z[A]} {b: SOType ns ℕ}
     · specialize hm (Nat.le_succ i) j; simp at hm
       omega
 
+-- "Support+IsBag" style lemmas for ns=0
+
 theorem HoareR_join_support_ns0 (π1 : A → C) (π2 : B → C)
   {x1: stream Z[A]} {x2: stream Z[B]}
   {S1: stream (Finset A)} {S2: stream (Finset B)}
@@ -401,6 +403,197 @@ theorem HoareR_distinct_support_ns0 {x: stream Z[A]} {S: stream (Finset A)}
     rw [h1s]
   · simp; intro j
     rw [isBag_distinct_support, h1s]; tauto
+
+-- "Support+IsBag" style lemmas for ns=1
+lemma integral_support {x: stream Z[A]} {S: stream (Finset A)}
+  (hs: ∀ i, (x i).support = S i) (hb: ∀ i, (x i).IsBag):
+    (∀ i, (I x i).support = (Finset.range (i+1)).biUnion (fun k => S k)) ∧
+    (∀ i, (I x i).IsBag) := by
+  rw [<- forall_and_iff]; intro i
+  induction' i with i ih <;> simp
+  · tauto
+  rcases ih with ⟨ih1, ih2⟩
+  constructor
+  · rw [Zset.isBag_add_support, ih1, hs]
+    · simp [Finset.range_succ, Finset.biUnion_insert, Finset.union_assoc]
+    · exact hb _
+    · exact ih2
+  · apply Zset.add_pos <;> tauto
+
+lemma nested_stream_I_fun_eq {A: Type} [AddCommMonoid A]
+  (x: stream (stream A)) (i j: ℕ):
+    I (fun k => x k j) i = I x i j := by
+  induction' i with i ih <;> simp
+  rw [ih]
+
+theorem HoareR_I_support_ns1 {x: SOType 1 Z[A]} {S: SOType 1 (Finset A)}
+  (h1s: ∀ i j, (x i j).support = S i j) (h1b: ∀ i j, (x i j).IsBag)
+  (S2: SOType 1 (Finset A)) (hres: ∀ i j, (Finset.range (i+1)).biUnion (fun k => S k j) = S2 i j):
+    HoareR (fun y => y = x) (@cI [Z[A]]v 1)
+      (fun y => (∀ i j, (y i j).support = S2 i j) ∧ (∀ i j, (y i j).IsBag))
+      (fun i j => (S i j).card + (S2 (i-1) j).card + (S2 i j).card) := by
+  have hr := fun j => integral_support (fun i => h1s i j) (fun i => h1b i j)
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_I
+  · intro i j; simp [add_cost, Zset.size, VType_space]
+    simp_rw [<- hres]
+    rcases i with _ | i <;> simp [-integral_succ]
+    · rw [h1s]; omega
+    · simp_rw [<- nested_stream_I_fun_eq]
+      simp_rw [(hr j).1, h1s]; omega
+  · simp; constructor <;> intro i j <;> rw [<- nested_stream_I_fun_eq]
+    · rw [(hr j).1, hres]
+    · apply (hr j).2
+
+theorem HoareR_I_sprod2_support {x1: SOType 1 Z[A]} {x2: SOType 1 Z[B]}
+  {S1 IS1: SOType 1 (Finset A)} {S2 IS2: SOType 1 (Finset B)}
+  (h1s: ∀ i j, (x1 i j).support = S1 i j) (h1b: ∀ i j, (x1 i j).IsBag)
+  (h2s: ∀ i j, (x2 i j).support = S2 i j) (h2b: ∀ i j, (x2 i j).IsBag)
+  (his1: ∀ i j, (Finset.range (i+1)).biUnion (fun k => S1 k j) = IS1 i j)
+  (his2: ∀ i j, (Finset.range (i+1)).biUnion (fun k => S2 k j) = IS2 i j):
+    HoareR (fun y => y = sprod2 (x1, x2)) (@cI ([Z[A]]v ×ᵥ [Z[B]]v) 1)
+      (fun y => ∃ (y1: SOType 1 Z[A]) (y2: SOType 1 Z[B]),
+        y = sprod2 (y1, y2) ∧
+        (∀ i j, (y1 i j).support = IS1 i j) ∧ (∀ i j, (y1 i j).IsBag) ∧
+        (∀ i j, (y2 i j).support = IS2 i j) ∧ (∀ i j, (y2 i j).IsBag))
+      (fun i j =>
+        (S1 i j).card + (IS1 (i - 1) j).card + (IS1 i j).card +
+        (S2 i j).card + (IS2 (i - 1) j).card + (IS2 i j).card) := by
+  have hr1 := fun j => integral_support (fun i => h1s i j) (fun i => h1b i j)
+  have hr2 := fun j => integral_support (fun i => h2s i j) (fun i => h2b i j)
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_I
+  · intro i j; simp [add_cost, Zset.size, VType_space, integral_sprod2]
+    simp_rw [← his1, ← his2]
+    rcases i with _ | i <;> simp [-integral_succ]
+    · rw [h1s, h2s]; omega
+    · simp_rw [← nested_stream_I_fun_eq]
+      simp_rw [(hr1 j).1, (hr2 j).1, h1s, h2s]; omega
+  · intro y hy; subst hy
+    rw [integral_sprod2]
+    refine ⟨I x1, I x2, rfl, ?_, ?_, ?_, ?_⟩ <;> intro i j <;> rw [← nested_stream_I_fun_eq]
+    · rw [(hr1 j).1, his1]
+    · exact (hr1 j).2 i
+    · rw [(hr2 j).1, his2]
+    · exact (hr2 j).2 i
+
+theorem HoareR_lifted_I_support {x: SOType 1 Z[A]} {S: SOType 1 (Finset A)}
+  (h1s: ∀ i j, (x i j).support = S i j) (h1b: ∀ i j, (x i j).IsBag)
+  (S2: SOType 1 (Finset A)) (hres: ∀ i j, (Finset.range (j+1)).biUnion (S i) = S2 i j):
+    HoareR (fun y => y = x) (@lifted_I [Z[A]]v)
+      (fun y => (∀ i j, (y i j).support = S2 i j) ∧ (∀ i j, (y i j).IsBag))
+      (fun i j => (S i j).card + (S2 i (j-1)).card + (S2 i j).card) := by
+  have hr := fun i => integral_support (fun j => h1s i j) (fun j => h1b i j)
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_lifted_I
+  · intro i j; simp [add_cost, Zset.size, VType_space]
+    simp_rw [<- hres]
+    rcases j <;> simp [-integral_succ]
+    · rw [h1s]; omega
+    · simp_rw [(hr i).1, h1s]
+      rw [show (fun k ↦ S i k) = S i by funext k; simp]
+  · simp; constructor <;> intro i j
+    · rw [(hr i).1, hres]
+    · apply (hr i).2
+
+theorem HoareR_delay_support_ns1 {x: SOType 1 Z[A]} {S: SOType 1 (Finset A)}
+  (h1s: ∀ i j, (x i j).support = S i j) (h1b: ∀ i j, (x i j).IsBag):
+    HoareR (fun y => y = x) (@Ckt.delay 1 [Z[A]]v)
+      (fun y => (∀ i j, (y i j).support = z⁻¹ S i j) ∧ (∀ i j, (y i j).IsBag))
+      (fun i j => (S i j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_delay
+  · intro i j; simp [VType_space, Zset.size]
+    rw [h1s]
+  · simp; constructor
+    · intro i j; rcases i with _ | i <;> simp
+      rw [h1s]
+    · intro i j; rcases i <;> simp [h1b]
+
+theorem HoareR_lifted_delay_support_ns1 {x: SOType 1 Z[A]} {S: SOType 1 (Finset A)}
+  (h1s: ∀ i j, (x i j).support = S i j) (h1b: ∀ i j, (x i j).IsBag):
+    HoareR (fun y => y = x) (@Ckt.lifted_delay [Z[A]]v)
+      (fun y => (∀ i j, (y i j).support = ↑↑z⁻¹ S i j) ∧ (∀ i j, (y i j).IsBag))
+      (fun i j => (S i j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_lifted_delay
+  · intro i j; simp [VType_space, Zset.size]
+    rw [h1s]
+  · simp; constructor
+    · intro i j; rcases j with _ | i <;> simp
+      rw [h1s]
+    · intro i j; rcases j <;> simp [h1b]
+
+theorem HoareR_join_support_ns1 (π1 : A → C) (π2 : B → C)
+  {x1: stream (stream Z[A])} {x2: stream (stream Z[B])}
+  {S1: stream (stream (Finset A))} {S2: stream (stream (Finset B))}
+  (h1s: ∀ i j, (x1 i j).support = S1 i j) (h1b: ∀ i j, (x1 i j).IsBag)
+  (h2s: ∀ i j, (x2 i j).support = S2 i j) (h2b: ∀ i j, (x2 i j).IsBag):
+    HoareR (fun y => y = sprod2 (x1, x2)) (Ckt.node2 (ns:=1) (EquiJoinBinaryNode π1 π2))
+      (fun y => (∀ i j, (y i j).support = {t ∈ S1 i j ×ˢ S2 i j | π1 t.1 = π2 t.2}) ∧ (∀ i j, (y i j).IsBag))
+      (fun i j => (S1 i j).card * (S2 i j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_join
+  · intro i j; simp
+    unfold Zset.size
+    rw [h1s, h2s]
+  · simp; constructor <;> intro i j
+    · simp [equiJoin_support, h1s, h2s]
+    · apply equiJoin_pos <;> tauto
+
+theorem HoareR_add_support_ns1 {x1 x2: stream (stream Z[A])} {S1 S2: stream (stream (Finset A))}
+  (h1s: ∀ i j, (x1 i j).support = S1 i j) (h1b: ∀ i j, (x1 i j).IsBag)
+  (h2s: ∀ i j, (x2 i j).support = S2 i j) (h2b: ∀ i j, (x2 i j).IsBag):
+    HoareR (fun y => y = sprod2 (x1, x2)) (Ckt.add (ns:=1) (a := [Z[A]]v))
+      (fun y => (∀ i j, (y i j).support = S1 i j ∪ S2 i j) ∧ (∀ i j, (y i j).IsBag))
+      (fun i j => (S1 i j).card + (S2 i j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_add
+  · intro i j; simp
+    unfold Zset.size
+    rw [h1s, h2s]
+  · simp; constructor <;> intro i j
+    · rw [Zset.isBag_add_support, h1s, h2s] <;> tauto
+    · apply Zset.add_pos <;> tauto
+
+theorem HoareR_map_support_ns1 (f: A → B)
+  {x: stream (stream Z[A])} {S: stream (stream (Finset A))}
+  (h1s: ∀ i j, (x i j).support = S i j) (h1b: ∀ i j, (x i j).IsBag):
+    HoareR (fun y => y = x) (Ckt.node1 (ns:=1) (MapUnaryNode f))
+      (fun y => (∀ i j, (y i j).support = Finset.image f (S i j)) ∧ (∀ i j, (y i j).IsBag))
+      (fun i j => (S i j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_map
+  · intro i j; simp
+    unfold Zset.size
+    rw [h1s]
+  · simp; constructor <;> intro i j
+    · rw [Zset.isBag_map_support, h1s]; tauto
+    · apply map_pos; tauto
+
+theorem HoareR_H_support_ns1 {x1 x2: stream (stream Z[A])} {S1 S2: stream (stream (Finset A))}
+  (h1s: ∀ i j, (x1 i j).support = S1 i j) (h1b: ∀ i j, (x1 i j).IsBag)
+  (h2s: ∀ i j, (x2 i j).support = S2 i j) (h2b: ∀ i j, (x2 i j).IsBag):
+    HoareR (fun y => y = sprod2 (x1, x2)) (Ckt.node2 (ns:=1) HBinaryNode)
+      (fun y => ∀ i j, y i j = Zset.fromSet (S2 i j \ S1 i j))
+      (fun i j => (S1 i j).card + (S2 i j).card) := by
+  apply HoareR_conseq_post
+  apply HoareR_weaken_bound
+  apply HoareR_Zset_H
+  · intro i j; simp
+    unfold Zset.size
+    rw [h1s, h2s]
+  · simp; intro i j
+    rw [distinctH_support_isBag, h1s, h2s]
+    all_goals tauto
 
 --- HoareR with ZSB - using ZSB as hypothesis (polymorphic w.r.t. ns)
 theorem HoareR_ZSB_add {x1 x2: SOType ns Z[A]} {b1 b2}

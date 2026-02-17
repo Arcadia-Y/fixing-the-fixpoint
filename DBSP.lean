@@ -25,7 +25,9 @@ import DBSP.Logic.HoareT
 -- The cost model and logic for resource analysis
 import DBSP.ResourceAnalysis.CktCost
 import DBSP.ResourceAnalysis.HoareR
+
 -- The ZsetCkt case study
 import DBSP.ZsetCkt.ZsetCkt
 import DBSP.ZsetCkt.JoinExample
 import DBSP.ZsetCkt.GraphExample
+import DBSP.ZsetCkt.GraphExampleIncOpt

@@ -439,7 +439,7 @@ theorem HoareI2_conseq_post {Q': SOVType 1 B -> Prop}
   · apply hq; assumption
 
 theorem HoareI2_bound_mono {b1 b2: stream ℕ}
-  (h: b1 ≤ b2) (hi: HoareI2 P c Q b1):
+  (hi: HoareI2 P c Q b1) (h: b1 ≤ b2):
     HoareI2 P c Q b2 := by
   intro x hx
   rcases hi x hx with ⟨ht, hQ⟩

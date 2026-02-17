@@ -69,6 +69,25 @@ lemma Refine_par
   · simp [denote]
     rw [← hdc, ← hdd]
 
+lemma Refine_cΔ {c1 c2: Ckt A B ns} (h: c1 ⊑ c2):
+    (cΔ c1) ⊑ (cΔ c2) := by
+  unfold cΔ
+  apply Refine_seq
+  apply Refine_seq
+  rfl; tauto; rfl
+
+lemma Refine_lifting {c1 c2: Ckt A B 0} (h: c1 ⊑ c2):
+    (c↑ c1) ⊑ (c↑ c2) := by
+  unfold Refine
+  intro x ht
+  simp [Terminate] at ht ⊢
+  constructor
+  · intro j; specialize h (x j) (ht j)
+    rcases h with ⟨htj, hdj⟩; tauto
+  · funext i j; simp [denote]
+    specialize h (x i) (ht i)
+    rw [h.2]
+
 -- This is essentially a step-indexed proof
 lemma Refine_loop {c1 c2: Ckt (A ×ᵥ B) B ns} (h: c1 ⊑ c2) :
     (cloop c1) ⊑ (cloop c2) := by

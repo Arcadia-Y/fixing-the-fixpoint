@@ -548,7 +548,7 @@ lemma lifted_opt_body_HoareT:
   intros; funext _; tauto
 
 -- Let's assume `pushLifting (incOpt c0)` simplifies to `c1` which is incrementalizable
-variable {c1: Ckt (A×ᵥB) B 1} (hc1: pushLifting (incOpt c0) = c1) [h1ic: IncCkt c1]
+variable (c1: Ckt (A×ᵥB) B 1) (hc1: pushLifting (incOpt c0) = c1) [h1ic: IncCkt c1]
 include hc1
 
 include hf htv in
@@ -586,11 +586,14 @@ theorem opt_lifted_body_HoareI2:
       apply FixedAt_mono; tauto; tauto
   simp
 
+abbrev opt_query :=
+  cbracket (cloop2 (incOpt c1))
+
 include hf htv hei hfa in
 theorem opt_query_HoareT:
     HoareT
       (fun x => x = D is)
-      (cbracket (cloop2 (incOpt c1)))
+      (opt_query c1)
       (fun y => y = D (fun i => (f R (is i))^[b i] 0)) := by
   subst hc1
   apply HoareT_conseq_post
