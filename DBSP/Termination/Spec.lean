@@ -90,24 +90,6 @@ def IntFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ): Prop :=
   | Ckt.loop c =>  IntFP2 c (sprod2 (x, z⁻¹ (denote (Ckt.loop c) x))) m n
   | Ckt.lifted_loop c => IntFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x))) m n
 
--- Termination (Streaming Progress) Specification
--- `TerminateRow c x i` means that given access to previous output,
---   circuit `c` will always terminate when computing the `i`-th row output (or any its finite prefix when `ns = 1`) on input `x`
-def TerminateRow {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A) (i: ℕ): Prop :=
-  match c with
-  -- the core definition
-  | Ckt.bracket c =>
-      TerminateRow c (↑↑δ0 x) i ∧
-      ∃ b, IntFP2 c (↑↑δ0 x) i b ∧ ZeroAfter (denote c (↑↑δ0 x) i) b
-  -- other structural constructs
-  | Ckt.seq c1 c2 => TerminateRow c1 x i ∧ TerminateRow c2 (denote c1 x) i
-  | Ckt.par c1 c2 => TerminateRow c1 x i ∧ TerminateRow c2 x i
-  | Ckt.lifting c => ∀ j, TerminateRow c (x i) j
-  | Ckt.loop c =>  TerminateRow c (sprodO ns (x, z⁻¹ (denote (Ckt.loop c) x))) i
-  | Ckt.lifted_loop c => TerminateRow c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x))) i
-  -- all other primitive nodes are terminating
-  | _ => true
-
 -- The vetorized version of FixedAfter2
 def FixedAfter2Vec {T: Type} (s: stream (stream T)) (b: stream ℕ): Prop :=
   ∀ i, FixedAfter2 s i (b i)

@@ -268,7 +268,7 @@ theorem Sequiv_incr_const x:
     rcases ns <;> simp [incremental, I, D, liftO, delay]
     · funext t; rcases t <;> simp
     · funext m n; rcases m <;> simp
-  · -- TerminateRow part
+  · -- Terminate part
     funext y; simp [Terminate, cΔ, cI, cD, denote]
 
 theorem Sequiv_incr_delay:
