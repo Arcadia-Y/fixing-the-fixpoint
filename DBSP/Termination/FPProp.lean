@@ -210,6 +210,26 @@ lemma FixAfter1_const {A: Type} {a: A} {n: ℕ}:
 
 -- ExtFP1 Props
 
+theorem delta_ExtFP1_impl_ZeroAfter {c: Ckt A B 0}
+  {x: VType_interp A} {n: ℕ}
+  (h: ExtFP1 c (δ0 x) n)
+  (hz: denote c (δ0 x) n = 0):
+    ZeroAfter (denote c (δ0 x)) n := by
+  intro m hm
+  rw [h.2 m hm, hz]
+
+theorem delta_ZeroAfter_impl_ExtFP1 {c: Ckt A B 0}
+  {x: VType_interp A} {n: ℕ}
+  (hz: ZeroAfter (denote c (δ0 x)) n):
+    ExtFP1 c (δ0 x) (n+1) := by
+  constructor
+  · apply FixAfter1_mono (n1 := 1)
+    apply ZeroAfter_impl_FixAfter1
+    apply δ0_ZeroAfter
+    omega
+  · apply ZeroAfter_impl_FixAfter1
+    apply ZeroAfter_ge <;> tauto
+
 lemma ExtFP1_mono {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n1 n2: ℕ)
   (h: ExtFP1 c x n1) (hn: n1 ≤ n2):
     ExtFP1 c x n2 := by
@@ -332,6 +352,13 @@ theorem IntFP1_impl_ExtFP1 {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ)
       simp [lifting]
       specialize h2 i hi
       rw [h2]
+
+theorem delta_IntFP1_ZeroAfter {c: Ckt A B 0}
+  {x: VType_interp A} {n: ℕ}
+  (h: IntFP1 c (δ0 x) n)
+  (hz: denote c (δ0 x) n = 0):
+     ZeroAfter (denote c (δ0 x)) n := by
+  apply delta_ExtFP1_impl_ZeroAfter (IntFP1_impl_ExtFP1 c (δ0 x) n h) hz
 
 lemma I_IntFP1_delta (x: OVType 0 A):
     IntFP1 cI (δ0 x) 1 := by
@@ -573,6 +600,28 @@ theorem ExtFP2_causal (c: Ckt A B 1):
     apply this; tauto
   rw [this]
 
+theorem delta_ExtFP2_impl_ZeroAfter {c: Ckt A B 1}
+  {x: SOVType 0 A} {m n: ℕ}
+  (h: ExtFP2 c (↑↑δ0 x) m n)
+  (hz: denote c (↑↑δ0 x) m n = 0):
+    ZeroAfter (denote c (↑↑δ0 x) m) n := by
+  intro k hk
+  rw [h.2 k hk, hz]
+
+theorem delta_ZeroAfter_impl_ExtFP2 {c: Ckt A B 1}
+  {x: SOVType 0 A} {m n: ℕ}
+  (hz: ZeroAfter (denote c (↑↑δ0 x) m) n):
+    ExtFP2 c (↑↑δ0 x) m (n+1) := by
+  constructor
+  · simp [FixAfter2]
+    apply FixAfter1_mono (n1 := 1)
+    apply ZeroAfter_impl_FixAfter1
+    apply δ0_ZeroAfter
+    omega
+  · simp [FixAfter2]
+    apply ZeroAfter_impl_FixAfter1
+    apply ZeroAfter_ge <;> tauto
+
 -- ExtFP2Vec Props
 
 lemma forall_and_iff {A: Type} {P Q: A -> Prop}: (∀ x, P x ∧ Q x) <-> (∀ x, P x) ∧ (∀ x, Q x) :=
@@ -716,6 +765,14 @@ lemma I_IntFP2_delta (x: OVType 1 A) m:
   apply δ0_ZeroAfter; omega
 
 -- IntFP2Vec Props
+
+theorem delta_IntFP2Vec_ZeroAfterVec {c: Ckt A B 1}
+  {x: SOVType 0 A} {b: stream ℕ}
+  (h: IntFP2Vec c (↑↑δ0 x) b)
+  (hz: ∀ i, denote c (↑↑δ0 x) i (b i) = 0):
+     ZeroAfterVec (denote c (↑↑δ0 x)) b := by
+  intro i
+  apply delta_ExtFP2_impl_ZeroAfter (IntFP2_impl_ExtFP2 c (↑↑δ0 x) i (b i) (h i)) (hz i)
 
 lemma IntFP2Vec_impl_ExtFP2Vec {c: Ckt A B 1} {x: SOVType 1 A} {b: stream ℕ}:
     IntFP2Vec c x b -> ExtFP2Vec c x b := by
