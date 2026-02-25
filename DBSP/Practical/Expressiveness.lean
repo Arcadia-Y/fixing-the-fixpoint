@@ -12,13 +12,13 @@ open CktBasic
 section Ext2Int
 variable {ns: Bool} {A B C: VType}
 
-lemma FixedAfter1_LiftedScalar
+lemma FixAfter1_LiftedScalar
   (c: Ckt A B ns) (hc: LiftedScalar c)
-  x n (hfa: FixedAfter1 x n):
-    FixedAfter1 (denote c x) n := by
+  x n (hfa: FixAfter1 x n):
+    FixAfter1 (denote c x) n := by
   apply LiftedScalar_Denote at hc
   rcases hc with ⟨f, hf⟩
-  rw [hf]; apply FixedAfter1_liftO; tauto
+  rw [hf]; apply FixAfter1_liftO; tauto
 
 lemma LiftedScalar_ExtFP1_IntFP1
   (c: Ckt A B ns) (hc: LiftedScalar c)
@@ -32,11 +32,11 @@ lemma LiftedScalar_ExtFP1_IntFP1
       constructor; tauto
       apply LiftedScalar_Denote at h1
       rcases h1 with ⟨f, hf⟩
-      rw [hf]; apply FixedAfter1_liftO; tauto
+      rw [hf]; apply FixAfter1_liftO; tauto
     have : ExtFP1 c2 (denote c1 x) n := by
       constructor; swap
       · apply he.2
-      apply FixedAfter1_LiftedScalar; assumption
+      apply FixAfter1_LiftedScalar; assumption
       apply this.1
     constructor
     · apply ih1; assumption
@@ -44,7 +44,7 @@ lemma LiftedScalar_ExtFP1_IntFP1
   case par c1 c2 h1 h2 ih1 ih2 =>
     simp [IntFP1]
     simp [ExtFP1, denote] at he
-    rw [FixedAfter1_sprodO] at he
+    rw [FixAfter1_sprodO] at he
     constructor
     · apply ih1; simp [ExtFP1]; tauto
     · apply ih2; simp [ExtFP1]; tauto
@@ -60,11 +60,11 @@ theorem Terminate_LiftedScalar
 
 lemma HoareI1_LiftedScalar {c: Ckt A B ns}
   {v: SOVType ns A} {b: ℕ}
-  (hs: LiftedScalar c) (hf: FixedAfter1 v b):
-    HoareI1 (fun x => x = v) c (fun y => y = denote c v ∧ FixedAfter1 y b) b := by
+  (hs: LiftedScalar c) (hf: FixAfter1 v b):
+    HoareI1 (fun x => x = v) c (fun y => y = denote c v ∧ FixAfter1 y b) b := by
   simp [HoareI1]
-  have hf2: FixedAfter1 (denote c v) b := by
-    apply FixedAfter1_LiftedScalar <;> tauto
+  have hf2: FixAfter1 (denote c v) b := by
+    apply FixAfter1_LiftedScalar <;> tauto
   simp [hf2]
   apply LiftedScalar_ExtFP1_IntFP1; tauto
   simp [ExtFP1]; tauto
@@ -99,7 +99,7 @@ def FixedAtVec {A: Type} (f: A -> A) (x: stream A) (b: stream ℕ): Prop :=
   ∀ i, FixedAt f (x i) (b i)
 
 lemma FixedAt_funcIterStream_iff {A: Type} (f: A -> A) (x: A) (n: ℕ):
-    FixedAt f x n <-> FixedAfter1 (funcIterStream f x) n := by
+    FixedAt f x n <-> FixAfter1 (funcIterStream f x) n := by
   unfold FixedAt
   constructor
   · intro h; rw [add_comm] at h
@@ -116,7 +116,7 @@ lemma FixedAt_mono {A: Type} (f: A -> A) (x: A) (n: ℕ)
   (h: FixedAt f x n) (m: ℕ) (hm: n ≤ m):
     FixedAt f x m := by
   rw [FixedAt_funcIterStream_iff]
-  apply FixedAfter1_mono
+  apply FixAfter1_mono
   rw [FixedAt_funcIterStream_iff] at h
   assumption
   assumption
@@ -181,7 +181,7 @@ lemma FixedAt_iff_ZeroAfter (n: ℕ):
     FixedAt f iv (n+1) <->
     ZeroAfter (bodyOutput f iv) (n+1) := by
   rw [FixedAt_funcIterStream_iff]
-  rw [bodyOutput, ZeroAfter_succ_D_FixedAfter1]
+  rw [bodyOutput, ZeroAfter_succ_D_FixAfter1]
   constructor <;> intro h
   · intro m hm; simp [funcIterStream]
     specialize h (m+1) (by omega)
@@ -211,18 +211,18 @@ lemma body_HoareI1 {n: ℕ}
       (fun _ => True) (n+1) := by
   unfold body
   rw [FixedAt_iff_ZeroAfter] at hfa
-  rw [bodyOutput, ZeroAfter_succ_D_FixedAfter1] at hfa
+  rw [bodyOutput, ZeroAfter_succ_D_FixAfter1] at hfa
   apply HoareI1_seq
   apply HoareI1_loop (by apply loop_HoareT <;> tauto)
   · intro x y hx hy; simp
     apply HoareI1_seq
     apply HoareI1_LiftedScalar (by constructor)
-    · rw [FixedAfter1_sprod]
+    · rw [FixAfter1_sprod]
       constructor
-      · apply FixedAfter1_mono
-        apply ZeroAfter_impl_FixedAfter1
+      · apply FixAfter1_mono
+        apply ZeroAfter_impl_FixAfter1
         rw [hx]; apply δ0_ZeroAfter; omega
-      · rw [FixedAfter1_delay_succ]
+      · rw [FixAfter1_delay_succ]
         rw [hy]; tauto
     simp [denote]
     have : x + z⁻¹ y = funcIterStream f iv := by
@@ -234,7 +234,7 @@ lemma body_HoareI1 {n: ℕ}
     simp [hf', ExtFP1]
     rw [hf]; simp
     rw [f_apply_funcIterStream]
-    apply FixedAfter1_mono <;> tauto
+    apply FixAfter1_mono <;> tauto
   apply HoareI1_conseq_post (hq:= by tauto)
   apply HoareI1_D; tauto
 
@@ -374,7 +374,7 @@ lemma FixedAt_iff_ZeroAfter (n: ℕ):
     FixedAt (f R iv) 0 (n+1) <->
     ZeroAfter (bodyOutput R iv) (n+1) := by
   rw [FixedAt_funcIterStream_iff]
-  rw [bodyOutput, ZeroAfter_succ_D_FixedAfter1]
+  rw [bodyOutput, ZeroAfter_succ_D_FixAfter1]
   constructor <;> intro h
   · intro m hm; simp [funcIterStream]
     specialize h (m+1) (by omega)
@@ -393,7 +393,7 @@ lemma loop_HoareI1 {n: ℕ}
       (cloop c0)
       (fun y => y = funcIterStream (f R iv) (f R iv 0)) (n+1) := by
   rw [FixedAt_iff_ZeroAfter] at hfa
-  rw [bodyOutput, ZeroAfter_succ_D_FixedAfter1] at hfa
+  rw [bodyOutput, ZeroAfter_succ_D_FixAfter1] at hfa
   apply HoareI1_loop (by apply loop_HoareT <;> tauto)
   · intro x y hx hy; simp
     simp [HoareI1]; apply hei
@@ -408,9 +408,9 @@ lemma loop_HoareI1 {n: ℕ}
         rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply]
         rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply' g]
     rw [this, hx, hy]; constructor
-    · rw [FixedAfter1_sprod]; simp
-      rw [FixedAfter1_delay_succ]; tauto
-    · apply FixedAfter1_mono; tauto; omega
+    · rw [FixAfter1_sprod]; simp
+      rw [FixAfter1_delay_succ]; tauto
+    · apply FixAfter1_mono; tauto; omega
 
 include hf ht in
 lemma body_HoareT:
@@ -433,7 +433,7 @@ lemma body_HoareI1 {n: ℕ}
       (fun _ => True) (n+1) := by
   unfold body
   rw [FixedAt_iff_ZeroAfter] at hfa
-  rw [bodyOutput, ZeroAfter_succ_D_FixedAfter1] at hfa
+  rw [bodyOutput, ZeroAfter_succ_D_FixAfter1] at hfa
   apply HoareI1_seq; apply HoareI1_seq
   apply HoareI1_mono
   apply HoareI1_I; apply δ0_ZeroAfter; omega
@@ -615,7 +615,7 @@ theorem opt_query_HoareT:
   funext i; specialize h i
   rw [h]; unfold D; simp
   rw [linear_sub integral_linear]
-  have hfa: ∀ (j : ℕ), FixedAfter1 (funcIterStream (f R (is j)) 0) (b j) := by
+  have hfa: ∀ (j : ℕ), FixAfter1 (funcIterStream (f R (is j)) 0) (b j) := by
     intro j; specialize hfa j
     rw [FixedAt_funcIterStream_iff] at hfa; tauto
   rcases i with _ | i

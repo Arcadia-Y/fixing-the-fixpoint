@@ -112,12 +112,12 @@ lemma Preserve1_incr_dist {ns: Bool}:
   intro x n _ h
   simp [IntFP1, ExtFP1] at h
   rcases h with ⟨hx, _⟩
-  have hx' := FixedAfter1_mono (n2:=n+1) hx (by simp)
-  have hdx := ZeroAfter_succ_D_FixedAfter1.2 hx
-  have hdx' := ZeroAfter_impl_FixedAfter1 hdx
-  have hzx := FixedAfter1_delay_succ.2 hx
-  have Hin := FixedAfter1_sprodO.2 ⟨hzx, hdx'⟩
-  have Hout := FixedAfter1_liftO (f:= fun x => distinctH x.1 x.2) Hin
+  have hx' := FixAfter1_mono (n2:=n+1) hx (by simp)
+  have hdx := ZeroAfter_succ_D_FixAfter1.2 hx
+  have hdx' := ZeroAfter_impl_FixAfter1 hdx
+  have hzx := FixAfter1_delay_succ.2 hx
+  have Hin := FixAfter1_sprodO.2 ⟨hzx, hdx'⟩
+  have Hout := FixAfter1_liftO (f:= fun x => distinctH x.1 x.2) Hin
   simp [incr_dist, IntFP1, denote, ExtFP1, *, liftO_id]
   apply I_IntFP1; rcases ns <;> simp [hx]
 
@@ -126,13 +126,13 @@ lemma Presreve2_incr_dist:
   intro x r _ h
   simp [IntFP2Vec, IntFP2, ExtFP2] at h
   rw [forall_and_iff] at h; rcases h with ⟨hx, _⟩
-  rw [<- FixedAfter2Vec] at hx
+  rw [<- FixAfter2Vec] at hx
   set r' := fun i ↦ max (r i) (z⁻¹ r i)
-  have hdx := FixedAfter2Vec_D hx
-  have hzx := FixedAfter2Vec_delay.1 hx
-  have hzx' := FixedAfter2Vec_mono hzx (b2:= r') (by intro _; simp [r'])
-  have Hin := FixedAfter2Vec_sprod2.2 ⟨hzx', hdx⟩
-  have Hout := FixedAfter2Vec_lifting (f:= fun x => distinctH x.1 x.2) Hin
+  have hdx := FixAfter2Vec_D hx
+  have hzx := FixAfter2Vec_delay.1 hx
+  have hzx' := FixAfter2Vec_mono hzx (b2:= r') (by intro _; simp [r'])
+  have Hin := FixAfter2Vec_sprod2.2 ⟨hzx', hdx⟩
+  have Hout := FixAfter2Vec_lifting (f:= fun x => distinctH x.1 x.2) Hin
   intro i; unfold r' at *
   have := hx i
   specialize hdx i
@@ -143,7 +143,7 @@ lemma Presreve2_incr_dist:
   simp [incr_dist, IntFP2, ExtFP2, denote, *]
   constructor
   apply I_IntFP2Vec; tauto
-  apply FixedAfter2_mono; tauto; simp
+  apply FixAfter2_mono; tauto; simp
 
 instance : IncUnary (@DistinctUnaryNode A _) where
   opt := incr_dist (c₂ HBinaryNode)

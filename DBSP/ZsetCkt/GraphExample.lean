@@ -271,7 +271,7 @@ lemma c0_hfa (i: ℕ):
     rw [<- Zset.isSet_support_fromSet]
     simp [path]
   · rw [FixedAt_funcIterStream_iff]
-    rw [funcIterStream_0_delay, FixedAfter1_delay_succ]
+    rw [funcIterStream_0_delay, FixAfter1_delay_succ]
     simp; rw [fs_eq]
     intro j hj; simp
     rw [<- Zset.isSet_support_fromSet]; simp [S]
@@ -398,7 +398,7 @@ theorem query_HoareR:
       (hei:= c0_hei)
       (hfa := by intros; apply c0_hfa)
   · simp; intro i; simp
-    rw [ZeroAfter_succ_D_FixedAfter1]
+    rw [ZeroAfter_succ_D_FixAfter1]
     intro j hj; simp
     rw [<- Zset.isSet_support_fromSet]; simp [S]
     rw [show min i (j+1) = i by omega]

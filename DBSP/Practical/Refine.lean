@@ -205,7 +205,7 @@ lemma Refine_bracket_D {c: Ckt A B 1}:
     · apply IntFP2_mono
       apply hif; omega
     · apply D_IntFP2Vec
-      apply ZeroAfterVec_impl_FixedAfter2Vec
+      apply ZeroAfterVec_impl_FixAfter2Vec
       tauto
   have hz': ZeroAfterVec (denote (c >>c cD) (↑↑δ0 x)) (fun i => max (b i) (z⁻¹ b i)) := by
     simp [denote]

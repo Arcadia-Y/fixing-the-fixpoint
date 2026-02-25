@@ -20,14 +20,14 @@ lemma agree_let_fixed1 {T: Type} (s: stream T) (n: ℕ):
   have : n = i := by omega
   simp [this]
 
-lemma FixedAfter1_let_fixed1 {T: Type} (s: stream T) (n: ℕ):
-    FixedAfter1 (let_fixed1 s n) n := by
+lemma FixAfter1_let_fixed1 {T: Type} (s: stream T) (n: ℕ):
+    FixAfter1 (let_fixed1 s n) n := by
   intro m hm; simp [let_fixed1]; omega
 
 lemma let_fixed1_eq_iff {T: Type} (s: stream T) (n: ℕ):
-    (let_fixed1 s n) = s <-> FixedAfter1 s n := by
+    (let_fixed1 s n) = s <-> FixAfter1 s n := by
   constructor
-  · intro h; rw [<- h]; apply FixedAfter1_let_fixed1
+  · intro h; rw [<- h]; apply FixAfter1_let_fixed1
   · intro h
     funext n; simp [let_fixed1]
     intro hn; rw [<- h]; omega
@@ -94,7 +94,7 @@ lemma let_fixed1_denote_agree {A B: VType} {ns: Bool}
 -- the State Fixpoint with the input being fixed after `n`
 theorem IntFP1_StFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns)
   (x: SOVType ns A):
-    IntFP1 c x = SAnd (FixedAfter1 x) (StFP1 c x) := by
+    IntFP1 c x = SAnd (FixAfter1 x) (StFP1 c x) := by
   funext n; simp
   simp [StFP1]; constructor
   · intro hi
@@ -109,7 +109,7 @@ theorem IntFP1_StFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns)
 
 theorem StFP1_IntFP1 {A B: VType} {ns: Bool} {c: Ckt A B ns}
   {x: SOVType ns A} {n: ℕ}
-  (hf: FixedAfter1 x n) (hs: StFP1 c x n):
+  (hf: FixAfter1 x n) (hs: StFP1 c x n):
     IntFP1 c x n := by
   rw [IntFP1_StFP1]; simp; tauto
 
@@ -132,7 +132,7 @@ theorem StFP1_causal {A B: VType} {ns: Bool} (c: Ckt A B ns):
 theorem StFP1_iff {A B: VType} {ns: Bool}
   {c: Ckt A B ns} {x: SOVType ns A} {n: ℕ}:
     StFP1 c x n <->
-    ∀ (y: SOVType ns A), (y =[n]= x) -> FixedAfter1 y n -> IntFP1 c y n := by
+    ∀ (y: SOVType ns A), (y =[n]= x) -> FixAfter1 y n -> IntFP1 c y n := by
   constructor
   · intro h y hag hf
     rw [IntFP1_StFP1]; simp
@@ -141,7 +141,7 @@ theorem StFP1_iff {A B: VType} {ns: Bool}
   · intro h
     simp [StFP1]
     apply h; apply agree_let_fixed1
-    apply FixedAfter1_let_fixed1
+    apply FixAfter1_let_fixed1
 
 -- A high-level algorithm to detect the State Fixpoint `StFP1` at runtime.
 -- For nested-circuits, this is run at the end of each outer iteration.
@@ -185,17 +185,17 @@ noncomputable def FPDetector1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVTyp
 lemma ExtFP1_lifted_Ckt_let_fixed1 {A B: VType} {ns: Bool}
   (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ) (hc: lifted_Ckt c):
     ExtFP1 c (let_fixed1 x n) n := by
-  have h1 := FixedAfter1_let_fixed1 x n
+  have h1 := FixAfter1_let_fixed1 x n
   have h2 := lifted_Ckt_ExtFP1 c (let_fixed1 x n) hc
   rw [h2]; tauto
 
-lemma loop_FixedAfter1_ind {A B: VType} {ns: Bool}
+lemma loop_FixAfter1_ind {A B: VType} {ns: Bool}
   (c: Ckt (A ×ᵥB) B ns) (x: SOVType ns A) (n: ℕ)
-  (hf: FixedAfter1 (denote c (sprodO ns (x, let_fixed1 (z⁻¹ (denote (cloop c) x)) n))) n)
+  (hf: FixAfter1 (denote c (sprodO ns (x, let_fixed1 (z⁻¹ (denote (cloop c) x)) n))) n)
   (heq: denote (cloop c) x n = z⁻¹ (denote (cloop c) x) n):
-    FixedAfter1 (z⁻¹ (denote (cloop c) x)) n := by
+    FixAfter1 (z⁻¹ (denote (cloop c) x)) n := by
   suffices: z⁻¹ (denote (cloop c) x) = let_fixed1 (z⁻¹ (denote (cloop c) x)) n
-  · rw [this]; apply FixedAfter1_let_fixed1
+  · rw [this]; apply FixAfter1_let_fixed1
   rw [agree_everywhere_eq]
   intro m; induction' m with m ih
   · intro i hi
@@ -244,7 +244,7 @@ lemma loop_FPDetector1_correct {A B: VType} {ns: Bool}
   · intro hi
     have he := IntFP1_impl_ExtFP1 _ _ _ hi
     rcases he with ⟨he, _⟩
-    rw [FixedAfter1_sprodO] at he
+    rw [FixAfter1_sprodO] at he
     rcases he with ⟨_, he⟩
     constructor
     · rw [<- let_fixed1_eq_iff] at he
@@ -259,7 +259,7 @@ lemma loop_FPDetector1_correct {A B: VType} {ns: Bool}
   -- This direction is harder
   rintro ⟨hi, heq⟩
   suffices hf:
-    FixedAfter1 (z⁻¹ (denote (cloop c) (let_fixed1 x n))) n
+    FixAfter1 (z⁻¹ (denote (cloop c) (let_fixed1 x n))) n
   · rw [<- let_fixed1_eq_iff] at hf
     rw [<- hf]; tauto
   apply IntFP1_impl_ExtFP1 at hi
@@ -274,16 +274,16 @@ lemma loop_FPDetector1_correct {A B: VType} {ns: Bool}
       apply agreeUpto_weaken
       symm; apply agree_let_fixed1; omega
   set y := let_fixed1 x n
-  apply loop_FixedAfter1_ind <;> tauto
+  apply loop_FixAfter1_ind <;> tauto
 
--- The proof is similar to `loop_FixedAfter1_ind`
+-- The proof is similar to `loop_FixAfter1_ind`
 -- but needs induction on both two dimensions
-lemma lifted_loop_FixedAfter1_ind {A B: VType}
+lemma lifted_loop_FixAfter1_ind {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (n: ℕ)
-  (hf: FixedAfter1 (denote c (sprod2 (x, let_fixed1 (↑↑z⁻¹ (denote (cloop2 c) x)) n))) n):
-    FixedAfter1 (↑↑z⁻¹ (denote (cloop2 c) x)) n := by
+  (hf: FixAfter1 (denote c (sprod2 (x, let_fixed1 (↑↑z⁻¹ (denote (cloop2 c) x)) n))) n):
+    FixAfter1 (↑↑z⁻¹ (denote (cloop2 c) x)) n := by
   suffices: ↑↑z⁻¹ (denote (cloop2 c) x) = let_fixed1 (↑↑z⁻¹ (denote (cloop2 c) x)) n
-  · rw [this]; apply FixedAfter1_let_fixed1
+  · rw [this]; apply FixAfter1_let_fixed1
   rw [agree_everywhere_eq]
   intro m; induction' m with m ih
   · intro i hi
@@ -343,19 +343,19 @@ lemma lifted_loop_FPDetector1_correct {A B: VType} (c: Ckt (A ×ᵥB) B 1)
   · intro hi
     have he := IntFP1_impl_ExtFP1 _ _ _ hi
     rcases he with ⟨he, _⟩
-    rw [FixedAfter1_sprod2] at he
+    rw [FixAfter1_sprod2] at he
     rcases he with ⟨_, he⟩
     rw [<- let_fixed1_eq_iff] at he
     rw [he]; tauto
   -- This direction is harder
   intro hi
   suffices hf:
-    FixedAfter1 (↑↑z⁻¹ (denote (cloop2 c) (let_fixed1 x n))) n
+    FixAfter1 (↑↑z⁻¹ (denote (cloop2 c) (let_fixed1 x n))) n
   · rw [<- let_fixed1_eq_iff] at hf
     rw [<- hf]; tauto
   apply IntFP1_impl_ExtFP1 at hi
   rcases hi with ⟨_, hf⟩
-  apply lifted_loop_FixedAfter1_ind; tauto
+  apply lifted_loop_FixAfter1_ind; tauto
 
 -- The corrrectness of `FPDetector1`
 -- It is sound and complete w.r.t. `StFP1`
@@ -391,10 +391,10 @@ theorem FPDetector1_correct {A B: VType} {ns: Bool} (c: Ckt A B ns)
     simp [StFP1]
   case delay =>
     simp [ExtFP1]
-    have hf := FixedAfter1_let_fixed1 x n
+    have hf := FixAfter1_let_fixed1 x n
     simp [hf, denote]
-    rw [<- FixedAfter1_extend]
-    rw [FixedAfter1_delay_succ]; simp [hf]
+    rw [<- FixAfter1_extend]
+    rw [FixAfter1_delay_succ]; simp [hf]
     rcases n <;> simp [let_fixed1] <;> tauto
   case loop ns _ _ c ih =>
     rw [ih]; apply loop_FPDetector1_correct
@@ -625,17 +625,17 @@ theorem let_fixed2_causal {T: Type}
   intro i hi; funext j; simp [let_fixed2]
   split_ifs with hi' <;> apply hca <;> simp [le_time] <;> omega
 
-lemma FixedAfter2_let_fixed2 {T: Type}
+lemma FixAfter2_let_fixed2 {T: Type}
   (s: stream (stream T)) (m n: ℕ):
-    FixedAfter2 (let_fixed2 s m n) m n := by
-  simp [FixedAfter2]; intro i hi
+    FixAfter2 (let_fixed2 s m n) m n := by
+  simp [FixAfter2]; intro i hi
   simp [let_fixed2]; intros; omega
 
 lemma let_fixed2_eq_iff {T: Type}
   (s: stream (stream T)) (m n: ℕ):
-    (let_fixed2 s m n) = s <-> FixedAfter2 s m n := by
+    (let_fixed2 s m n) = s <-> FixAfter2 s m n := by
   constructor
-  · intro h; rw [<- h]; apply FixedAfter2_let_fixed2
+  · intro h; rw [<- h]; apply FixAfter2_let_fixed2
   · intro h
     funext i j; simp [let_fixed2]
     by_cases hi: (i = m)
@@ -676,7 +676,7 @@ def StFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ): Prop :=
 -- the nested State Fixpoint with the input being fixed after `(m, n)`
 theorem IntFP2_StFP2 {A B: VType} (c: Ckt A B 1)
   (x: SOVType 1 A) :
-    IntFP2 c x = SAnd2 (FixedAfter2 x) (StFP2 c x) := by
+    IntFP2 c x = SAnd2 (FixAfter2 x) (StFP2 c x) := by
   funext m n; simp
   simp [StFP2]; constructor
   · intro hi
@@ -707,7 +707,7 @@ theorem StFP2_CausalT {A B: VType} (c: Ckt A B 1):
 theorem StFP2_iff {A B: VType}
   {c: Ckt A B 1} {x: SOVType 1 A} {m n: ℕ}:
     StFP2 c x m n <->
-    ∀ (y: SOVType 1 A), (y ={m, n}= x) -> FixedAfter2 y m n -> IntFP2 c y m n := by
+    ∀ (y: SOVType 1 A), (y ={m, n}= x) -> FixAfter2 y m n -> IntFP2 c y m n := by
   constructor
   · intro h y hag hf
     rw [IntFP2_StFP2]; simp
@@ -716,7 +716,7 @@ theorem StFP2_iff {A B: VType}
   · intro h
     simp [StFP2]
     apply h; symm; apply agreeT_let_fixed2
-    apply FixedAfter2_let_fixed2
+    apply FixAfter2_let_fixed2
 
 -- A high-level algorithm to detect the nested State Fixpoint `StFP2` at runtime
 noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stream (stream Prop) :=
@@ -735,7 +735,7 @@ noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stre
   | Ckt.par c1 c2 => SAnd2 (FPDetector2 c1 x) (FPDetector2 c2 x)
   -- Nested delay needs to detect whether the input from last row has reached the fixedpoint
   -- which is assumed to be stored in the state at the end of last outer iteration
-  | Ckt.delay => fun m n => FixedAfter2 (z⁻¹ x) m n
+  | Ckt.delay => fun m n => FixAfter2 (z⁻¹ x) m n
   -- This is where `FPDetector2` depends on `FPDetector1`
   -- For `c↑ c`, it detects the `StFP1` of the inner circuit `c`
   | Ckt.lifting c => fun m n => FPDetector1 c (x m) n
@@ -745,7 +745,7 @@ noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stre
   -- it detects the internal circuit
   -- and also checks whether the output from last row has reached fixedpoint
   | Ckt.loop c => fun m n => let o := denote (Ckt.loop c) x
-      FPDetector2 c (sprod2 (x, z⁻¹ o)) m n ∧ FixedAfter2 (z⁻¹ o) m n
+      FPDetector2 c (sprod2 (x, z⁻¹ o)) m n ∧ FixAfter2 (z⁻¹ o) m n
   -- The lifted_loop detects the internal circuit
   -- and also checks whether the output is equal to the stored state (i.e. the lifting-delayed output)
   | Ckt.lifted_loop c => fun m n => let o := denote (Ckt.lifted_loop c) x
@@ -754,13 +754,13 @@ noncomputable def FPDetector2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A): stre
 lemma ExtFP2_lifted_scalar_Ckt_let_fixed2 {A B: VType} {f}
   (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ) (hc: DenoteLiftedScalar c f):
     ExtFP2 c (let_fixed2 x m n) m n := by
-  have h1 := FixedAfter2_let_fixed2 x m n
+  have h1 := FixAfter2_let_fixed2 x m n
   have h2 := DenoteLiftedScalar_ExtFP2 c (let_fixed2 x m n) hc
   rw [h2]; tauto
 
-lemma FixedAfter2_denote_let_fixed2_agree {A B: VType}
+lemma FixAfter2_denote_let_fixed2_agree {A B: VType}
   (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ)
-  (hf: FixedAfter2 (denote c (let_fixed2 x m n)) m n):
+  (hf: FixAfter2 (denote c (let_fixed2 x m n)) m n):
     let_fixed2 (denote c x) m n =[m]= denote c (let_fixed2 x m n) := by
   have hca := ckt_causalO c
   simp [CausalO] at hca
@@ -783,16 +783,16 @@ lemma FixedAfter2_denote_let_fixed2_agree {A B: VType}
     apply agreeT_let_fixed2
     simp [le_time]; omega
 
-lemma loop_FixedAfter2_StFP2_iff {A B: VType}
+lemma loop_FixAfter2_StFP2_iff {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ)
-  (hf: FixedAfter2 x m n):
+  (hf: FixAfter2 x m n):
     StFP2 c (sprod2 (x, z⁻¹ (denote (cloop c) x))) m n ∧
-    FixedAfter2 (z⁻¹ (denote (cloop c) x)) m n <->
+    FixAfter2 (z⁻¹ (denote (cloop c) x)) m n <->
     StFP2 (cloop c) x m n := by
   calc
     _ <-> IntFP2 c (sprod2 (x, z⁻¹ (denote (cloop c) x))) m n := by
       rw [IntFP2_StFP2]; simp
-      rw [FixedAfter2_sprod2_iff]; tauto
+      rw [FixAfter2_sprod2_iff]; tauto
     _ <-> IntFP2 (cloop c) x m n := by
       simp [IntFP2]
     _ <-> _ := by
@@ -801,10 +801,10 @@ lemma loop_FixedAfter2_StFP2_iff {A B: VType}
 lemma loop_FPDetector2_correct {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ):
     StFP2 c (sprod2 (x, z⁻¹ (denote (cloop c) x))) m n ∧
-    FixedAfter2 (z⁻¹ (denote (cloop c) x)) m n <->
+    FixAfter2 (z⁻¹ (denote (cloop c) x)) m n <->
     StFP2 (cloop c) x m n := by
   have hy1 := agreeT_let_fixed2 x m n
-  have hy2 := FixedAfter2_let_fixed2 x m n
+  have hy2 := FixAfter2_let_fixed2 x m n
   set y := let_fixed2 x m n
   rw [StFP2_CausalT]
   case a =>
@@ -813,7 +813,7 @@ lemma loop_FPDetector2_correct {A B: VType}
     apply causalT_agreeT; apply delay_causalT
     apply causalT_agreeT; apply ckt_causalT
     apply hy1
-  rw [FixedAfter2_causal (s2:= z⁻¹ (denote (cloop c) y))]
+  rw [FixAfter2_causal (s2:= z⁻¹ (denote (cloop c) y))]
   case heq =>
     apply delay_strict
     intro i hi
@@ -824,19 +824,19 @@ lemma loop_FPDetector2_correct {A B: VType}
     apply agreeUpto_weaken; apply hy1; omega
   nth_rw 2 [StFP2_CausalT]
   case a => apply hy1
-  apply loop_FixedAfter2_StFP2_iff; tauto
+  apply loop_FixAfter2_StFP2_iff; tauto
 
-lemma lifted_loop_FixedAfter2_ind {A B: VType}
+lemma lifted_loop_FixAfter2_ind {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ)
   (he: denote (cloop2 c) x m n = z⁻¹ (denote (cloop2 c) x m) n)
-  (h: FixedAfter2 (denote c (sprod2 (x, let_fixed2 (↑↑z⁻¹ (denote (cloop2 c) x)) m n))) m n):
-    FixedAfter2 (↑↑z⁻¹ (denote (cloop2 c) x)) m n := by
+  (h: FixAfter2 (denote c (sprod2 (x, let_fixed2 (↑↑z⁻¹ (denote (cloop2 c) x)) m n))) m n):
+    FixAfter2 (↑↑z⁻¹ (denote (cloop2 c) x)) m n := by
   suffices: ↑↑z⁻¹ (denote (cloop2 c) x) =[m]= let_fixed2 (↑↑z⁻¹ (denote (cloop2 c) x)) m n
   · specialize this  m (by omega)
-    rw [FixedAfter2_causal]
+    rw [FixAfter2_causal]
     case heq =>
       apply this
-    apply FixedAfter2_let_fixed2
+    apply FixAfter2_let_fixed2
   intro i hi
   funext j; simp
   induction' j using Nat.strong_induction_on with j ihj
@@ -879,9 +879,9 @@ lemma lifted_loop_FixedAfter2_ind {A B: VType}
       constructor; rfl
       apply het; simp [le_time]; omega
 
-lemma lifted_loop_FixedAfter2_StFP2_iff {A B: VType}
+lemma lifted_loop_FixAfter2_StFP2_iff {A B: VType}
   (c: Ckt (A ×ᵥB) B 1) (x: SOVType 1 A) (m n: ℕ)
-  (hf: FixedAfter2 x m n):
+  (hf: FixAfter2 x m n):
     StFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (cloop2 c) x))) m n ∧
     denote (cloop2 c) x m n = z⁻¹ (denote (cloop2 c) x m) n <->
     StFP2 (cloop2 c) x m n := by
@@ -892,7 +892,7 @@ lemma lifted_loop_FixedAfter2_StFP2_iff {A B: VType}
     constructor; swap
     -- This direction is easier
     · intro h
-      rw [FixedAfter2_sprod2_iff] at h
+      rw [FixAfter2_sprod2_iff] at h
       rcases h with ⟨_, h⟩
       specialize h (n+1) (by omega)
       simp at h; tauto
@@ -905,9 +905,9 @@ lemma lifted_loop_FixedAfter2_StFP2_iff {A B: VType}
       rw [he] at hs
       apply IntFP2_impl_ExtFP2 at hs
       rcases hs with ⟨_, hf2⟩
-      rw [FixedAfter2_sprod2_iff]
+      rw [FixAfter2_sprod2_iff]
       constructor; tauto
-      apply lifted_loop_FixedAfter2_ind <;> tauto
+      apply lifted_loop_FixAfter2_ind <;> tauto
   _ <-> IntFP2 (cloop2 c) x m n := by
     simp [IntFP2]
   _ <-> _ := by
@@ -919,7 +919,7 @@ lemma lifted_loop_FPDetector2_correct {A B: VType}
     denote (cloop2 c) x m n = z⁻¹ (denote (cloop2 c) x m) n <->
     StFP2 (cloop2 c) x m n := by
   have hy1 := agreeT_let_fixed2 x m n
-  have hy2 := FixedAfter2_let_fixed2 x m n
+  have hy2 := FixAfter2_let_fixed2 x m n
   set y := let_fixed2 x m n
   rw [StFP2_CausalT]
   case a =>
@@ -941,7 +941,7 @@ lemma lifted_loop_FPDetector2_correct {A B: VType}
     apply agreeT_imply_AgreeNested; tauto
     simp [le_time]; omega
   rw [this]
-  apply lifted_loop_FixedAfter2_StFP2_iff; tauto
+  apply lifted_loop_FixAfter2_StFP2_iff; tauto
 
 -- The corrrectness of `FPDetector2`
 -- It is sound and complete w.r.t. `StFP2`
@@ -961,11 +961,11 @@ theorem FPDetector2_correct {A B: VType}
     clear ih; rw [FPDetector1_correct]
     simp [StFP1]; rw [let_fixed2_row_m]
   case lifted_delay =>
-    simp [StFP2, IntFP2, ExtFP2, denote, lifting, FixedAfter2]
-    have hf := FixedAfter1_let_fixed1 (x m) n
+    simp [StFP2, IntFP2, ExtFP2, denote, lifting, FixAfter2]
+    have hf := FixAfter1_let_fixed1 (x m) n
     simp [hf, let_fixed2_row_m]
-    rw [<- FixedAfter1_extend]
-    rw [FixedAfter1_delay_succ]
+    rw [<- FixAfter1_extend]
+    rw [FixAfter1_delay_succ]
     simp [hf, let_fixed1]
     rcases n <;> simp [let_fixed1] <;> tauto
   case seq c1 c2 ih1 ih2 =>
@@ -978,16 +978,16 @@ theorem FPDetector2_correct {A B: VType}
     · rw [iff_eq_eq]
       rw [IntFP2_causal]; tauto
     rcases h with ⟨_, he⟩
-    apply FixedAfter2_denote_let_fixed2_agree; tauto
+    apply FixAfter2_denote_let_fixed2_agree; tauto
   case par c1 c2 ih1 ih2 =>
     simp [StFP2, IntFP2]
     simp at ih1 ih2
     rw [ih1, ih2, StFP2, StFP2]
   case delay =>
     simp [StFP2, IntFP2]
-    have hf := FixedAfter2_let_fixed2 x m n
+    have hf := FixAfter2_let_fixed2 x m n
     simp [ExtFP2, hf, denote]
-    rw [FixedAfter2_causal]
+    rw [FixAfter2_causal]
     rcases m with (_ | m) <;> simp
     funext i; simp [let_fixed2]
   case loop c ih =>

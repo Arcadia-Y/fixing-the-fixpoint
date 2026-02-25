@@ -9,24 +9,24 @@ open CktBasic
 section FPProp1
 variable {ns: Bool} {A B C: VType}
 
--- FixedAfter1 Props
-lemma FixedAfter1_mono {T: Type} {s: stream T} {n1 n2: ℕ}
-  (h: FixedAfter1 s n1)(hn: n1 ≤ n2):
-     FixedAfter1 s n2 := by
+-- FixAfter1 Props
+lemma FixAfter1_mono {T: Type} {s: stream T} {n1 n2: ℕ}
+  (h: FixAfter1 s n1)(hn: n1 ≤ n2):
+     FixAfter1 s n2 := by
   intro m hm
   have := h _ hn
   specialize h m (by omega)
   rw [this, h]
 
-lemma FixedAfter1_iff_forall {T: Type} {s: stream T} {n: ℕ}:
-    FixedAfter1 s n <-> ∀ m ≥ n, FixedAfter1 s m := by
+lemma FixAfter1_iff_forall {T: Type} {s: stream T} {n: ℕ}:
+    FixAfter1 s n <-> ∀ m ≥ n, FixAfter1 s m := by
   constructor <;> intro h
-  · intro m hm; apply FixedAfter1_mono <;> tauto
+  · intro m hm; apply FixAfter1_mono <;> tauto
   · apply h; omega
 
-lemma FixedAfter1_extend {T: Type} {s: stream T} {n: ℕ}:
-     (FixedAfter1 s (n+1) ∧ s n = s (n+1)) <->
-     FixedAfter1 s n := by
+lemma FixAfter1_extend {T: Type} {s: stream T} {n: ℕ}:
+     (FixAfter1 s (n+1) ∧ s n = s (n+1)) <->
+     FixAfter1 s n := by
   constructor
   · rintro ⟨h ,hn⟩
     intro m hm
@@ -41,17 +41,17 @@ lemma FixedAfter1_extend {T: Type} {s: stream T} {n: ℕ}:
     intro m hm; rw [hn]
     apply h; omega
 
-lemma FixedAfter1_sprod {A B: Type} {s1: stream A} {s2: stream B}
+lemma FixAfter1_sprod {A B: Type} {s1: stream A} {s2: stream B}
   {p: ℕ}:
-    FixedAfter1 (sprod (s1, s2)) p <->
-    FixedAfter1 s1 p ∧ FixedAfter1 s2 p := by
-  simp [FixedAfter1]; constructor <;> intros; swap; tauto
+    FixAfter1 (sprod (s1, s2)) p <->
+    FixAfter1 s1 p ∧ FixAfter1 s2 p := by
+  simp [FixAfter1]; constructor <;> intros; swap; tauto
   rename_i h; constructor <;> intros m hm <;> specialize h m hm <;> tauto
 
-lemma FixedAfter1_sprod2 {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)} {n: ℕ}:
-    FixedAfter1 (sprod2 (s1, s2)) n  <->
-    FixedAfter1 (s1) n ∧ FixedAfter1 (s2) n := by
-  simp [FixedAfter1]; constructor <;> intro h
+lemma FixAfter1_sprod2 {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)} {n: ℕ}:
+    FixAfter1 (sprod2 (s1, s2)) n  <->
+    FixAfter1 (s1) n ∧ FixAfter1 (s2) n := by
+  simp [FixAfter1]; constructor <;> intro h
   · constructor <;>
     intro m hm <;> specialize h m hm <;>
     funext i <;>
@@ -61,24 +61,24 @@ lemma FixedAfter1_sprod2 {A B: Type} {s1: stream (stream A)} {s2: stream (stream
     rcases h with ⟨h1, h2⟩
     specialize h1 m hm; specialize h2 m hm; tauto
 
-lemma FixedAfter1_sprodO {A B: Type} {ns: Bool}
+lemma FixAfter1_sprodO {A B: Type} {ns: Bool}
   {s1: SOType ns A} {s2: SOType ns B} {n: ℕ}:
-    FixedAfter1 (sprodO ns (s1, s2)) n <->
-    FixedAfter1 s1 n ∧ FixedAfter1 s2 n := by
+    FixAfter1 (sprodO ns (s1, s2)) n <->
+    FixAfter1 s1 n ∧ FixAfter1 s2 n := by
   rcases ns <;> simp [sprodO]
-  apply FixedAfter1_sprod
-  apply FixedAfter1_sprod2
+  apply FixAfter1_sprod
+  apply FixAfter1_sprod2
 
-lemma FixedAfter1_delay_0 {T: Type} [Zero T] {s: stream T}:
-    FixedAfter1 (z⁻¹ s) 0 <-> s = 0 := by
-  simp [FixedAfter1, delay]; constructor
+lemma FixAfter1_delay_0 {T: Type} [Zero T] {s: stream T}:
+    FixAfter1 (z⁻¹ s) 0 <-> s = 0 := by
+  simp [FixAfter1, delay]; constructor
   · intro h; funext m; specialize h (m+1) (by omega)
     simp at h; rw [h]; rfl
-  · intro h; rw [h]; simp [FixedAfter1]
+  · intro h; rw [h]; simp [FixAfter1]
 
-lemma FixedAfter1_delay_succ {T: Type} [Zero T] {s: stream T} {n: ℕ}:
-    FixedAfter1 (z⁻¹ s) (n+1) <-> FixedAfter1 s n := by
-  simp [FixedAfter1]; constructor
+lemma FixAfter1_delay_succ {T: Type} [Zero T] {s: stream T} {n: ℕ}:
+    FixAfter1 (z⁻¹ s) (n+1) <-> FixAfter1 s n := by
+  simp [FixAfter1]; constructor
   · intro h m hm
     specialize h (m+1) (by omega)
     simp at h; tauto
@@ -88,37 +88,37 @@ lemma FixedAfter1_delay_succ {T: Type} [Zero T] {s: stream T} {n: ℕ}:
     rcases m; omega
     simp at h ⊢; tauto
 
-lemma FixedAfter1_lifting {A B: Type} {s: stream A} {n: ℕ}
-  {f: A -> B} (hx: FixedAfter1 s n):
-    FixedAfter1 (↑↑f s) n := by
-  simp [FixedAfter1, lifting] at hx ⊢
+lemma FixAfter1_lifting {A B: Type} {s: stream A} {n: ℕ}
+  {f: A -> B} (hx: FixAfter1 s n):
+    FixAfter1 (↑↑f s) n := by
+  simp [FixAfter1, lifting] at hx ⊢
   intros; congr 1; apply hx; tauto
 
-lemma FixedAfter1_liftO {A B: Type} {ns: Bool} {s: SOType ns A} {n: ℕ}
-  {f: A -> B} (hx: FixedAfter1 s n):
-    FixedAfter1 (liftO ns f s) n := by
+lemma FixAfter1_liftO {A B: Type} {ns: Bool} {s: SOType ns A} {n: ℕ}
+  {f: A -> B} (hx: FixAfter1 s n):
+    FixAfter1 (liftO ns f s) n := by
   simp [liftO] at hx ⊢
-  rcases ns <;> simp <;> apply FixedAfter1_lifting <;> tauto
+  rcases ns <;> simp <;> apply FixAfter1_lifting <;> tauto
 
-lemma ZeroAfter_impl_FixedAfter1 {A: Type} [AddCommGroup A] {s: stream A} {n: ℕ}
+lemma ZeroAfter_impl_FixAfter1 {A: Type} [AddCommGroup A] {s: stream A} {n: ℕ}
   (hz: ZeroAfter s n):
-    FixedAfter1 s n := by
-  simp [FixedAfter1]; intro m hm
+    FixAfter1 s n := by
+  simp [FixAfter1]; intro m hm
   rw [hz, hz] <;> omega
 
-lemma ZeroAfterVec_impl_FixedAfter2Vec {A: Type} [AddCommGroup A] {s: stream (stream A)} {b: stream ℕ}
+lemma ZeroAfterVec_impl_FixAfter2Vec {A: Type} [AddCommGroup A] {s: stream (stream A)} {b: stream ℕ}
   (hz: ZeroAfterVec s b):
-    FixedAfter2Vec s b := by
-  intro m; simp [FixedAfter2]
-  apply ZeroAfter_impl_FixedAfter1
+    FixAfter2Vec s b := by
+  intro m; simp [FixAfter2]
+  apply ZeroAfter_impl_FixAfter1
   tauto
 
-lemma ZeroAfter_succ_D_FixedAfter1
+lemma ZeroAfter_succ_D_FixAfter1
   {A: Type} [AddCommGroup A] {s: stream A} {n: ℕ}:
-    ZeroAfter (D s) (n+1) <-> FixedAfter1 s n := by
+    ZeroAfter (D s) (n+1) <-> FixAfter1 s n := by
   constructor
   · intro hz
-    simp [FixedAfter1]; intro m hm
+    simp [FixAfter1]; intro m hm
     set k := m-n
     have : m = n + k := by omega
     rw [this]; clear this
@@ -138,12 +138,12 @@ lemma ZeroAfter_succ_D_FixedAfter1
       rw [h m (by omega)]
       rw [h (m-1) (by omega)]
 
-lemma ZeroAfter_D_FixedAfter1_delay
+lemma ZeroAfter_D_FixAfter1_delay
   {A: Type} [AddCommGroup A] {s: stream A} {n: ℕ}:
-    ZeroAfter (D s) n <-> FixedAfter1 (z⁻¹ s) n := by
+    ZeroAfter (D s) n <-> FixAfter1 (z⁻¹ s) n := by
   cases n
   case zero =>
-    rw [FixedAfter1_delay_0]
+    rw [FixAfter1_delay_0]
     constructor
     · intro h
       funext m
@@ -161,12 +161,12 @@ lemma ZeroAfter_D_FixedAfter1_delay
       intro m hm
       simp [D, delay]
   case succ n =>
-    rw [ZeroAfter_succ_D_FixedAfter1]
-    rw [FixedAfter1_delay_succ]
+    rw [ZeroAfter_succ_D_FixAfter1]
+    rw [FixAfter1_delay_succ]
 
-lemma ZeroAfter_succ_I_FixedAfter1
+lemma ZeroAfter_succ_I_FixAfter1
   {A: Type} [AddCommGroup A] {s: stream A} {n: ℕ}:
-    ZeroAfter s (n+1) <-> FixedAfter1 (I s) n := by
+    ZeroAfter s (n+1) <-> FixAfter1 (I s) n := by
   constructor
   · intro hz; intro m hm
     rw [integral_sumVals, integral_sumVals]
@@ -185,15 +185,15 @@ lemma ZeroAfter_succ_I_FixedAfter1
 
 lemma ZeroAfter_seq_D (c: Ckt A B ns) x n
   (hz: ZeroAfter (denote (c >>c cD) x) (n+1)):
-    FixedAfter1 (denote c x) n := by
+    FixAfter1 (denote c x) n := by
   simp [denote] at hz
-  rw [<- ZeroAfter_succ_D_FixedAfter1]
+  rw [<- ZeroAfter_succ_D_FixAfter1]
   rcases ns <;> assumption
 
-lemma FixedAfter1_sub {A: Type} [AddCommGroup A]
+lemma FixAfter1_sub {A: Type} [AddCommGroup A]
   {s1 s2: stream A} {m n: ℕ}
-  (h1: FixedAfter1 s1 m) (h2: FixedAfter1 s2 n):
-    FixedAfter1 (s1 - s2) (max m n) := by
+  (h1: FixAfter1 s1 m) (h2: FixAfter1 s2 n):
+    FixAfter1 (s1 - s2) (max m n) := by
   intro k hk
   simp
   have h1k := h1 k (by omega)
@@ -203,8 +203,8 @@ lemma FixedAfter1_sub {A: Type} [AddCommGroup A]
   rw [h1k, h2k, h1m, h2m]
 
 @[simp]
-lemma FixedAfter1_const {A: Type} {a: A} {n: ℕ}:
-    FixedAfter1 (fun _ => a) n := by
+lemma FixAfter1_const {A: Type} {a: A} {n: ℕ}:
+    FixAfter1 (fun _ => a) n := by
   intro m hm
   simp
 
@@ -215,14 +215,14 @@ lemma ExtFP1_mono {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n1 n2: ℕ)
     ExtFP1 c x n2 := by
   simp [ExtFP1] at *
   rcases h with ⟨h1, h2⟩
-  constructor <;> apply FixedAfter1_mono <;> try assumption
+  constructor <;> apply FixAfter1_mono <;> try assumption
 
 lemma lifted_Ckt_ExtFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns)
   (x: SOVType ns A) (hc: lifted_Ckt c):
-    ExtFP1 c x = FixedAfter1 x := by
+    ExtFP1 c x = FixAfter1 x := by
   funext n; simp [ExtFP1]; intro h
   rcases hc with ⟨f, hc⟩; rw [hc]
-  apply FixedAfter1_lifting h
+  apply FixAfter1_lifting h
 
 lemma ExtFP1_loop (c: Ckt (A ×ᵥ B) B ns) x n
   (h: ExtFP1 (cloop c) x n):
@@ -230,11 +230,11 @@ lemma ExtFP1_loop (c: Ckt (A ×ᵥ B) B ns) x n
   simp [ExtFP1] at h ⊢
   rw [<- loop_unfold]
   constructor; swap
-  · apply FixedAfter1_mono; tauto; simp
-  · rw [FixedAfter1_sprodO]
+  · apply FixAfter1_mono; tauto; simp
+  · rw [FixAfter1_sprodO]
     constructor
-    apply FixedAfter1_mono; tauto; simp
-    rw [FixedAfter1_delay_succ]; tauto
+    apply FixAfter1_mono; tauto; simp
+    rw [FixAfter1_delay_succ]; tauto
 
 lemma ExtFP1_par (c1: Ckt A B ns) (c2: Ckt A C ns) x n
   (h: ExtFP1 (c1 &&c c2) x n):
@@ -242,7 +242,7 @@ lemma ExtFP1_par (c1: Ckt A B ns) (c2: Ckt A C ns) x n
   simp [ExtFP1] at h ⊢
   rcases h with ⟨h1, h2⟩
   simp [denote] at h2
-  rw [FixedAfter1_sprodO] at h2
+  rw [FixAfter1_sprodO] at h2
   tauto
 
 lemma ExtFP1_I_seq (c: Ckt A B 0) x n
@@ -254,8 +254,8 @@ lemma ExtFP1_I_seq (c: Ckt A B 0) x n
   have hz : ZeroAfter (δ0 x) (n+1) := by
     apply ZeroAfter_ge (δ0_ZeroAfter x)
     omega
-  have hfix : FixedAfter1 (I (δ0 x)) n := by
-    rw [<- ZeroAfter_succ_I_FixedAfter1]
+  have hfix : FixAfter1 (I (δ0 x)) n := by
+    rw [<- ZeroAfter_succ_I_FixAfter1]
     exact hz
   constructor
   · constructor <;> assumption
@@ -305,17 +305,17 @@ theorem IntFP1_impl_ExtFP1 {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ)
     intro h1 h2
     specialize ih1 x h1; specialize ih2 x h2
     simp [ExtFP1] at *; constructor; tauto
-    simp [denote]; rw [FixedAfter1_sprodO]; tauto
+    simp [denote]; rw [FixAfter1_sprodO]; tauto
   case loop c ih =>
     intro h; apply ih at h; clear ih
     simp [ExtFP1] at *
-    rw [FixedAfter1_sprodO] at h
+    rw [FixAfter1_sprodO] at h
     rw [loop_unfold]
     tauto
   case lifted_loop c ih =>
     intro h; apply ih at h; clear ih
     simp [ExtFP1] at *
-    rw [FixedAfter1_sprod2] at h
+    rw [FixAfter1_sprod2] at h
     rw [lifted_loop_unfold]
     tauto
   case bracket c ih =>
@@ -338,12 +338,12 @@ lemma I_IntFP1_delta (x: OVType 0 A):
   simp [cI] at ⊢
   have hz := δ0_ZeroAfter x
   have hf := hz
-  rw [ZeroAfter_succ_I_FixedAfter1, <- cI_denote] at hf
+  rw [ZeroAfter_succ_I_FixAfter1, <- cI_denote] at hf
   constructor
   · simp [sprodO]
-    rw [FixedAfter1_sprod]
+    rw [FixAfter1_sprod]
     constructor; tauto
-    rw [FixedAfter1_delay_succ]; tauto
+    rw [FixAfter1_delay_succ]; tauto
   · simp [sprodO]
     nth_rewrite 1 [denote]; simp [liftO]
     intro m hm; simp
@@ -351,42 +351,42 @@ lemma I_IntFP1_delta (x: OVType 0 A):
     simp; apply hf; simp
 
 lemma I_IntFP1 (x: SOVType ns A) n
-  (h: FixedAfter1 (I x) n):
+  (h: FixAfter1 (I x) n):
     IntFP1 cI x (n+1) := by
   simp [cI, IntFP1]
   rw [<- cI]; simp [denote]
   have hz: ZeroAfter x (n+1) := by
     rcases ns <;>
-    rw [ZeroAfter_succ_I_FixedAfter1] <;>
+    rw [ZeroAfter_succ_I_FixAfter1] <;>
     tauto
   rw [lifted_Ckt_ExtFP1 (hc:=by simp)]
-  rw [FixedAfter1_sprodO]
+  rw [FixAfter1_sprodO]
   constructor
-  · apply ZeroAfter_impl_FixedAfter1
+  · apply ZeroAfter_impl_FixAfter1
     rcases ns <;> tauto
-  · rw [FixedAfter1_delay_succ]
+  · rw [FixAfter1_delay_succ]
     rcases ns <;> tauto
 
 lemma D_IntFP1 (x: SOVType ns A) n (h: ZeroAfter (D x) n):
     IntFP1 cD x n := by
   simp [cD]
-  have hfz : FixedAfter1 (z⁻¹ x) n := by
+  have hfz : FixAfter1 (z⁻¹ x) n := by
     rcases ns <;>
-    rw [ZeroAfter_D_FixedAfter1_delay] at h <;>
+    rw [ZeroAfter_D_FixAfter1_delay] at h <;>
     assumption
   have h := hfz
-  rw [<- FixedAfter1_extend] at h
-  rw [FixedAfter1_delay_succ] at h
+  rw [<- FixAfter1_extend] at h
+  rw [FixAfter1_delay_succ] at h
   constructor
   · constructor <;> constructor <;> try tauto
     simp [denote, liftO_id]; tauto
   constructor
   · simp [denote]
-    rw [FixedAfter1_sprodO]
+    rw [FixAfter1_sprodO]
     simp [liftO_id]; tauto
   · simp [denote, liftO_id]
-    apply FixedAfter1_liftO
-    rw [FixedAfter1_sprodO]
+    apply FixAfter1_liftO
+    rw [FixAfter1_sprodO]
     tauto
 
 end FPProp1
@@ -396,98 +396,98 @@ end FPProp1
 section FPProp2
 variable {A B C: VType}
 
--- FixedAfter2 Props
+-- FixAfter2 Props
 
-lemma FixedAfter2_mono {T: Type} {s: stream (stream T)} {m: ℕ} {n1 n2: ℕ}
-  (h: FixedAfter2 s m n1)(hn: n1 ≤ n2):
-     FixedAfter2 s m n2 := by
-  simp [FixedAfter2] at h ⊢
-  apply FixedAfter1_mono <;> assumption
+lemma FixAfter2_mono {T: Type} {s: stream (stream T)} {m: ℕ} {n1 n2: ℕ}
+  (h: FixAfter2 s m n1)(hn: n1 ≤ n2):
+     FixAfter2 s m n2 := by
+  simp [FixAfter2] at h ⊢
+  apply FixAfter1_mono <;> assumption
 
-lemma FixedAfter2_sprod2 {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)}
-  {m n1 n2: ℕ} (h1: FixedAfter2 s1 m n1) (h2: FixedAfter2 s2 m n2) (hn: n1 ≤ n2):
-    FixedAfter2 (sprod2 (s1, s2)) m n2 := by
+lemma FixAfter2_sprod2 {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)}
+  {m n1 n2: ℕ} (h1: FixAfter2 s1 m n1) (h2: FixAfter2 s2 m n2) (hn: n1 ≤ n2):
+    FixAfter2 (sprod2 (s1, s2)) m n2 := by
   intro i hi
-  simp [FixedAfter2, sprod2, sprod]
+  simp [FixAfter2, sprod2, sprod]
   constructor
   · simp [h1 i (by omega), h1 n2 (by omega)]
   · simp [h2 i (by omega), h2 n2 (by omega)]
 
-lemma FixedAfter2_sprod2_iff {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)}
+lemma FixAfter2_sprod2_iff {A B: Type} {s1: stream (stream A)} {s2: stream (stream B)}
   {m n: ℕ}:
-    FixedAfter2 (sprod2 (s1, s2)) m n  <->
-    FixedAfter2 (s1) m n ∧ FixedAfter2 (s2) m n := by
-  simp [FixedAfter2, FixedAfter1]; constructor <;> intros; swap; tauto
+    FixAfter2 (sprod2 (s1, s2)) m n  <->
+    FixAfter2 (s1) m n ∧ FixAfter2 (s2) m n := by
+  simp [FixAfter2, FixAfter1]; constructor <;> intros; swap; tauto
   rename_i h; constructor <;> intros m hm <;> specialize h m hm <;> tauto
 
-lemma FixedAfter2_lifted_scalar {A B: Type} {s: stream (stream A)} {m n: ℕ}
-  {f: A -> B} (hx: FixedAfter2 s m n):
-    FixedAfter2 (liftO 1 f s) m n := by
-  simp [FixedAfter2, liftO] at hx ⊢
+lemma FixAfter2_lifted_scalar {A B: Type} {s: stream (stream A)} {m n: ℕ}
+  {f: A -> B} (hx: FixAfter2 s m n):
+    FixAfter2 (liftO 1 f s) m n := by
+  simp [FixAfter2, liftO] at hx ⊢
   intro i hi; simp
   apply congr; simp
   apply hx; tauto
 
 -- The nested fixedpoint is causal
 -- in a stronger sense that it only depends on row `m` of the input
-theorem FixedAfter2_causal {T: Type} {m: ℕ}
+theorem FixAfter2_causal {T: Type} {m: ℕ}
   (s1 s2: stream (stream T))
   (heq: s1 m = s2 m):
-    FixedAfter2 s1 m = FixedAfter2 s2 m := by
-  funext n; simp [FixedAfter2]; rw [heq]
+    FixAfter2 s1 m = FixAfter2 s2 m := by
+  funext n; simp [FixAfter2]; rw [heq]
 
--- FixedAfter2Vec Props
-lemma FixedAfter2Vec_mono {A: Type} {s: stream (stream A)} {b1 b2: stream ℕ}
-  (h: FixedAfter2Vec s b1) (hb: b1 ≤ b2):
-    FixedAfter2Vec s b2 := by
+-- FixAfter2Vec Props
+lemma FixAfter2Vec_mono {A: Type} {s: stream (stream A)} {b1 b2: stream ℕ}
+  (h: FixAfter2Vec s b1) (hb: b1 ≤ b2):
+    FixAfter2Vec s b2 := by
   intro i
-  apply FixedAfter2_mono <;> tauto
+  apply FixAfter2_mono <;> tauto
 
-lemma FixedAfter2Vec_sprod2 {A B: Type}
+lemma FixAfter2Vec_sprod2 {A B: Type}
   {s1: stream (stream A)} {s2: stream (stream B)} {b: stream ℕ}:
-    FixedAfter2Vec (sprod2 (s1, s2)) b <->
-    FixedAfter2Vec s1 b ∧ FixedAfter2Vec s2 b := by
+    FixAfter2Vec (sprod2 (s1, s2)) b <->
+    FixAfter2Vec s1 b ∧ FixAfter2Vec s2 b := by
   constructor
   · intro h; constructor <;> intro i <;>
     specialize h i <;>
-    rw [FixedAfter2_sprod2_iff] at h <;> tauto
+    rw [FixAfter2_sprod2_iff] at h <;> tauto
   · rintro ⟨h1, h2⟩
-    intro i; rw [FixedAfter2_sprod2_iff]; tauto
+    intro i; rw [FixAfter2_sprod2_iff]; tauto
 
-lemma FixedAfter2Vec_delay {A: Type} [Zero A]
+lemma FixAfter2Vec_delay {A: Type} [Zero A]
   {x: stream (stream A)} {b: stream ℕ}:
-    FixedAfter2Vec x b <->
-    FixedAfter2Vec (z⁻¹ x) (z⁻¹ b) := by
+    FixAfter2Vec x b <->
+    FixAfter2Vec (z⁻¹ x) (z⁻¹ b) := by
   constructor <;> intro h i
   · rcases i with _ | i
-    · simp [FixedAfter2, FixedAfter1]
-    · simp [FixedAfter2]; apply h
+    · simp [FixAfter2, FixAfter1]
+    · simp [FixAfter2]; apply h
   · specialize h (i+1)
-    simp [FixedAfter2] at h ⊢
+    simp [FixAfter2] at h ⊢
     tauto
 
-lemma FixedAfter2Vec_lifting {A B: Type} {s: stream (stream A)} {b: stream ℕ}
-  {f: A -> B} (hx: FixedAfter2Vec s b):
-    FixedAfter2Vec (↑↑↑↑f s) b := by
+lemma FixAfter2Vec_lifting {A B: Type} {s: stream (stream A)} {b: stream ℕ}
+  {f: A -> B} (hx: FixAfter2Vec s b):
+    FixAfter2Vec (↑↑↑↑f s) b := by
   intro i
-  apply FixedAfter2_lifted_scalar
+  apply FixAfter2_lifted_scalar
   apply hx
 
-lemma FixedAfter2Vec_sub {A: Type} [AddCommGroup A]
+lemma FixAfter2Vec_sub {A: Type} [AddCommGroup A]
   {s1 s2: stream (stream A)} {b1 b2: stream ℕ}
-  (h1: FixedAfter2Vec s1 b1) (h2: FixedAfter2Vec s2 b2):
-    FixedAfter2Vec (s1 - s2) (fun i => max (b1 i) (b2 i)) := by
+  (h1: FixAfter2Vec s1 b1) (h2: FixAfter2Vec s2 b2):
+    FixAfter2Vec (s1 - s2) (fun i => max (b1 i) (b2 i)) := by
   intro i
-  simp [FixedAfter2]
-  apply FixedAfter1_sub <;> tauto
+  simp [FixAfter2]
+  apply FixAfter1_sub <;> tauto
 
-lemma FixedAfter2Vec_D {A: Type} [AddCommGroup A]
+lemma FixAfter2Vec_D {A: Type} [AddCommGroup A]
   {s: stream (stream A)} {b: stream ℕ}
-  (h: FixedAfter2Vec s b):
-    FixedAfter2Vec (D s) (fun i => max (b i) (z⁻¹ b i)) := by
+  (h: FixAfter2Vec s b):
+    FixAfter2Vec (D s) (fun i => max (b i) (z⁻¹ b i)) := by
   unfold D
-  apply FixedAfter2Vec_sub; assumption
-  rw [<- FixedAfter2Vec_delay]; assumption
+  apply FixAfter2Vec_sub; assumption
+  rw [<- FixAfter2Vec_delay]; assumption
 
 lemma ZeroAfterVec_delay {A: Type} [Zero A]
   {x: stream (stream A)} {b: stream ℕ}:
@@ -543,18 +543,18 @@ lemma ExtFP2_mono {c: Ckt A B 1} {x: SOVType 1 A}
     ExtFP2 c x m n2 := by
   simp [ExtFP2] at *
   rcases h with ⟨h1, h2⟩
-  constructor <;> apply FixedAfter1_mono <;> try assumption
+  constructor <;> apply FixAfter1_mono <;> try assumption
 
 lemma DenoteLiftedScalar_ExtFP2 {A B: VType} (c: Ckt A B 1)
   (x: SOVType 1 A) {f} (hc: DenoteLiftedScalar c f):
-    ExtFP2 c x = FixedAfter2 x := by
+    ExtFP2 c x = FixAfter2 x := by
   funext m n; simp [ExtFP2]; intro h
   rw [hc]
-  apply FixedAfter2_lifted_scalar h
+  apply FixAfter2_lifted_scalar h
 
 lemma LiftedScalar_ExtFP2 {A B: VType} (c: Ckt A B 1)
   (x: SOVType 1 A) (hc: LiftedScalar c):
-    ExtFP2 c x = FixedAfter2 x := by
+    ExtFP2 c x = FixAfter2 x := by
   apply LiftedScalar_Denote at hc
   rcases hc with ⟨f, hf⟩
   apply DenoteLiftedScalar_ExtFP2; tauto
@@ -563,7 +563,7 @@ lemma LiftedScalar_ExtFP2 {A B: VType} (c: Ckt A B 1)
 theorem ExtFP2_causal (c: Ckt A B 1):
     Causal (ExtFP2 c) := by
   intro x1 x2 m hca; funext n
-  simp [ExtFP2, FixedAfter2]
+  simp [ExtFP2, FixAfter2]
   have : x1 m = x2 m := by
     apply hca; rfl
   rw [this]
@@ -580,7 +580,7 @@ lemma forall_and_iff {A: Type} {P Q: A -> Prop}: (∀ x, P x ∧ Q x) <-> (∀ x
 
 lemma ExtFP2Vec_iff {c: Ckt A B 1} {x: SOVType 1 A} {b: stream ℕ}:
     ExtFP2Vec c x b <->
-    FixedAfter2Vec x b ∧ FixedAfter2Vec (denote c x) b := by
+    FixAfter2Vec x b ∧ FixAfter2Vec (denote c x) b := by
   simp [ExtFP2Vec]; apply forall_and_iff
 
 -- IntFP2 Props
@@ -676,26 +676,26 @@ theorem IntFP2_impl_ExtFP2 (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ):
     intro h1 h2; simp at ih1 ih2
     apply ih1 at h1; apply ih2 at h2
     simp [ExtFP2] at h1 h2 ⊢
-    simp [denote, sprodO]; rw [FixedAfter2_sprod2_iff]; tauto
+    simp [denote, sprodO]; rw [FixAfter2_sprod2_iff]; tauto
   case loop c ih =>
     intro h; simp at ih
     apply ih at h; clear ih
     simp [ExtFP2] at *
-    rw [FixedAfter2_sprod2_iff] at h
+    rw [FixAfter2_sprod2_iff] at h
     rw [loop_unfold]
     tauto
   case lifted_loop c ih =>
     intro h; simp at ih
     apply ih at h; clear ih
     simp [ExtFP2] at *
-    rw [FixedAfter2_sprod2_iff] at h
+    rw [FixAfter2_sprod2_iff] at h
     rw [lifted_loop_unfold]
     tauto
   case lifting c =>
     intro h; simp [ExtFP2] at *
     apply IntFP1_impl_ExtFP1 at h
     constructor; apply h.1
-    simp [denote, FixedAfter2]
+    simp [denote, FixAfter2]
     apply h.2
 
 lemma I_IntFP2_delta (x: OVType 1 A) m:
@@ -704,10 +704,10 @@ lemma I_IntFP2_delta (x: OVType 1 A) m:
   rw [<- cI, cI_denote]
   rw [integral_lift_comm _ _ delta_linear]
   constructor
-  · rw [FixedAfter2_sprod2_iff]
-    simp [FixedAfter2]
+  · rw [FixAfter2_sprod2_iff]
+    simp [FixAfter2]
     constructor; apply δ0_ZeroAfter
-    rcases m; simp [FixedAfter1]
+    rcases m; simp [FixAfter1]
     simp; apply δ0_ZeroAfter
   simp [denote, liftO]
   intro k hk; simp
@@ -741,37 +741,37 @@ lemma IntFP2Vec_mono {c: Ckt A B 1} {x: SOVType 1 A} {b1 b2: stream ℕ}
   apply IntFP2_mono <;> tauto
 
 lemma I_IntFP2Vec {x: SOVType 1 A} {b}
-  (h: FixedAfter2Vec x b):
+  (h: FixAfter2Vec x b):
     IntFP2Vec cI (D x) (fun i => max (b i) (z⁻¹ b i)) := by
   intro m; simp [cI, IntFP2]
   rw [<- cI]; simp [denote]
   rw [DenoteLiftedScalar_ExtFP2 (hc:=by constructor)]
-  rw [FixedAfter2_sprod2_iff]
+  rw [FixAfter2_sprod2_iff]
   constructor
-  · apply FixedAfter2Vec_D; assumption
-  · apply FixedAfter2_mono
-    apply FixedAfter2Vec_delay.1; tauto; omega
+  · apply FixAfter2Vec_D; assumption
+  · apply FixAfter2_mono
+    apply FixAfter2Vec_delay.1; tauto; omega
 
 lemma D_IntFP2Vec {x: SOVType 1 A}
-  {b: stream ℕ} (hfa: FixedAfter2Vec x b):
+  {b: stream ℕ} (hfa: FixAfter2Vec x b):
     IntFP2Vec cD x (fun i => max (b i) (z⁻¹ b i)) := by
   intro i
   simp [cD, IntFP2]
   constructor; constructor
   · rw [LiftedScalar_ExtFP2 (hc:= by constructor)]
-    apply FixedAfter2_mono; tauto; omega
+    apply FixAfter2_mono; tauto; omega
   · constructor
-    apply FixedAfter2_mono; tauto; omega
+    apply FixAfter2_mono; tauto; omega
     simp [denote]
-    apply FixedAfter2_mono
-    apply FixedAfter2Vec_delay.1; tauto; omega
+    apply FixAfter2_mono
+    apply FixAfter2Vec_delay.1; tauto; omega
   · rw [LiftedScalar_ExtFP2 (hc:= by constructor)]
     simp [denote, sprodO, liftO]
-    rw [FixedAfter2_sprod2_iff]
+    rw [FixAfter2_sprod2_iff]
     constructor
-    apply FixedAfter2_mono; tauto; omega
-    apply FixedAfter2_mono
-    apply FixedAfter2Vec_delay.1; tauto; omega
+    apply FixAfter2_mono; tauto; omega
+    apply FixAfter2_mono
+    apply FixAfter2Vec_delay.1; tauto; omega
 
 end FPProp2
 

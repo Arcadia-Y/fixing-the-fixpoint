@@ -7,7 +7,7 @@ open CktBasic
 section FPSpec1
 variable {A B C: VType}
 
-def FixedAfter1 {T: Type} (s: stream T) (n: ℕ): Prop :=
+def FixAfter1 {T: Type} (s: stream T) (n: ℕ): Prop :=
   ∀ m ≥ n, s m = s n
 
 -- For any circuit, the External Fixpoint is
@@ -17,7 +17,7 @@ def FixedAfter1 {T: Type} (s: stream T) (n: ℕ): Prop :=
 --   and "fixed" means that the same stream repeats after `n`,
 --   not that a single value repeats after `n`.
 def ExtFP1 {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ): Prop :=
-  FixedAfter1 x n ∧ FixedAfter1 (denote c x) n
+  FixAfter1 x n ∧ FixAfter1 (denote c x) n
 
 -- The Internal Fixpoint is an index `n` of the outer stream such that,
 --   for any internal circuit,
@@ -54,15 +54,15 @@ end FPSpec1
 -- for the inner iteration, i.e. the **2nd** time dimension
 section FPSpec2
 variable {A B C: VType}
--- FixedAfter2 is like FixedAfter1 but for a row of a nested stream
-def FixedAfter2 {T: Type} (s: stream (stream T)) (m n: ℕ): Prop :=
-  FixedAfter1 (s m) n
+-- FixAfter2 is like FixAfter1 but for a row of a nested stream
+def FixAfter2 {T: Type} (s: stream (stream T)) (m n: ℕ): Prop :=
+  FixAfter1 (s m) n
 
 -- For nested circuits,
 -- the nested External Fixpoint is a point `(m, n)`,
 -- such that in row `m`, both the input and output become fixed after column `n`.
 def ExtFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m: ℕ) (n: ℕ): Prop :=
-  FixedAfter2 x m n ∧ FixedAfter2 (denote c x) m n
+  FixAfter2 x m n ∧ FixAfter2 (denote c x) m n
 
 -- For nested circuits,
 -- the nested External Fixpoint is a point `(m, n)` such that,
@@ -90,9 +90,9 @@ def IntFP2 {A B: VType} (c: Ckt A B 1) (x: SOVType 1 A) (m n: ℕ): Prop :=
   | Ckt.loop c =>  IntFP2 c (sprod2 (x, z⁻¹ (denote (Ckt.loop c) x))) m n
   | Ckt.lifted_loop c => IntFP2 c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x))) m n
 
--- The vetorized version of FixedAfter2
-def FixedAfter2Vec {T: Type} (s: stream (stream T)) (b: stream ℕ): Prop :=
-  ∀ i, FixedAfter2 s i (b i)
+-- The vetorized version of FixAfter2
+def FixAfter2Vec {T: Type} (s: stream (stream T)) (b: stream ℕ): Prop :=
+  ∀ i, FixAfter2 s i (b i)
 
 -- The vectorized version of ExtFP2
 def ExtFP2Vec (c: Ckt A B 1) (x: SOVType 1 A) (b: stream ℕ): Prop :=

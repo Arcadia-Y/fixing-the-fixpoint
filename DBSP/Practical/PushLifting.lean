@@ -92,7 +92,7 @@ theorem pushLifting_IntFP2 {a b} (c: Ckt a b 0)
     · apply ih2
       exact hfp.2
   case delay =>
-    simp [IntFP2, IntFP1, ExtFP2, ExtFP1, FixedAfter2, denote]
+    simp [IntFP2, IntFP1, ExtFP2, ExtFP1, FixAfter2, denote]
   case loop c ih =>
     intro x m n hfp
     simp at ih

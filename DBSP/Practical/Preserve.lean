@@ -17,9 +17,9 @@ def Preserve2 {A B} (c1 c2: Ckt A B 1) : Prop :=
       IntFP2Vec c2 (D x) (fun i => max (b i) (z⁻¹ b i))
 infix:30 " ↝₂ " => Preserve2
 
-macro "solve_FixedAfter1_D" h1:ident : tactic => `(tactic| (
-  rw [<- ZeroAfter_succ_D_FixedAfter1] at $h1:ident
-  apply ZeroAfter_impl_FixedAfter1
+macro "solve_FixAfter1_D" h1:ident : tactic => `(tactic| (
+  rw [<- ZeroAfter_succ_D_FixAfter1] at $h1:ident
+  apply ZeroAfter_impl_FixAfter1
   assumption
 ))
 
@@ -28,7 +28,7 @@ macro "solve_preserve1_basic" : tactic => `(tactic| (
   simp [Preserve1, IntFP1]
   rintro x n ht ⟨h1, h2⟩
   rw [lifted_Ckt_ExtFP1]
-  · solve_FixedAfter1_D h1
+  · solve_FixAfter1_D h1
   · simp
 ))
 
@@ -52,23 +52,23 @@ lemma Preserve1_node2_bilinear {A B C: Type}
   set a := liftO ns Prod.fst x
   set b := liftO ns Prod.snd x
   rw [eqx] at ht hx ⊢; simp [D_sprodO]
-  have hab := FixedAfter1_sprodO.1 hx
+  have hab := FixAfter1_sprodO.1 hx
   rcases hab with ⟨ha, hb⟩
-  rw [<- ZeroAfter_succ_D_FixedAfter1] at hx
-  simp [D_sprodO] at hx; apply ZeroAfter_impl_FixedAfter1 at hx
-  have hda := ZeroAfter_succ_D_FixedAfter1.2 ha
-  have hdb := ZeroAfter_succ_D_FixedAfter1.2 hb
-  have ha' := FixedAfter1_mono (n2:=n+1) ha (by simp)
-  have hb' := FixedAfter1_mono (n2:=n+1) hb (by simp)
-  have hdaf := ZeroAfter_impl_FixedAfter1 hda
-  have hdbf := ZeroAfter_impl_FixedAfter1 hdb
-  have hzb := FixedAfter1_delay_succ.2 hb
-  have hj1 := FixedAfter1_sprodO.2 ⟨ha', hdbf⟩
-  have hj2 := FixedAfter1_sprodO.2 ⟨hdaf, hzb⟩
-  have hadd1 := FixedAfter1_liftO (f:= bn.f) hj1
-  have hadd2 := FixedAfter1_liftO (f:= bn.f) hj2
-  have haddi := FixedAfter1_sprodO.2 ⟨hadd1, hadd2⟩
-  have haddo := FixedAfter1_liftO (f:= fun a => a.1+ a.2) haddi
+  rw [<- ZeroAfter_succ_D_FixAfter1] at hx
+  simp [D_sprodO] at hx; apply ZeroAfter_impl_FixAfter1 at hx
+  have hda := ZeroAfter_succ_D_FixAfter1.2 ha
+  have hdb := ZeroAfter_succ_D_FixAfter1.2 hb
+  have ha' := FixAfter1_mono (n2:=n+1) ha (by simp)
+  have hb' := FixAfter1_mono (n2:=n+1) hb (by simp)
+  have hdaf := ZeroAfter_impl_FixAfter1 hda
+  have hdbf := ZeroAfter_impl_FixAfter1 hdb
+  have hzb := FixAfter1_delay_succ.2 hb
+  have hj1 := FixAfter1_sprodO.2 ⟨ha', hdbf⟩
+  have hj2 := FixAfter1_sprodO.2 ⟨hdaf, hzb⟩
+  have hadd1 := FixAfter1_liftO (f:= bn.f) hj1
+  have hadd2 := FixAfter1_liftO (f:= bn.f) hj2
+  have haddi := FixAfter1_sprodO.2 ⟨hadd1, hadd2⟩
+  have haddo := FixAfter1_liftO (f:= fun a => a.1+ a.2) haddi
   simp [ExtFP1, *, denote]
   constructor <;> apply I_IntFP1 <;>
   rcases ns <;> simp [*]
@@ -99,10 +99,10 @@ lemma Preserve1_const k:
   rintro x n ht ⟨h1, _⟩
   constructor
   · rw [lifted_Ckt_ExtFP1]
-    solve_FixedAfter1_D h1
+    solve_FixAfter1_D h1
     simp
   · apply D_IntFP1
-    rcases ns <;> rw [ZeroAfter_succ_D_FixedAfter1] <;>
+    rcases ns <;> rw [ZeroAfter_succ_D_FixAfter1] <;>
     intro m _ <;> simp [denote]
     funext t; simp
 
@@ -112,11 +112,11 @@ lemma Preserve1_delay:
   rintro x n ht ⟨h1, h2⟩
   simp [denote] at h2
   constructor
-  · solve_FixedAfter1_D h1
+  · solve_FixAfter1_D h1
   · simp [denote]
     rcases ns <;>
     rw [<- derivative_timeInvariant] <;>
-    solve_FixedAfter1_D h2
+    solve_FixAfter1_D h2
 
 lemma Preserve1_lifted_delay:
     c↑z⁻¹ ↝₁ (@Ckt.lifted_delay A) := by
@@ -136,7 +136,7 @@ lemma Preserve1_incr {c: Ckt A B ns}:
   · simp [denote]
     apply D_IntFP1
     rcases ns <;>
-    rw [ZeroAfter_succ_D_FixedAfter1] <;>
+    rw [ZeroAfter_succ_D_FixAfter1] <;>
     tauto
 
 lemma Preserve1_seq {c1 c3: Ckt A B ns} {c2 c4: Ckt B C ns}
@@ -206,7 +206,7 @@ macro "solve_preserve2_basic" : tactic => `(tactic| (
   simp [Preserve2, IntFP2Vec, IntFP2]
   intro x b ht hef i
   rw [LiftedScalar_ExtFP2 (hc:= by constructor)]
-  apply FixedAfter2Vec_D
+  apply FixAfter2Vec_D
   rw [<- ExtFP2Vec, ExtFP2Vec_iff] at hef
   tauto
 ))
@@ -233,23 +233,23 @@ lemma Preserve2_node2_bilinear {A B C: Type}
   intro i; simp [bilinear_opt, denote, IntFP2]
   simp [IntFP2Vec, IntFP2, ExtFP2] at hix
   rw [forall_and_iff] at hix; rcases hix with ⟨hx, _⟩
-  rw [<- FixedAfter2Vec] at hx
-  have hdx := FixedAfter2Vec_D hx
+  rw [<- FixAfter2Vec] at hx
+  have hdx := FixAfter2Vec_D hx
   rw [D_sprod2] at hdx
-  have hx' := FixedAfter2Vec_sprod2.1 hdx
-  rw [FixedAfter2Vec_sprod2] at hx; rcases hx with ⟨ha, hb⟩
+  have hx' := FixAfter2Vec_sprod2.1 hdx
+  rw [FixAfter2Vec_sprod2] at hx; rcases hx with ⟨ha, hb⟩
   rcases hx' with ⟨hda, hdb⟩
   set r' := fun i => max (r i) (z⁻¹ r i)
-  have ha' := FixedAfter2Vec_mono (b2:= r') ha (by intro i; simp [r'])
-  have hb' := FixedAfter2Vec_mono (b2:= r') hb (by intro i; simp [r'])
-  have hzb := FixedAfter2Vec_delay.1 hb
-  have hzb' := FixedAfter2Vec_mono (b2:= r') hzb (by intro i; simp [r'])
-  have hj1 := FixedAfter2Vec_sprod2.2 ⟨ha', hdb⟩
-  have hj2 := FixedAfter2Vec_sprod2.2 ⟨hda, hzb'⟩
-  have hadd1 := FixedAfter2Vec_lifting (f:= bn.f) hj1
-  have hadd2 := FixedAfter2Vec_lifting (f:= bn.f) hj2
-  have haddi := FixedAfter2Vec_sprod2.2 ⟨hadd1, hadd2⟩
-  have haddo := FixedAfter2Vec_lifting (f:= fun a => a.1+ a.2) haddi
+  have ha' := FixAfter2Vec_mono (b2:= r') ha (by intro i; simp [r'])
+  have hb' := FixAfter2Vec_mono (b2:= r') hb (by intro i; simp [r'])
+  have hzb := FixAfter2Vec_delay.1 hb
+  have hzb' := FixAfter2Vec_mono (b2:= r') hzb (by intro i; simp [r'])
+  have hj1 := FixAfter2Vec_sprod2.2 ⟨ha', hdb⟩
+  have hj2 := FixAfter2Vec_sprod2.2 ⟨hda, hzb'⟩
+  have hadd1 := FixAfter2Vec_lifting (f:= bn.f) hj1
+  have hadd2 := FixAfter2Vec_lifting (f:= bn.f) hj2
+  have haddi := FixAfter2Vec_sprod2.2 ⟨hadd1, hadd2⟩
+  have haddo := FixAfter2Vec_lifting (f:= fun a => a.1+ a.2) haddi
   unfold r' at *
   specialize hdx i
   specialize hda i
@@ -294,7 +294,7 @@ lemma Preserve2_const k:
   intro x b ht hef i
   constructor
   · rw [LiftedScalar_ExtFP2 (hc:= by constructor)]
-    apply FixedAfter2Vec_D
+    apply FixAfter2Vec_D
     rw [<- ExtFP2Vec, ExtFP2Vec_iff] at hef
     tauto
   · apply D_IntFP2Vec
@@ -308,11 +308,11 @@ lemma Preserve2_delay:
   simp [ExtFP2, denote] at hef
   rw [forall_and_iff] at hef
   constructor
-  · apply FixedAfter2Vec_D
+  · apply FixAfter2Vec_D
     tauto
   · simp [denote]
     rw [<- derivative_timeInvariant]
-    apply FixedAfter2Vec_D
+    apply FixAfter2Vec_D
     tauto
 
 lemma Preserve2_lifted_delay:
@@ -322,14 +322,14 @@ lemma Preserve2_lifted_delay:
   simp [ExtFP2, denote] at hef
   rw [forall_and_iff] at hef
   constructor
-  · apply FixedAfter2Vec_D
+  · apply FixAfter2Vec_D
     tauto
   · simp [denote]
     have : ↑↑z⁻¹ (D x) = D (↑↑z⁻¹ x) := by
       funext t1 t2; simp [D, delay]
       rcases t1 <;> rcases t2 <;>simp
     rw [this]
-    apply FixedAfter2Vec_D
+    apply FixAfter2Vec_D
     tauto
 
 lemma Preserve2_incr {c: Ckt A B 1}:

@@ -69,7 +69,7 @@ theorem RegularCkt_ExtFP1_IntFP1 {A B: VType}
     simp [IntFP1]
     simp [ExtFP1, denote] at he
     rcases he with ⟨hf1, hf2⟩
-    have hf3 := FixedAfter1_lifting (f:= extractScalar (denote c1)) hf1
+    have hf3 := FixAfter1_lifting (f:= extractScalar (denote c1)) hf1
     apply RegularCkt_denote at h1
     simp [DenoteLiftedScalar, liftO] at h1
     rw [<- h1] at hf3
@@ -77,7 +77,7 @@ theorem RegularCkt_ExtFP1_IntFP1 {A B: VType}
   case par =>
     simp [IntFP1]
     simp [ExtFP1, denote] at he
-    rw [FixedAfter1_sprod] at he
+    rw [FixAfter1_sprod] at he
     tauto
   case whileloop =>
     apply WhileLoop.query_ExtFP1_IntFP1; tauto

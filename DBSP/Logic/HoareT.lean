@@ -386,7 +386,7 @@ theorem HoareI1_lifted_loop' {c: Ckt (A ×ᵥ B) B 1}
 theorem HoareI1_lifting {c: Ckt A B 0}
   {P: SOVType 1 A -> Prop} {Q: SOVType 1 B -> Prop}
   (h: HoareT P (c↑ c) Q)
-  (hp: ∀ x, P x -> FixedAfter1 x b1):
+  (hp: ∀ x, P x -> FixAfter1 x b1):
     HoareI1 P (c↑ c) Q b1 := by
   intro x hx
   rcases h x hx with ⟨ht, hQ⟩
@@ -402,15 +402,15 @@ lemma HoareI1_I {s: SOVType ns A}
   constructor; swap; rcases ns <;> simp
   apply I_IntFP1
   rcases ns <;>
-  rw [<- ZeroAfter_succ_I_FixedAfter1] <;> tauto
+  rw [<- ZeroAfter_succ_I_FixAfter1] <;> tauto
 
 lemma HoareI1_D {s: SOVType ns A}
-  (h: FixedAfter1 s b1):
+  (h: FixAfter1 s b1):
     HoareI1 (fun x => x = s) cD (fun y => y = D s) (b1+1) := by
   simp [HoareI1]
   apply D_IntFP1
   rcases ns <;>
-  rw [ZeroAfter_succ_D_FixedAfter1] <;> tauto
+  rw [ZeroAfter_succ_D_FixAfter1] <;> tauto
 
 end HoareI1
 
