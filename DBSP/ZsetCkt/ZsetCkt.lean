@@ -147,9 +147,9 @@ lemma Presreve2_incr_dist:
 
 instance : IncUnary (@DistinctUnaryNode A _) where
   opt := incr_dist (c₂ HBinaryNode)
-  sequiv := by intro _; apply Sequiv_incr_dist
-  preserve1 := by intro _; apply Preserve1_incr_dist
-  preserve2 := Presreve2_incr_dist
+  sound := by
+    intro ns; exact ⟨Sequiv_to_Refine Sequiv_incr_dist, Preserve1_incr_dist,
+      by cases ns <;> simp; exact Presreve2_incr_dist⟩
 
 def lifted_incr_dist (c: Ckt ([Z[A]]v ×ᵥ [Z[A]]v) ([Z[A]]v) 1): Ckt [Z[A]]v [Z[A]]v 1 :=
   (c↑I >>c c↑z⁻¹ &&c cid) >>c c
