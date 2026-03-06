@@ -82,13 +82,13 @@ lemma let_fixed1_denote_agree {A B: VType} {ns: Bool}
   have hc := ckt_causal c
   apply let_fixed1_causal_f_agree; tauto
 
-  -- A State Fixpoint is an index `n` such that:
-  --  if after the outer iteration `n`, the input becomes fixed,
-  --  then `n` will also be an internal fixedpoint.
-  -- It's called the State Fixpoint because
-  --   the state of the circuit after `n` is determined by the input up to `n`.
-  def StFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ): Prop :=
-    IntFP1 c (let_fixed1 x n) n
+-- A State Fixpoint is an index `n` such that:
+--  if after the outer iteration `n`, the input becomes fixed,
+--  then `n` will also be an internal fixedpoint.
+-- It's called the State Fixpoint because
+--   the state of the circuit after `n` is determined by the input up to `n`.
+def StFP1 {A B: VType} {ns: Bool} (c: Ckt A B ns) (x: SOVType ns A) (n: ℕ): Prop :=
+  IntFP1 c (let_fixed1 x n) n
 
 -- The internal fixedpoint is equivalent to
 -- the State Fixpoint with the input being fixed after `n`

@@ -385,6 +385,32 @@ lemma FixedAt_iff_ZeroAfter (n: ℕ):
     rw [<- h]; rw [<- Function.iterate_succ_apply]
     congr; omega
 
+-- Theorem: FirstZero is a valid fixpoint detection strategy for the Datalog body circuit.
+-- i.e. the body output is zero at step n if and only if it is ZeroAfter n.
+theorem firstZero_valid {n: ℕ}:
+    ZeroAfter (bodyOutput R iv) n <-> bodyOutput R iv n = 0 := by
+  constructor
+  · tauto
+  intro hz
+  have hfix: FixedAt (f R iv) 0 n := by
+    simp [FixedAt, bodyOutput, D, delay] at hz ⊢
+    rcases n with _ | n
+    · simpa using hz
+    · simp at hz; rw [sub_eq_zero] at hz; tauto
+  rcases n with _ | n
+  · -- n = 0: FixedAt f 0 0 means f 0 = 0, so all iterates are 0
+    simp [FixedAt] at hfix
+    have hall : ∀ k, (f R iv)^[k] 0 = 0 := by
+      intro k; induction k with
+      | zero => simp
+      | succ k ih => rw [Function.iterate_succ_apply']; rw [ih]; exact hfix
+    intro m _; simp [bodyOutput, D, delay]
+    rcases m with _ | m
+    · simpa using hfix
+    · simp; rw [sub_eq_zero]; rw [show f R iv 0 = 0 from hfix]; simp [hall]
+      rw [<- Function.iterate_succ_apply]; simp [hall]
+  · rw [<- FixedAt_iff_ZeroAfter]; tauto
+
 include hf ht hei in
 lemma loop_HoareI1 {n: ℕ}
   (hfa: FixedAt (f R iv) 0 (n+1)):
