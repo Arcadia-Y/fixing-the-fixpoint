@@ -1,6 +1,7 @@
 -- Counterexample: FirstZero is NOT a sound fixpoint detector for the
 -- delta-of-deltas approach.
 import DBSP.ZsetCkt.GraphExample
+import DBSP.ZsetCkt.GraphExampleIncOpt
 
 namespace FirstZeroCounterexample
 open CktBasic Datalog GraphExample
@@ -114,7 +115,7 @@ def is_ce : stream (Z[ℕ × ℕ]) :=
 
 -- The double-differentiated stream
 noncomputable def dd : stream (stream (Z[ℕ × ℕ])) :=
-  D (fun i => D (fun j => funcIterStream (fun r => R (is_ce i, r)) (is_ce i) j))
+  D (fun i => D (fun j => funcIterStream (fun r => R (is_ce i, r)) 0 (j+1)))
 
 -- Compute inner D for G0
 private lemma innerD_G0 (n : ℕ) :
@@ -181,5 +182,27 @@ theorem dd_1_2_ne_zero : dd 1 2 ≠ 0 := by
   intro h
   have h14 := DFunLike.congr_fun (neg_eq_zero.mp h) (1, 4)
   simp [Zset.fromSet_apply] at h14
+
+-- dd is the output of the delta-of-deltas inner circuit on input is_ce
+theorem loop_c1_HoareT:
+    HoareT
+      (fun x => x = ↑↑δ0 (D is_ce))
+      (cloop2 (incOpt c1))
+      (fun y => y = dd) := by
+  apply HoareT_conseq_post
+  apply opt_lifted_body_HoareT (hf := c0_hf)
+    (htv := by intros; apply c0_ht)
+    (hc1 := hc1)
+  simp; unfold bodyOutput dd f
+  funext i j; rcases i <;> unfold funcIterStream <;> simp [D]
+
+theorem FirstZero_unsound:
+    HoareT
+      (fun x => x = ↑↑δ0 (D is_ce))
+      (cloop2 (incOpt c1))
+      (fun y => y 1 1 = 0 ∧ y 1 2 ≠ 0) := by
+  apply HoareT_conseq_post
+  apply loop_c1_HoareT
+  simp; exact ⟨dd_1_1_eq_zero, dd_1_2_ne_zero⟩
 
 end FirstZeroCounterexample

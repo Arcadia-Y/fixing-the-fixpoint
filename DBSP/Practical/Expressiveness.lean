@@ -387,7 +387,7 @@ lemma FixedAt_iff_ZeroAfter (n: ℕ):
 
 -- Theorem: FirstZero is a valid fixpoint detection strategy for the Datalog body circuit.
 -- i.e. the body output is zero at step n if and only if it is ZeroAfter n.
-theorem firstZero_valid {n: ℕ}:
+theorem FirstZero_valid {n: ℕ}:
     ZeroAfter (bodyOutput R iv) n <-> bodyOutput R iv n = 0 := by
   constructor
   · tauto
