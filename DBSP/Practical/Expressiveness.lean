@@ -4,7 +4,7 @@ import DBSP.Termination.FPProp
 import DBSP.Circuits.LiftedScalar
 import DBSP.Logic.Hoare
 import DBSP.Logic.HoareT
-import DBSP.Practical.Incrementalize
+import DBSP.Practical.IncOpt
 import DBSP.Practical.PushLifting
 open CktBasic
 

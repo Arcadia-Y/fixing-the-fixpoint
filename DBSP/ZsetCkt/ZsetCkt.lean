@@ -3,7 +3,7 @@ import DBSP.Circuits.Circuits
 import DBSP.ZSets.Zset
 import DBSP.ZSets.Relational
 import DBSP.ZSets.RelationalIncremental
-import DBSP.Practical.Incrementalize
+import DBSP.Practical.IncOpt
 import DBSP.Practical.PushLifting
 open CktBasic
 
