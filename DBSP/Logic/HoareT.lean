@@ -1,6 +1,5 @@
 -- Hoare logic for total correctness
 import DBSP.Logic.Hoare
-import DBSP.Practical.Refine
 import DBSP.Practical.Preserve
 import DBSP.Practical.PushLifting
 open CktBasic
@@ -86,18 +85,22 @@ theorem HoareT_Sequiv_cong {c1 c2: Ckt A B ns}
   unfold HoareT
   apply forall_congr'; intro x
   apply imp_congr_right; intro hP
-  unfold Sequiv at h; rcases h with ⟨hd, ht⟩
+  unfold Sequiv at h; rcases h with ⟨hd, ht, _⟩
   rw [hd, ht]
 
-theorem HoareT_Refine {c1 c2: Ckt A B ns}
-  (h: c1 ⊑ c2) (h1: HoareT P c1 Q):
+theorem HoareT_incOpt {c1 c2: Ckt A B ns}
+  (hc: (cΔ c1) ≋ c2) (ht: c1 ⊑T c2) (h1: HoareT P (cΔ c1) Q):
     HoareT P c2 Q := by
   unfold HoareT at h1 ⊢
   intro x hx
   specialize h1 _ hx
-  specialize h x (by tauto)
-  rcases h with ⟨h2, h3⟩
-  rw [<- h3]; tauto
+  constructor
+  · simp [cΔ, Terminate] at h1
+    rw [<- integral_derivative x]
+    apply ht; tauto
+  · rcases h1 with ⟨h1, h2⟩
+    apply Terminate_impl_Converge at h1
+    rw [<- (hc.denote x h1)]; tauto
 
 theorem HoareT_seq {c1: Ckt A B ns} {c2: Ckt B C ns}
   {Q1: SOVType ns B -> Prop} {Q2: SOVType ns C -> Prop}
@@ -254,7 +257,7 @@ theorem HoareI1_Preserve1 {c1 c2: Ckt A B ns} {x0: SOVType ns A}
   intro x hx
   specialize h1 _ (by rfl)
   specialize ht _ (by rfl)
-  specialize h x0 b1 ht.1 h1.1
+  specialize h x0 b1 (Terminate_impl_Converge ht.1) h1.1
   rw [hx]; tauto
 
 theorem HoareI1_mono {b1': ℕ}
@@ -455,7 +458,7 @@ theorem HoareI2_Preserve2 {c1 c2: Ckt A B 1} {x0: SOVType 1 A}
   intro x hx
   specialize h1 _ (by rfl)
   specialize ht _ (by rfl)
-  specialize h x0 b2 ht.1 h1.1
+  specialize h x0 b2 (Terminate_impl_Converge ht.1) h1.1
   rw [hx]; tauto
 
 theorem HoareI2_True:

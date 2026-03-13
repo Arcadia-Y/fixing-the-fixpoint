@@ -32,7 +32,7 @@ theorem pushLifting_Sequiv {a b} (c: Ckt a b 0):
     apply Quotient.sound
     change Sequiv _ _
     unfold Sequiv
-    simp [denote, Terminate, lifting, liftO]
+    simp [denote, Terminate, Converge, lifting, liftO]
     try rfl
   case delay =>
     simp only [pushLifting]
@@ -58,6 +58,86 @@ theorem pushLifting_Sequiv {a b} (c: Ckt a b 0):
     rw [SemCkt_lifting_lift]
     rw [ih rfl]
     rw [SemCkt_lifted_loop_lift]
+
+theorem pushLifting_Terminate_iff {a b} (c: Ckt a b 0) {x}:
+    Terminate (pushLifting c) x <-> (∀ i, Terminate c (x i)):= by
+  rw [<- (pushLifting_Sequiv c).2.1]
+  simp [Terminate]
+
+theorem pushLifting_Converge_iff {a b}
+  (c: Ckt a b 0) {x}:
+    Converge (pushLifting c) x <-> ∀ i, Converge c (x i) := by
+  revert c x
+  apply Ckt_generalize_ns_0
+  intro ns c hns
+  induction c <;> (try subst hns) <;> simp [pushLifting, Converge]
+  case seq c1 c2 ih1 ih2 =>
+    intro x
+    simp at ih1 ih2
+    constructor
+    · intro h i
+      rcases h with ⟨h1, h2⟩
+      constructor
+      · exact (ih1.mp h1) i
+      · have hden : (denote (pushLifting c1) x) i = denote c1 (x i) := by
+          rw [<- (pushLifting_Sequiv c1).1]
+          simp [denote]
+        have h2' := (ih2.mp h2) i
+        simpa [hden] using h2'
+    · intro h
+      constructor
+      · exact ih1.mpr (fun i => (h i).1)
+      · apply ih2.mpr
+        intro i
+        have hden : (denote (pushLifting c1) x) i = denote c1 (x i) := by
+          rw [<- (pushLifting_Sequiv c1).1]
+          simp [denote]
+        simpa [hden] using (h i).2
+  case par c1 c2 ih1 ih2 =>
+    intro x
+    simp at ih1 ih2
+    constructor
+    · intro h i
+      rcases h with ⟨h1, h2⟩
+      exact ⟨(ih1.mp h1) i, (ih2.mp h2) i⟩
+    · intro h
+      constructor
+      · exact ih1.mpr (fun i => (h i).1)
+      · exact ih2.mpr (fun i => (h i).2)
+  case loop c ih =>
+    intro x
+    simp at ih
+    constructor
+    · intro h
+      have h' := ih.mp h
+      intro i
+      have hse : (cloop2 (pushLifting c)) ≃ (c↑ (cloop c)) := by
+        apply Sequiv_trans
+        apply Sequiv_lifted_loop_congr
+        symm; apply pushLifting_Sequiv
+        symm; apply Sequiv_lifting_loop
+      have hEq :
+          sprod2 (x, ↑↑z⁻¹ (denote (cloop2 (pushLifting c)) x)) i =
+          sprod (x i, z⁻¹ (denote (cloop c) (x i))) := by
+        rw [hse.1]
+        funext j
+        simp [denote]
+      simpa [hEq] using h' i
+    · intro h
+      apply ih.mpr
+      intro i
+      have hse : (cloop2 (pushLifting c)) ≃ (c↑ (cloop c)) := by
+        apply Sequiv_trans
+        apply Sequiv_lifted_loop_congr
+        symm; apply pushLifting_Sequiv
+        symm; apply Sequiv_lifting_loop
+      have hEq :
+          sprod2 (x, ↑↑z⁻¹ (denote (cloop2 (pushLifting c)) x)) i =
+          sprod (x i, z⁻¹ (denote (cloop c) (x i))) := by
+        rw [hse.1]
+        funext j
+        simp [denote]
+      simpa [hEq] using h i
 
 theorem pushLifting_IntFP2 {a b} (c: Ckt a b 0)
   {x m n} (h: IntFP1 c (x m) n):

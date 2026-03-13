@@ -547,6 +547,24 @@ lemma ZeroAfterVec_sub {A: Type} [AddCommGroup A]
   simp [ge_iff_le] at this
   exact this
 
+lemma ZeroAfter_add {A: Type} [AddCommGroup A]
+  {s1 s2: stream A} {b1 b2: ℕ}
+  (h1: ZeroAfter s1 b1) (h2: ZeroAfter s2 b2):
+    ZeroAfter (s1 + s2) (max b1 b2) := by
+  have h1' : ZeroAfter s1 (max b1 b2) := ZeroAfter_ge h1 _ (le_max_left _ _)
+  have h2' : ZeroAfter s2 (max b1 b2) := ZeroAfter_ge h2 _ (le_max_right _ _)
+  intro m hm; simp
+  have: s1 m = 0 := by apply h1'; omega
+  simp [this]
+  apply h2'; omega
+
+lemma ZeroAfterVec_add {A: Type} [AddCommGroup A]
+  {s1 s2: stream (stream A)} {b1 b2: stream ℕ}
+  (h1: ZeroAfterVec s1 b1) (h2: ZeroAfterVec s2 b2):
+    ZeroAfterVec (s1 + s2) (fun i => max (b1 i) (b2 i)) := by
+  intro i
+  simp; apply ZeroAfter_add <;> tauto
+
 lemma ZeroAfterVec_D {A: Type} [AddCommGroup A]
   {s: stream (stream A)} {b: stream ℕ}
   (h: ZeroAfterVec s b):
@@ -554,6 +572,16 @@ lemma ZeroAfterVec_D {A: Type} [AddCommGroup A]
   unfold D
   apply ZeroAfterVec_sub; assumption
   rw [← ZeroAfterVec_delay]; assumption
+
+lemma ZeroAfterVec_I {A: Type} [AddCommGroup A]
+  {s: stream (stream A)} {b: stream ℕ}
+  (h: ZeroAfterVec s b):
+    ZeroAfterVec (I s) (I b) := by
+  intro i; induction i <;> simp
+  · apply h
+  apply ZeroAfter_ge
+  apply ZeroAfter_add <;> tauto
+  simp
 
 lemma ZeroAfterVec_mono {A: Type} [AddCommGroup A]
   {s: stream (stream A)} {b1 b2: stream ℕ}
@@ -841,9 +869,19 @@ lemma Terminate_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
   simp [cI, Terminate]
 
 @[simp]
+lemma Converge_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
+    Converge cI x := by
+  simp [cI, Converge]
+
+@[simp]
 lemma Terminate_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
     Terminate cD x := by
   simp [cD, Terminate]
+
+@[simp]
+lemma Converge_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
+    Converge cD x := by
+  simp [cD, Converge]
 
 lemma Terminate_cΔ {c: Ckt A B ns}
   {x: SOVType ns A} (h: Terminate c x):
@@ -859,5 +897,27 @@ lemma Terminate_bracket_alt {c: Ckt A B 1} {x: SOVType 0 A}
   simp [h1]
   intro i; use (b i)
   tauto
+
+theorem Terminate_impl_Converge {c: Ckt A B ns}
+  {x: SOVType ns A} (h: Terminate c x):
+    Converge c x := by
+  revert x
+  induction c <;> intro x h <;> simp [Terminate, Converge] at h ⊢
+  case seq c1 c2 ih1 ih2 =>
+    rcases h with ⟨h1, h2⟩
+    exact ⟨ih1 h1, ih2 h2⟩
+  case par c1 c2 ih1 ih2 =>
+    rcases h with ⟨h1, h2⟩
+    exact ⟨ih1 h1, ih2 h2⟩
+  case lifting c ih =>
+    intro j
+    exact ih (h j)
+  case loop c ih =>
+    exact ih h
+  case lifted_loop c ih =>
+    exact ih h
+  case bracket c ih =>
+    rcases h with ⟨h1, ⟨b, h2, h3⟩⟩
+    exact ⟨ih h1, ⟨b, h3⟩⟩
 
 end TerminateProp

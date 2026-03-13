@@ -23,17 +23,6 @@ lemma extractScalar_correct {a b: Type}
   rw [hf]
   funext x i; simp [extractScalar]
 
-def ConvergeInput {a b: VType} {c: Ckt a b 0} (hr: RegularCkt c) (x: SOVType 0 a): Prop :=
-  match hr with
-  | RegularCkt.lifted_scalar _ _ => True
-  | RegularCkt.seq c1 c2 h1 h2 => ConvergeInput h1 x ∧ ConvergeInput h2 (denote c1 x)
-  | RegularCkt.par _ _ h1 h2 => ConvergeInput h1 x ∧ ConvergeInput h2 x
-  | RegularCkt.whileloop c h => let f := extractScalar (denote c)
-      (∃ b, FixedAtVec f x b) ∧ (∀ i, ConvergeInput h (funcIterStream f (x i)))
-  | RegularCkt.datalog c h => let R := extractScalar (denote c)
-      (∃ (b: stream ℕ), ∀ j, FixedAt (Datalog.f R (x j)) 0 (b j)) ∧
-      (∀ j, ConvergeInput h ((Datalog.c0_input R (x j))))
-
 theorem RegularCkt_denote {a b: VType} {c: Ckt a b 0} (hr: RegularCkt c):
     DenoteLiftedScalar c (extractScalar (denote c)) := by
   induction hr <;> apply extractScalar_correct
@@ -49,7 +38,7 @@ theorem RegularCkt_denote {a b: VType} {c: Ckt a b 0} (hr: RegularCkt c):
     rw [ih1, ih2]; simp [liftO]
     use (fun x => (extractScalar (denote c1) x, extractScalar (denote c2) x))
     funext _ _; simp
-  case whileloop c h _ =>
+  case whileloop c h ih =>
     simp [WhileLoop.query, denote]
     use (∫0 ∘ (denote (WhileLoop.body c)) ∘ δ0)
     funext _ _; simp
@@ -86,28 +75,26 @@ theorem RegularCkt_ExtFP1_IntFP1 {A B: VType}
 
 theorem RegularCkt_Terminate {A B: VType}
   {c: Ckt A B 0} (hr: RegularCkt c) (x: SOVType 0 A)
-  (hc: ConvergeInput hr x):
+  (hc: Converge c x):
     Terminate c x := by
   induction hr
   case lifted_scalar =>
     apply Terminate_LiftedScalar; tauto
   case seq =>
     simp [Terminate]
-    simp [ConvergeInput] at hc
+    simp [Converge] at hc
     tauto
   case par =>
     simp [Terminate]
-    simp [ConvergeInput] at hc
+    simp [Converge] at hc
     tauto
-  case whileloop c h _ =>
-    simp [ConvergeInput] at hc
-    rcases hc with ⟨⟨b, hf⟩, hc⟩
+  case whileloop c h ih =>
     have := RegularCkt_denote h
     have := RegularCkt_ExtFP1_IntFP1 h
+    have ht := WhileLoop.Converge_query_impl_c0 c (h:=hc)
     apply WhileLoop.query_Terminate <;> tauto
-  case datalog c h _ =>
-    simp [ConvergeInput] at hc
-    rcases hc with ⟨⟨b, hf⟩, hc⟩
+  case datalog c h ih =>
     have := RegularCkt_denote h
     have := RegularCkt_ExtFP1_IntFP1 h
+    have ht := Datalog.Converge_query_impl_c0 c (h:=hc)
     apply Datalog.query_Terminate <;> tauto

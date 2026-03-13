@@ -92,6 +92,12 @@ lemma f_apply_funcIterStream {A: Type} (f: A -> A) (x: A):
   funext i; simp
   rw [<- Function.iterate_succ_apply, <- Function.iterate_succ_apply' f]
 
+lemma funcIterStream_add_fixpoint {A: Type} [AddCommMonoid A]
+  (f: A -> A)  (x: A):
+    δ0 x + z⁻¹ (funcIterStream f (f x)) = funcIterStream f x := by
+  unfold δ0; funext i; simp
+  rcases i with _ | i <;> simp
+
 def FixedAt {A: Type} (f: A -> A) (x: A) (n: ℕ): Prop :=
     f^[n+1] x = f^[n] x
 
@@ -157,6 +163,12 @@ lemma loop_output:
     rw [add_comm 1 m] at h
     aesop
 
+include hf in
+lemma loop_denote:
+    denote (cloop (cadd >>c c0)) (δ0 iv) = funcIterStream f (f iv) := by
+  funext i
+  apply loop_output <;> tauto
+
 include hf ht in
 lemma loop_HoareT:
   HoareT
@@ -201,6 +213,12 @@ lemma body_HoareT:
   unfold body; apply HoareT_seq
   apply loop_HoareT <;> tauto
   simp [HoareT]
+
+include hf ht in
+lemma body_denote:
+    denote (body c0) (δ0 iv) = bodyOutput f iv := by
+  apply And.right
+  apply body_HoareT <;> tauto
 
 include hf ht hei in
 lemma body_HoareI1 {n: ℕ}
@@ -256,8 +274,7 @@ theorem query_ExtFP1_IntFP1 {n: ℕ}
   funext k; simp
   rw [hf]
 
-include hf htv hei hfa
-
+include hf htv hei hfa in
 theorem lifted_body_HoareI2:
   HoareI2
     (fun x => x = ↑↑δ0 is)
@@ -272,6 +289,7 @@ theorem lifted_body_HoareI2:
   all_goals try tauto
   apply FixedAt_mono; tauto; omega
 
+include hf htv hei hfa in
 theorem query_HoareT:
   HoareT
     (fun x => x = is)
@@ -299,8 +317,41 @@ theorem query_HoareT:
   rw [FixedAt_funcIterStream_iff] at hfa
   apply hfa; omega
 
-theorem query_Terminate:
+include hf in
+lemma Converge_query_impl_c0
+  (h: Converge (query c0) is):
+    ∀ i, Converge c0 (funcIterStream f (is i)) := by
+  intro i
+  simp [Converge, query, body] at h
+  rcases h with ⟨h, _, _⟩
+  specialize h i
+  have hl := loop_denote c0 f (is i) hf
+  rw [hl] at h; simp [denote] at h
+  rw [funcIterStream_add_fixpoint] at h; tauto
+
+include hf htv in
+lemma Converge_impl_FixedAt
+  (h: Converge (query c0) is):
+    ∃ (b: stream ℕ), FixedAtVec f is b := by
+  simp [Converge, query, body] at h
+  rcases h with ⟨h, ⟨b', hfa⟩⟩
+  rw [denote, <- body] at hfa
+  use (fun j => b' j + 1)
+  intro j; specialize hfa j; simp at hfa
+  have hbody : denote (body c0) (δ0 (is j)) = bodyOutput f (is j) := by
+    apply And.right
+    apply body_HoareT <;> tauto
+  rw [hbody] at hfa
+  rw [FixedAt_iff_ZeroAfter]
+  apply ZeroAfter_ge
+  all_goals tauto
+
+include hf hei htv in
+theorem query_Terminate
+  (h: Converge (query c0) is):
     Terminate (query c0) is := by
+  apply Converge_impl_FixedAt at h <;> try tauto
+  rcases h with ⟨b, h⟩
   apply And.left
   apply query_HoareT <;> tauto
 
@@ -349,6 +400,12 @@ lemma loop_output:
     rw [Function.iterate_succ_apply']
     rw [add_comm 1 m] at h
     simp [f]; rw [<- h.2, <- h.1]
+
+include hf in
+lemma loop_denote:
+    denote (cloop c0) (fun _ => iv) = funcIterStream (f R iv) (f R iv 0) := by
+  funext i
+  apply loop_output <;> tauto
 
 include hf ht in
 lemma loop_HoareT:
@@ -450,6 +507,12 @@ lemma body_HoareT:
   simp [HoareT, integral_delta]
   simp [HoareT, bodyOutput]
 
+include hf ht in
+lemma body_denote:
+    denote (body c0) (δ0 iv) = bodyOutput R iv := by
+  apply And.right
+  apply body_HoareT <;> tauto
+
 include hf ht hei in
 lemma body_HoareI1 {n: ℕ}
   (hfa: FixedAt (f R iv) 0 (n+1)):
@@ -518,9 +581,39 @@ theorem query_HoareT:
   rw [FixedAt_funcIterStream_iff] at hfa
   apply hfa; omega
 
-include hf htv hei hfa in
-theorem query_Terminate:
+include hf in
+lemma Converge_query_impl_c0
+  (h: Converge (query c0) is):
+    ∀ i, Converge c0 (c0_input R (is i)) := by
+  intro i
+  simp [Converge, query, body, cΔ] at h
+  rcases h with ⟨h, _, _⟩
+  specialize h i
+  rw [integral_delta] at h
+  have hl := loop_denote c0 R hf (is i)
+  rw [hl, <- funcIterStream_0_delay] at h
+  exact h
+
+include hf htv in
+lemma Converge_impl_FixedAt
+  (h: Converge (query c0) is):
+    ∃ (b: stream ℕ), ∀ j, FixedAt (f R (is j)) 0 (b j) := by
+  simp [Converge, query, body] at h
+  rcases h with ⟨h, ⟨b', hfa⟩⟩
+  rw [denote, <- body] at hfa
+  use (fun j => b' j + 1)
+  intro j; specialize hfa j; simp at hfa
+  rw [body_denote c0 R] at hfa
+  simp; rw [FixedAt_iff_ZeroAfter]
+  apply ZeroAfter_ge
+  all_goals tauto
+
+include hf htv hei in
+theorem query_Terminate
+  (h: Converge (query c0) is):
     Terminate (query c0) is := by
+  apply Converge_impl_FixedAt at h <;> try tauto
+  rcases h with ⟨b, h⟩
   apply And.left
   apply query_HoareT <;> tauto
 
@@ -544,8 +637,9 @@ lemma opt_body_HoareT:
     (fun x => x = δ0 iv)
     (cloop (incOpt c0))
     (fun y => y = bodyOutput R iv) := by
-  apply HoareT_Refine (h1:= by apply body_HoareT <;> tauto)
-  apply incOpt_Refine
+  apply HoareT_incOpt (h1:= by apply body_HoareT <;> tauto)
+  apply incOpt_ConvEq
+  apply incOpt_PreserveT
 
 include hf ht hei in
 lemma opt_body_HoareI1 {n: ℕ}
@@ -583,8 +677,9 @@ theorem opt_lifted_body_HoareT :
       (fun x => x = ↑↑δ0 (D is))
       (cloop2 (incOpt c1))
       (fun y => y = D (↑↑(bodyOutput R) is)) := by
-  apply HoareT_Refine
-  apply incOpt_Refine (c:= cloop2 c1)
+  apply HoareT_incOpt
+  · apply incOpt_ConvEq (c:= cloop2 c1)
+  · apply incOpt_PreserveT
   rw [<- D_lifting_delta_comm]
   apply HoareT_Δ
   subst hc1

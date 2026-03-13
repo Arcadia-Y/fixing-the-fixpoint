@@ -1,16 +1,17 @@
 import DBSP.Circuits.Circuits
 import DBSP.Practical.Sequiv
-import DBSP.Practical.Refine
+import DBSP.Practical.ConvEq
 import DBSP.Practical.Preserve
 open CktBasic
 
 -- `c2` is a sound incremental form of `c1`
-structure SoundIncr {a b ns} (c1 c2: Ckt a b ns)where
-  refine: cΔ c1 ⊑ c2
+structure SoundIncr {a b ns} (c1 c2: Ckt a b ns) where
+  conv: (cΔ c1) ≋ c2
   preserve1: c1 ↝₁ c2
   preserve2: match ns with
     | false => True
     | true => c1 ↝₂ c2
+  preserveT: c1 ⊑T c2
 
 -- incrementalizable unary nodes
 class IncUnary {A B} [BaseType A] [BaseType B] (f :@UnaryNode A B _ _) where
@@ -23,7 +24,9 @@ instance (priority := low) IncUnaryDefault
   {A B} [BaseType A] [BaseType B]
   (f: UnaryNode A B): IncUnary f where
   opt := cΔ (Ckt.node1 f)
-  sound := by intro ns; exact ⟨by rfl, Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr⟩
+  sound := by
+    intro ns
+    exact ⟨by rfl, by apply Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr, by apply Terminate_cΔ⟩
 
 -- linear unary functions
 instance IncUnaryLinear
@@ -33,8 +36,11 @@ instance IncUnaryLinear
     IncUnary un where
   opt := c₁ un
   sound := by
-    intro ns; exact ⟨by apply Sequiv_to_Refine; apply Sequiv_incr_linear_node1; tauto,
-      by apply Preserve1_node1_self, by cases ns <;> simp; apply Preserve2_node1_self⟩
+    intro ns
+    exact ⟨by apply Sequiv_to_ConvEq; apply Sequiv_incr_linear_node1; tauto,
+      by apply Preserve1_node1_self,
+      by cases ns <;> simp; apply Preserve2_node1_self,
+      by intro x hx; simp [Terminate]⟩
 
 -- incrementalizable binary nodes
 class IncBinary {A B C} [BaseType A] [BaseType B] [BaseType C] (f :BinaryNode A B C) where
@@ -47,7 +53,9 @@ instance (priority := low) IncBinaryDefault
   {A B C} [BaseType A] [BaseType B] [BaseType C]
   (f :BinaryNode A B C): IncBinary f where
   opt := cΔ (Ckt.node2 f)
-  sound := by intro ns; exact ⟨by rfl, Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr⟩
+  sound := by
+    intro ns
+    exact ⟨by rfl,  by apply Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr, by apply Terminate_cΔ⟩
 
 -- linear binary functions
 instance IncBinaryLinear
@@ -57,8 +65,11 @@ instance IncBinaryLinear
     IncBinary bn where
   opt := c₂ bn
   sound := by
-    intro ns; exact ⟨by apply Sequiv_to_Refine; apply Sequiv_incr_linear_node2; tauto,
-      by apply Preserve1_node2_self, by cases ns <;> simp; apply Preserve2_node2_self⟩
+    intro ns
+    exact ⟨by apply Sequiv_to_ConvEq; apply Sequiv_incr_linear_node2; tauto,
+      by apply Preserve1_node2_self,
+      by cases ns <;> simp; apply Preserve2_node2_self,
+      by intro x hx; simp [Terminate],⟩
 
 -- bilinear binary functions
 instance IncBinaryBilinear
@@ -69,8 +80,11 @@ instance IncBinaryBilinear
     IncBinary bn where
   opt := bilinear_opt (c₂ bn)
   sound := by
-    intro ns; exact ⟨by apply Sequiv_to_Refine; apply Sequiv_incr_bilinear_node2 <;> tauto,
-      by apply Preserve1_node2_bilinear, by cases ns <;> simp; apply Preserve2_node2_bilinear⟩
+    intro ns
+    exact ⟨by apply Sequiv_to_ConvEq; apply Sequiv_incr_bilinear_node2 <;> tauto,
+      by apply Preserve1_node2_bilinear,
+      by cases ns <;> simp; apply Preserve2_node2_bilinear,
+      by intro x hx; simp[Terminate, bilinear_opt],⟩
 
 -- The recursive evidence for incrementalizability
 inductive IncEvidence : ∀ {a b ns}, Ckt a b ns -> Type 1
@@ -274,12 +288,12 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
     exact h.sound ns
   case id | fst | snd | add | sub =>
     exact {
-      refine := by apply Sequiv_to_Refine
-                   try apply Sequiv_incr_id
-                   try apply Sequiv_incr_fst
-                   try apply Sequiv_incr_snd
-                   try apply Sequiv_incr_add
-                   try apply Sequiv_incr_sub,
+      conv := by apply Sequiv_to_ConvEq
+                 try apply Sequiv_incr_id
+                 try apply Sequiv_incr_fst
+                 try apply Sequiv_incr_snd
+                 try apply Sequiv_incr_add
+                 try apply Sequiv_incr_sub,
       preserve1 := by try apply Preserve1_id
                       try apply Preserve1_fst
                       try apply Preserve1_snd
@@ -290,92 +304,135 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                       try apply Preserve2_fst
                       try apply Preserve2_snd
                       try apply Preserve2_add
-                      try apply Preserve2_sub
+                      try apply Preserve2_sub,
+      preserveT := by
+        intro x hx
+        simp [Terminate]
     }
   case const =>
     exact {
-      refine := by apply Sequiv_to_Refine; apply Sequiv_incr_const,
+      conv := by apply Sequiv_to_ConvEq; apply Sequiv_incr_const,
       preserve1 := by apply Preserve1_const,
-      preserve2 := by cases ns <;> simp; apply Preserve2_const
+      preserve2 := by cases ns <;> simp; apply Preserve2_const,
+      preserveT := by
+        intro x hx
+        simp [Terminate]
     }
   case seq ih1 ih2 =>
     exact {
-      refine := by apply Refine_trans
-                   apply Sequiv_to_Refine; apply Sequiv_incr_seq
-                   apply Refine_seq
-                   exact ih1.refine
-                   exact ih2.refine,
+      conv := by apply ConvEq_trans
+                 apply Sequiv_to_ConvEq; apply Sequiv_incr_seq
+                 apply ConvEq_seq
+                 exact ih1.conv
+                 exact ih2.conv,
       preserve1 := by apply Preserve1_seq
                       exact ih1.preserve1
                       exact ih2.preserve1
-                      exact ih1.refine,
+                      exact ih1.conv,
       preserve2 := by cases ns <;> simp [incOptOfEvidence]
                       apply Preserve2_seq
                       exact ih1.preserve2
                       exact ih2.preserve2
-                      exact ih1.refine
+                      exact ih1.conv,
+      preserveT := by
+        apply PreserveT_seq
+        · exact ih1.preserveT
+        · exact ih2.preserveT
+        · exact ih1.conv
     }
   case par ih1 ih2 =>
     exact {
-      refine := by apply Refine_trans
-                   apply Sequiv_to_Refine; apply Sequiv_incr_par
-                   apply Refine_par
-                   exact ih1.refine
-                   exact ih2.refine,
+      conv := by apply ConvEq_trans
+                 apply Sequiv_to_ConvEq; apply Sequiv_incr_par
+                 apply ConvEq_par
+                 exact ih1.conv
+                 exact ih2.conv,
       preserve1 := by apply Preserve1_par
                       exact ih1.preserve1
                       exact ih2.preserve1,
       preserve2 := by cases ns <;> simp [incOptOfEvidence]
                       apply Preserve2_par
                       exact ih1.preserve2
-                      exact ih2.preserve2
+                      exact ih2.preserve2,
+      preserveT := by
+        apply PreserveT_par
+        · exact ih1.preserveT
+        · exact ih2.preserveT
     }
   case delay =>
     exact {
-      refine := by apply Sequiv_to_Refine; apply Sequiv_incr_delay,
+      conv := by apply Sequiv_to_ConvEq; apply Sequiv_incr_delay,
       preserve1 := by apply Preserve1_delay,
-      preserve2 := by cases ns <;> simp; apply Preserve2_delay
+      preserve2 := by cases ns <;> simp; apply Preserve2_delay,
+      preserveT := by
+        intro x hx
+        simp [Terminate]
     }
   case lifted_delay =>
     exact {
-      refine := by apply Sequiv_to_Refine; apply Sequiv_incr_lifted_delay,
+      conv := by apply Sequiv_to_ConvEq; apply Sequiv_incr_lifted_delay,
       preserve1 := by apply Preserve1_lifted_delay,
-      preserve2 := by apply Preserve2_lifted_delay
+      preserve2 := by apply Preserve2_lifted_delay,
+      preserveT := by
+        intro x hx
+        simp [Terminate]
     }
   case lifting =>
     exact {
-      refine := by rfl,
+      conv := by rfl,
       preserve1 := by apply Preserve1_incr,
-      preserve2 := by apply Preserve2_incr
+      preserve2 := by apply Preserve2_incr,
+      preserveT := by
+        intro x hx
+        exact Terminate_cΔ hx
     }
-  case loop ih =>
+  case loop c e ih =>
     exact {
-      refine := by apply Refine_incr_loop; exact ih.refine,
+      conv := by apply ConvEq_incr_loop; exact ih.conv,
       preserve1 := by apply Preserve1_loop
                       exact ih.preserve1
-                      exact ih.refine,
+                      apply ConvEq_incr_loop
+                      exact ih.conv,
       preserve2 := by cases ns <;> simp [incOptOfEvidence]
                       apply Preserve2_loop
                       exact ih.preserve2
-                      exact ih.refine
+                      apply ConvEq_incr_loop
+                      exact ih.conv,
+      preserveT := by
+        apply PreserveT_loop
+        · exact ih.preserveT
+        · apply ConvEq_incr_loop
+          exact ih.conv
     }
-  case lifted_loop ih =>
+  case lifted_loop c e ih =>
     exact {
-      refine := by apply Refine_incr_loop2; exact ih.refine,
+      conv := by apply ConvEq_incr_loop2; exact ih.conv,
       preserve1 := by apply Preserve1_lifted_loop
                       exact ih.preserve1
-                      exact ih.refine,
+                      apply ConvEq_incr_loop2
+                      exact ih.conv,
       preserve2 := by apply Preserve2_lifted_loop
                       exact ih.preserve2
-                      exact ih.refine
+                      apply ConvEq_incr_loop2
+                      exact ih.conv,
+      preserveT := by
+        apply PreserveT_lifted_loop
+        · exact ih.preserveT
+        · apply ConvEq_incr_loop2
+          exact ih.conv
     }
-  case bracket ih =>
+  case bracket c e ih =>
     exact {
-      refine := by apply Refine_incOpt_bracket
-                   exact ih.refine
-                   exact ih.preserve2,
+      conv := by apply ConvEq_incOpt_bracket
+                 exact ih.conv
+                 exact ih.preserve2,
       preserve1 := by apply Preserve1_bracket; exact ih.preserve1,
-      preserve2 := by trivial
+      preserve2 := by trivial,
+      preserveT := by
+        apply PreserveT_bracket
+        · exact ih.preserveT
+        · exact ih.conv
+        · exact ih.preserve2
     }
 
 lemma incOpt_correctness:
@@ -385,10 +442,10 @@ lemma incOpt_correctness:
 
 end IncrementalizeProof
 
-theorem incOpt_Refine {ns A B} (c: Ckt A B ns) [hic: IncCkt c] :
-    (cΔ c) ⊑ (incOpt c) := by
+theorem incOpt_ConvEq {ns A B} (c: Ckt A B ns) [hic: IncCkt c] :
+    (cΔ c) ≋ (incOpt c) := by
   have h := IncrementalizeProof.incOpt_correctness c
-  exact h.refine
+  exact h.conv
 
 theorem incOpt_Preserve1 {ns A B} (c: Ckt A B ns) [hic: IncCkt c] :
     c ↝₁ (incOpt c) := by
@@ -399,6 +456,11 @@ theorem incOpt_Preserve2 {A B} (c: Ckt A B 1) [hic: IncCkt c] :
     c ↝₂ (incOpt c) := by
   have h := IncrementalizeProof.incOpt_correctness c
   exact h.preserve2
+
+theorem incOpt_PreserveT {ns A B} (c: Ckt A B ns) [hic: IncCkt c] :
+  c ⊑T (incOpt c) := by
+  have h := IncrementalizeProof.incOpt_correctness c
+  exact h.preserveT
 
 @[simp]
 lemma incOpt_I {ns A}:
@@ -415,3 +477,15 @@ lemma incOpt_lifted_I {A}:
 @[simp]
 lemma incOpt_lifted_D {A}:
     incOpt (@lifted_D A) = c↑D := rfl
+
+theorem incOpt_Terminate {ns A B}
+  (c: Ckt A B ns) [hic: IncCkt c]
+  {x} (ht: Terminate c x):
+    Terminate (incOpt c) (D x) := by
+  exact incOpt_PreserveT c x ht
+
+theorem incOpt_Converge_iff {ns a b}
+  (c: Ckt a b ns) [hic: IncCkt c] {x}:
+    Converge c x <-> Converge (incOpt c) (D x) := by
+  rw [<- (incOpt_ConvEq c).conv]
+  simp [cΔ, Converge, denote]

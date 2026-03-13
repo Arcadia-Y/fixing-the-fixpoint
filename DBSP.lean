@@ -8,13 +8,15 @@ import DBSP.Circuits.Circuits
 import DBSP.Termination.Spec
 import DBSP.Termination.FPDetector
 
--- Equivalence and refinement between DBSP circuits
+-- Termination-complete circuits, our core concept for arguing about the practicality of the new termination specification.
+import DBSP.Practical.TCCkt
+-- Semantic equivalence and convergence equivalence between DBSP circuits
 import DBSP.Practical.Sequiv
-import DBSP.Practical.Refine
+import DBSP.Practical.ConvEq
 -- The correctness and efficiency (in terms of iteration bounds) of DBSP optimization transformations
 import DBSP.Practical.PushLifting
 import DBSP.Practical.IncOpt
--- The expressiveness of DBSP circuits (i.e., terminating circuits)
+-- Regular Circuits and their inner iteration bounds
 import DBSP.Practical.Expressiveness
 import DBSP.Practical.RegularCkt
 

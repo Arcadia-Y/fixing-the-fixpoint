@@ -95,17 +95,19 @@ def incr_dist {ns: Bool} (c: Ckt ([Z[A]]v ×ᵥ [Z[A]]v) ([Z[A]]v) ns): Ckt [Z[A
 
 lemma Sequiv_incr_dist {ns: Bool}:
     cΔ (c₁ (DistinctUnaryNode (A:=A))) ≃ incr_dist (Ckt.node2 (ns:=ns) HBinaryNode) := by
-  constructor; swap
-  · simp [Terminate, cΔ, incr_dist]
-  simp [denote, incr_dist]
-  funext x; simp
-  rcases ns
-  · funext i; simp [incremental, D]
-    ext a; rcases i <;> simp [distinctHAt]
-    omega
-  · funext i j; simp [incremental, D]
-    ext a; rcases i <;> simp [distinctHAt]
-    omega
+  constructor
+  · simp [denote, incr_dist]
+    funext x; simp
+    rcases ns
+    · funext i; simp [incremental, D]
+      ext a; rcases i <;> simp [distinctHAt]
+      omega
+    · funext i j; simp [incremental, D]
+      ext a; rcases i <;> simp [distinctHAt]
+      omega
+  · constructor
+    · simp [Terminate, cΔ, incr_dist]
+    · simp [Converge, cΔ, incr_dist]
 
 lemma Preserve1_incr_dist {ns: Bool}:
     (c₁ (DistinctUnaryNode (A:=A))) ↝₁ incr_dist (Ckt.node2 (ns:=ns) HBinaryNode) := by
@@ -148,8 +150,11 @@ lemma Presreve2_incr_dist:
 instance : IncUnary (@DistinctUnaryNode A _) where
   opt := incr_dist (c₂ HBinaryNode)
   sound := by
-    intro ns; exact ⟨Sequiv_to_Refine Sequiv_incr_dist, Preserve1_incr_dist,
-      by cases ns <;> simp; exact Presreve2_incr_dist⟩
+    intro ns
+    exact ⟨Sequiv_to_ConvEq Sequiv_incr_dist,
+      Preserve1_incr_dist,
+      by cases ns <;> simp; exact Presreve2_incr_dist,
+      Sequiv_to_PreserveT Sequiv_incr_dist⟩
 
 def lifted_incr_dist (c: Ckt ([Z[A]]v ×ᵥ [Z[A]]v) ([Z[A]]v) 1): Ckt [Z[A]]v [Z[A]]v 1 :=
   (c↑I >>c c↑z⁻¹ &&c cid) >>c c
