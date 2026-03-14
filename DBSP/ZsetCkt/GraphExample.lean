@@ -14,8 +14,8 @@ def c0 : Ckt ([Z[ℕ × ℕ]]v ×ᵥ [Z[ℕ × ℕ]]v) ([Z[ℕ × ℕ]]v) 0 :=
 lemma c0_LiftedScalar: LiftedScalar c0 := by
   unfold c0; decide
 
-lemma c0_ht x: Terminate c0 x := by
-  apply Terminate_LiftedScalar
+lemma c0_ht x: IntConv c0 x := by
+  apply IntConv_LiftedScalar
   apply c0_LiftedScalar
 
 lemma c0_hei x n (h: ExtFP1 c0 x n): IntFP1 c0 x n := by

@@ -8,31 +8,31 @@ variable {A B C: VType} {ns: Bool}
 -- This asserts that the `IntFP1` of `c1` is preserved when
 -- we transform it into `c2` (which is supposed to be its incremental version)
 def Preserve1 {ns A B} (c1 c2: Ckt A B ns) : Prop :=
-  ∀ x n, Converge c1 x -> IntFP1 c1 x n -> IntFP1 c2 (D x) (n+1)
+  ∀ x n, ExtConv c1 x -> IntFP1 c1 x n -> IntFP1 c2 (D x) (n+1)
 infix:30 " ↝₁ " => Preserve1
 -- This asserts that the `IntFP2` of `c1` is preserved when
 -- we transform it into `c2` (which is supposed to be its incremental version)
 def Preserve2 {A B} (c1 c2: Ckt A B 1) : Prop :=
-    ∀ x b, Converge c1 x -> IntFP2Vec c1 x b ->
+    ∀ x b, ExtConv c1 x -> IntFP2Vec c1 x b ->
       IntFP2Vec c2 (D x) (fun i => max (b i) (z⁻¹ b i))
 infix:30 " ↝₂ " => Preserve2
 
 -- D-shifted termination preservation relation used in incrementalization proofs.
 def PreserveT (c1 c2: Ckt A B ns): Prop :=
-  ∀ x, Terminate c1 x -> Terminate c2 (D x)
+  ∀ x, IntConv c1 x -> IntConv c2 (D x)
 
 infix:30 " ⊑T " => PreserveT
 
 lemma PreserveT_incr (c: Ckt A B ns): c ⊑T cΔ c := by
   intro x hx
-  exact Terminate_cΔ hx
+  exact IntConv_cΔ hx
 
 lemma Sequiv_to_PreserveT {c1 c2: Ckt A B ns}:
   cΔ c1 ≃ c2 -> c1 ⊑T c2 := by
   intro h
   rcases h with ⟨_, ht, _⟩
   intro x hx
-  have hxΔ : Terminate (cΔ c1) (D x) := Terminate_cΔ hx
+  have hxΔ : IntConv (cΔ c1) (D x) := IntConv_cΔ hx
   simpa [ht] using hxΔ
 
 lemma PreserveT_par
@@ -40,7 +40,7 @@ lemma PreserveT_par
   (hc: c1 ⊑T c2) (hd: d1 ⊑T d2):
   (c1 &&c d1) ⊑T (c2 &&c d2) := by
   intro x hx
-  simp [Terminate] at hx ⊢
+  simp [IntConv] at hx ⊢
   rcases hx with ⟨hcx, hdx⟩
   exact ⟨hc x hcx, hd x hdx⟩
 
@@ -49,17 +49,17 @@ lemma PreserveT_seq
   (hc: c1 ⊑T c2) (hd: d1 ⊑T d2) (heq: cΔ c1 ≋ c2):
   (c1 >>c d1) ⊑T (c2 >>c d2) := by
   intro x hx
-  simp [Terminate] at hx ⊢
+  simp [IntConv] at hx ⊢
   rcases hx with ⟨htc1, htd1⟩
-  have htc2 : Terminate c2 (D x) := hc x htc1
-  have hΔ : Terminate (cΔ c1) (D x) := Terminate_cΔ htc1
-  have hconvΔ : Converge (cΔ c1) (D x) := Terminate_impl_Converge hΔ
+  have htc2 : IntConv c2 (D x) := hc x htc1
+  have hΔ : IntConv (cΔ c1) (D x) := IntConv_cΔ htc1
+  have hconvΔ : ExtConv (cΔ c1) (D x) := IntConv_impl_ExtConv hΔ
   have hden : denote c2 (D x) = D (denote c1 x) := by
     calc
       denote c2 (D x) = denote (cΔ c1) (D x) := (heq.denote (D x) hconvΔ).symm
       _ = D (denote c1 x) := by simp [cΔ, denote, derivative_integral]
-  have htd2_at_c1 : Terminate d2 (D (denote c1 x)) := hd (denote c1 x) htd1
-  have htd2 : Terminate d2 (denote c2 (D x)) := by
+  have htd2_at_c1 : IntConv d2 (D (denote c1 x)) := hd (denote c1 x) htd1
+  have htd2 : IntConv d2 (denote c2 (D x)) := by
     simpa [hden] using htd2_at_c1
   exact ⟨htc2, htd2⟩
 
@@ -195,7 +195,7 @@ lemma Preserve1_seq {c1 c3: Ckt A B ns} {c2 c4: Ckt B C ns}
   have hd : denote c3 (D x) = D (denote c1 x) := by
     calc
       denote c3 (D x) = denote (cΔ c1) (D x) :=
-        (hr.denote (D x) (Converge_cΔ_of_Converge ht1)).symm
+        (hr.denote (D x) (ExtConv_cΔ_of_ExtConv ht1)).symm
       _ = D (denote c1 x) := by simp [cΔ, denote, derivative_integral]
   rw [hd]
   apply h2 <;> tauto
@@ -217,7 +217,7 @@ lemma Preserve1_loop {c1 c2: Ckt (A ×ᵥ B) B ns}
   have hd : denote (cloop c2) (D x) = D (denote (cloop c1) x) := by
     calc
       denote (cloop c2) (D x) = denote (cΔ (cloop c1)) (D x) :=
-        (hr.denote (D x) (Converge_cΔ_of_Converge ht)).symm
+        (hr.denote (D x) (ExtConv_cΔ_of_ExtConv ht)).symm
       _ = D (denote (cloop c1) x) := by simp [cΔ, denote, derivative_integral]
   rw [hd]
   have : sprodO ns (D x, z⁻¹ (D (denote (cloop c1) x))) =
@@ -236,7 +236,7 @@ lemma Preserve1_lifted_loop {c1 c2: Ckt (A ×ᵥ B) B 1}
   have hd : denote (cloop2 c2) (D x) = D (denote (cloop2 c1) x) := by
     calc
       denote (cloop2 c2) (D x) = denote (cΔ (cloop2 c1)) (D x) :=
-        (hr.denote (D x) (Converge_cΔ_of_Converge ht)).symm
+        (hr.denote (D x) (ExtConv_cΔ_of_ExtConv ht)).symm
       _ = D (denote (cloop2 c1) x) := by simp [cΔ, denote, derivative_integral]
   rw [hd]
   have : sprod2 (D x, ↑↑z⁻¹ (D (denote (cloop2 c1) x))) =
@@ -400,7 +400,7 @@ lemma Preserve2_seq {c1 c3: Ckt A B 1} {c2 c4: Ckt B C 1}
   have hd : denote c3 (D x) = D (denote c1 x) := by
     calc
       denote c3 (D x) = denote (cΔ c1) (D x) :=
-        (hr.denote (D x) (Converge_cΔ_of_Converge ht1)).symm
+        (hr.denote (D x) (ExtConv_cΔ_of_ExtConv ht1)).symm
       _ = D (denote c1 x) := by simp [cΔ, denote, derivative_integral]
   rw [hd]
   apply h2 <;> tauto
@@ -424,7 +424,7 @@ lemma Preserve2_loop {c1 c2: Ckt (A ×ᵥ B) B 1}
   have hd : denote (cloop c2) (D x) = D (denote (cloop c1) x) := by
     calc
       denote (cloop c2) (D x) = denote (cΔ (cloop c1)) (D x) :=
-        (hr.denote (D x) (Converge_cΔ_of_Converge ht)).symm
+        (hr.denote (D x) (ExtConv_cΔ_of_ExtConv ht)).symm
       _ = D (denote (cloop c1) x) := by simp [cΔ, denote, derivative_integral]
   rw [hd]
   have : sprod2 (D x, z⁻¹ (D (denote (cloop c1) x))) =
@@ -443,7 +443,7 @@ lemma Preserve2_lifted_loop {c1 c2: Ckt (A ×ᵥ B) B 1}
   have hd : denote (cloop2 c2) (D x) = D (denote (cloop2 c1) x) := by
     calc
       denote (cloop2 c2) (D x) = denote (cΔ (cloop2 c1)) (D x) :=
-        (hr.denote (D x) (Converge_cΔ_of_Converge ht)).symm
+        (hr.denote (D x) (ExtConv_cΔ_of_ExtConv ht)).symm
       _ = D (denote (cloop2 c1) x) := by simp [cΔ, denote, derivative_integral]
   rw [hd]
   have : sprod2 (D x, ↑↑z⁻¹ (D (denote (cloop2 c1) x))) =
@@ -460,7 +460,7 @@ lemma Preserve1_bracket {c1 c2: Ckt A B 1} (hp: c1 ↝₁ c2):
   rintro x n ht hi
   rw [<- D_lifting_delta_comm]
   apply hp
-  · simp [Converge] at ht; tauto
+  · simp [ExtConv] at ht; tauto
   · tauto
 
 lemma ConvEq_incOpt_bracket {c1 c2: Ckt A B 1}
@@ -474,9 +474,9 @@ lemma ConvEq_incOpt_bracket {c1 c2: Ckt A B 1}
     apply propext
     constructor
     · intro hx
-      simp [Converge] at hx ⊢
+      simp [ExtConv] at hx ⊢
       rcases hx with ⟨hcx, hb⟩
-      have hcy : Converge c2 (↑↑δ0 x) := by simpa [hr.conv] using hcx
+      have hcy : ExtConv c2 (↑↑δ0 x) := by simpa [hr.conv] using hcx
       have hd : denote (cΔ c1) (↑↑δ0 x) = denote c2 (↑↑δ0 x) := hr.denote _ hcx
       rcases hb with ⟨b, hz⟩
       have hz' : ZeroAfterVec (denote c2 (↑↑δ0 x)) b := by
@@ -485,9 +485,9 @@ lemma ConvEq_incOpt_bracket {c1 c2: Ckt A B 1}
       refine ⟨hcy, ⟨b, ?_⟩⟩
       exact hz'
     · intro hy
-      simp [Converge] at hy ⊢
+      simp [ExtConv] at hy ⊢
       rcases hy with ⟨hcy, hb⟩
-      have hcx : Converge (cΔ c1) (↑↑δ0 x) := by simpa [hr.conv] using hcy
+      have hcx : ExtConv (cΔ c1) (↑↑δ0 x) := by simpa [hr.conv] using hcy
       have hd : denote c2 (↑↑δ0 x) = denote (cΔ c1) (↑↑δ0 x) := (hr.denote _ hcx).symm
       rcases hb with ⟨b, hz⟩
       have hz' : ZeroAfterVec (denote (cΔ c1) (↑↑δ0 x)) b := by
@@ -496,7 +496,7 @@ lemma ConvEq_incOpt_bracket {c1 c2: Ckt A B 1}
       refine ⟨hcx, ⟨b, ?_⟩⟩
       exact hz'
   · intro x hx
-    simp [Converge] at hx
+    simp [ExtConv] at hx
     rcases hx with ⟨hcx, _⟩
     have hd : denote (cΔ c1) (↑↑δ0 x) = denote c2 (↑↑δ0 x) := hr.denote _ hcx
     simpa [denote] using congrArg (fun s => (↑↑∫0) s) hd
@@ -508,11 +508,11 @@ lemma PreserveT_loop
   cloop c1 ⊑T cloop c2 := by
   intro x hx
   set inp := sprodO ns (x, z⁻¹ (denote (cloop c1) x))
-  have hinner : Terminate c1 inp := by
-    simpa [Terminate, inp] using hx
-  have href : Terminate c2 (D inp) := hr inp hinner
-  have hconvΔ : Converge (cΔ (cloop c1)) (D x) := by
-    exact Terminate_impl_Converge (Terminate_cΔ hx)
+  have hinner : IntConv c1 inp := by
+    simpa [IntConv, inp] using hx
+  have href : IntConv c2 (D inp) := hr inp hinner
+  have hconvΔ : ExtConv (cΔ (cloop c1)) (D x) := by
+    exact IntConv_impl_ExtConv (IntConv_cΔ hx)
   have hden : denote (cloop c2) (D x) = D (denote (cloop c1) x) := by
     calc
       denote (cloop c2) (D x) = denote (cΔ (cloop c1)) (D x) :=
@@ -529,7 +529,7 @@ lemma PreserveT_loop
         exact htmp.symm
       _ = sprodO ns (D x, z⁻¹ (denote (cloop c2) (D x))) := by
         simp [hden]
-  simpa [Terminate, hDinp] using href
+  simpa [IntConv, hDinp] using href
 
 lemma PreserveT_lifted_loop
   {c1 c2: Ckt (A ×ᵥ B) B 1}
@@ -538,11 +538,11 @@ lemma PreserveT_lifted_loop
   cloop2 c1 ⊑T cloop2 c2 := by
   intro x hx
   set inp := sprod2 (x, ↑↑z⁻¹ (denote (cloop2 c1) x))
-  have hinner : Terminate c1 inp := by
-    simpa [Terminate, inp] using hx
-  have href : Terminate c2 (D inp) := hr inp hinner
-  have hconvΔ : Converge (cΔ (cloop2 c1)) (D x) := by
-    exact Terminate_impl_Converge (Terminate_cΔ hx)
+  have hinner : IntConv c1 inp := by
+    simpa [IntConv, inp] using hx
+  have href : IntConv c2 (D inp) := hr inp hinner
+  have hconvΔ : ExtConv (cΔ (cloop2 c1)) (D x) := by
+    exact IntConv_impl_ExtConv (IntConv_cΔ hx)
   have hden : denote (cloop2 c2) (D x) = D (denote (cloop2 c1) x) := by
     calc
       denote (cloop2 c2) (D x) = denote (cΔ (cloop2 c1)) (D x) :=
@@ -558,7 +558,7 @@ lemma PreserveT_lifted_loop
         exact htmp.symm
       _ = sprod2 (D x, ↑↑z⁻¹ (denote (cloop2 c2) (D x))) := by
         simp [hden]
-  simpa [Terminate, hDinp] using href
+  simpa [IntConv, hDinp] using href
 
 lemma PreserveT_bracket
   {c1 c2: Ckt A B 1}
@@ -567,13 +567,13 @@ lemma PreserveT_bracket
   (hp: c1 ↝₂ c2):
   cbracket c1 ⊑T cbracket c2 := by
   intro x hx
-  simp [Terminate] at hx ⊢
+  simp [IntConv] at hx ⊢
   rcases hx with ⟨htc, ⟨b, hif, hz⟩⟩
-  have htc2 : Terminate c2 (D (↑↑δ0 x)) := hr (↑↑δ0 x) htc
-  have hconv : Converge c1 (↑↑δ0 x) := Terminate_impl_Converge htc
+  have htc2 : IntConv c2 (D (↑↑δ0 x)) := hr (↑↑δ0 x) htc
+  have hconv : ExtConv c1 (↑↑δ0 x) := IntConv_impl_ExtConv htc
   have hif2 : IntFP2Vec c2 (D (↑↑δ0 x)) (fun i => max (b i) (z⁻¹ b i)) :=
     hp (↑↑δ0 x) b hconv hif
-  have hconvΔ : Converge (cΔ c1) (D (↑↑δ0 x)) := Converge_cΔ_of_Converge hconv
+  have hconvΔ : ExtConv (cΔ c1) (D (↑↑δ0 x)) := ExtConv_cΔ_of_ExtConv hconv
   have hden : denote c2 (D (↑↑δ0 x)) = D (denote c1 (↑↑δ0 x)) := by
     calc
       denote c2 (D (↑↑δ0 x)) = denote (cΔ c1) (D (↑↑δ0 x)) :=

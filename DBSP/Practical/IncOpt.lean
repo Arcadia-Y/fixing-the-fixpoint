@@ -26,7 +26,7 @@ instance (priority := low) IncUnaryDefault
   opt := cΔ (Ckt.node1 f)
   sound := by
     intro ns
-    exact ⟨by rfl, by apply Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr, by apply Terminate_cΔ⟩
+    exact ⟨by rfl, by apply Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr, by apply IntConv_cΔ⟩
 
 -- linear unary functions
 instance IncUnaryLinear
@@ -40,7 +40,7 @@ instance IncUnaryLinear
     exact ⟨by apply Sequiv_to_ConvEq; apply Sequiv_incr_linear_node1; tauto,
       by apply Preserve1_node1_self,
       by cases ns <;> simp; apply Preserve2_node1_self,
-      by intro x hx; simp [Terminate]⟩
+      by intro x hx; simp [IntConv]⟩
 
 -- incrementalizable binary nodes
 class IncBinary {A B C} [BaseType A] [BaseType B] [BaseType C] (f :BinaryNode A B C) where
@@ -55,7 +55,7 @@ instance (priority := low) IncBinaryDefault
   opt := cΔ (Ckt.node2 f)
   sound := by
     intro ns
-    exact ⟨by rfl,  by apply Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr, by apply Terminate_cΔ⟩
+    exact ⟨by rfl,  by apply Preserve1_incr, by cases ns <;> simp; apply Preserve2_incr, by apply IntConv_cΔ⟩
 
 -- linear binary functions
 instance IncBinaryLinear
@@ -69,7 +69,7 @@ instance IncBinaryLinear
     exact ⟨by apply Sequiv_to_ConvEq; apply Sequiv_incr_linear_node2; tauto,
       by apply Preserve1_node2_self,
       by cases ns <;> simp; apply Preserve2_node2_self,
-      by intro x hx; simp [Terminate],⟩
+      by intro x hx; simp [IntConv],⟩
 
 -- bilinear binary functions
 instance IncBinaryBilinear
@@ -84,7 +84,7 @@ instance IncBinaryBilinear
     exact ⟨by apply Sequiv_to_ConvEq; apply Sequiv_incr_bilinear_node2 <;> tauto,
       by apply Preserve1_node2_bilinear,
       by cases ns <;> simp; apply Preserve2_node2_bilinear,
-      by intro x hx; simp[Terminate, bilinear_opt],⟩
+      by intro x hx; simp[IntConv, bilinear_opt],⟩
 
 -- The recursive evidence for incrementalizability
 inductive IncEvidence : ∀ {a b ns}, Ckt a b ns -> Type 1
@@ -307,7 +307,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                       try apply Preserve2_sub,
       preserveT := by
         intro x hx
-        simp [Terminate]
+        simp [IntConv]
     }
   case const =>
     exact {
@@ -316,7 +316,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
       preserve2 := by cases ns <;> simp; apply Preserve2_const,
       preserveT := by
         intro x hx
-        simp [Terminate]
+        simp [IntConv]
     }
   case seq ih1 ih2 =>
     exact {
@@ -366,7 +366,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
       preserve2 := by cases ns <;> simp; apply Preserve2_delay,
       preserveT := by
         intro x hx
-        simp [Terminate]
+        simp [IntConv]
     }
   case lifted_delay =>
     exact {
@@ -375,7 +375,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
       preserve2 := by apply Preserve2_lifted_delay,
       preserveT := by
         intro x hx
-        simp [Terminate]
+        simp [IntConv]
     }
   case lifting =>
     exact {
@@ -384,7 +384,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
       preserve2 := by apply Preserve2_incr,
       preserveT := by
         intro x hx
-        exact Terminate_cΔ hx
+        exact IntConv_cΔ hx
     }
   case loop c e ih =>
     exact {
@@ -478,14 +478,14 @@ lemma incOpt_lifted_I {A}:
 lemma incOpt_lifted_D {A}:
     incOpt (@lifted_D A) = c↑D := rfl
 
-theorem incOpt_Terminate {ns A B}
+theorem incOpt_IntConv {ns A B}
   (c: Ckt A B ns) [hic: IncCkt c]
-  {x} (ht: Terminate c x):
-    Terminate (incOpt c) (D x) := by
+  {x} (ht: IntConv c x):
+    IntConv (incOpt c) (D x) := by
   exact incOpt_PreserveT c x ht
 
-theorem incOpt_Converge_iff {ns a b}
+theorem incOpt_ExtConv_iff {ns a b}
   (c: Ckt a b ns) [hic: IncCkt c] {x}:
-    Converge c x <-> Converge (incOpt c) (D x) := by
+    ExtConv c x <-> ExtConv (incOpt c) (D x) := by
   rw [<- (incOpt_ConvEq c).conv]
-  simp [cΔ, Converge, denote]
+  simp [cΔ, ExtConv, denote]

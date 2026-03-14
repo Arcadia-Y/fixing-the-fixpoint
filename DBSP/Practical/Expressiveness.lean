@@ -1,6 +1,6 @@
 -- We analyze the expressivess of our new foundation here
-import DBSP.Termination.Spec
-import DBSP.Termination.FPProp
+import DBSP.Convergence.Spec
+import DBSP.Convergence.FPProp
 import DBSP.Circuits.LiftedScalar
 import DBSP.Logic.Hoare
 import DBSP.Logic.HoareT
@@ -52,11 +52,11 @@ lemma LiftedScalar_ExtFP1_IntFP1
     try (simp [IntFP1]; assumption)
 
 @[simp]
-theorem Terminate_LiftedScalar
+theorem IntConv_LiftedScalar
   (c: Ckt A B ns) (hc: LiftedScalar c) x:
-    Terminate c x := by
+    IntConv c x := by
   induction hc <;> try constructor <;> try tauto
-  simp [Terminate]; tauto
+  simp [IntConv]; tauto
 
 lemma HoareI1_LiftedScalar {c: Ckt A B ns}
   {v: SOVType ns A} {b: ℕ}
@@ -128,17 +128,17 @@ lemma FixedAt_mono {A: Type} (f: A -> A) (x: A) (n: ℕ)
   assumption
 
 -- In the DBSP paper, the while loop program is used to show the Turing-completeness of DBSP.
--- Here we prove that with our new foundation, while programs will always terminate when the
+-- Here we prove that with our new foundation, while programs will always internally converge when the
 -- fixpoint exists, thus DBSP is still Turing-complete.
 namespace WhileLoop
 variable {A: VType}
--- Let's assume `c0` is a circuit whose denotation is an arbitrary scalar query, whose ExtFP implies its IntFP and terminates on specific inputs.
+-- Let's assume `c0` is a circuit whose denotation is an arbitrary scalar query, whose ExtFP implies its IntFP and internally converges on specific inputs.
 -- An example of such circuit is a LiftedScalar circuit.
 variable (c0: Ckt A A 0) (hei: ∀ x n, ExtFP1 c0 x n -> IntFP1 c0 x n)
 -- `iv` is the scalar input, i.e. initial value
 -- `f` is the scalar function expressed by `c0`
 variable (f: VType_interp A -> VType_interp A) (iv: VType_interp A) (hf: DenoteLiftedScalar c0 f)
-  (ht: Terminate c0 (funcIterStream f iv))
+  (ht: IntConv c0 (funcIterStream f iv))
 
 -- The while loop query body (yet to be lifted) between the bracket
 def body: Ckt A A 0 :=
@@ -179,7 +179,7 @@ lemma loop_HoareT:
   apply HoareT_loop (by apply loop_output; tauto)
   intro x y hx hy
   rw [<- funext_iff] at hx hy
-  simp [HoareT, sprodO, Terminate, denote]
+  simp [HoareT, sprodO, IntConv, denote]
   have : x + z⁻¹ y = funcIterStream f iv := by
     rw [hx, hy]; funext i
     rcases i with _ | i <;> simp
@@ -261,7 +261,7 @@ def query: Ckt A A 0 :=
   cbracket (c↑ (body c0))
 
 variable {b: stream ℕ} {is: stream (VType_interp A)}
-  (hfa: FixedAtVec f is b) (htv: ∀ i, Terminate c0 (funcIterStream f (is i)))
+  (hfa: FixedAtVec f is b) (htv: ∀ i, IntConv c0 (funcIterStream f (is i)))
 
 theorem query_ExtFP1_IntFP1 {n: ℕ}
   (he: ExtFP1 (query c0) is n):
@@ -318,11 +318,11 @@ theorem query_HoareT:
   apply hfa; omega
 
 include hf in
-lemma Converge_query_impl_c0
-  (h: Converge (query c0) is):
-    ∀ i, Converge c0 (funcIterStream f (is i)) := by
+lemma ExtConv_query_impl_c0
+  (h: ExtConv (query c0) is):
+    ∀ i, ExtConv c0 (funcIterStream f (is i)) := by
   intro i
-  simp [Converge, query, body] at h
+  simp [ExtConv, query, body] at h
   rcases h with ⟨h, _, _⟩
   specialize h i
   have hl := loop_denote c0 f (is i) hf
@@ -330,10 +330,10 @@ lemma Converge_query_impl_c0
   rw [funcIterStream_add_fixpoint] at h; tauto
 
 include hf htv in
-lemma Converge_impl_FixedAt
-  (h: Converge (query c0) is):
+lemma ExtConv_impl_FixedAt
+  (h: ExtConv (query c0) is):
     ∃ (b: stream ℕ), FixedAtVec f is b := by
-  simp [Converge, query, body] at h
+  simp [ExtConv, query, body] at h
   rcases h with ⟨h, ⟨b', hfa⟩⟩
   rw [denote, <- body] at hfa
   use (fun j => b' j + 1)
@@ -347,21 +347,21 @@ lemma Converge_impl_FixedAt
   all_goals tauto
 
 include hf hei htv in
-theorem query_Terminate
-  (h: Converge (query c0) is):
-    Terminate (query c0) is := by
-  apply Converge_impl_FixedAt at h <;> try tauto
+theorem query_IntConv
+  (h: ExtConv (query c0) is):
+    IntConv (query c0) is := by
+  apply ExtConv_impl_FixedAt at h <;> try tauto
   rcases h with ⟨b, h⟩
   apply And.left
   apply query_HoareT <;> tauto
 
 end WhileLoop
 
--- Here we show that Datalog-like recursive queries will always terminate
+-- Here we show that Datalog-like recursive queries will always internally converge
 -- when the fixpoint exists.
 namespace Datalog
 variable {A B: VType}
--- Let's assume `c0` is a circuit whose denotation is an arbitrary scalar query, whose ExtFP implies its IntFP and terminates on specific inputs.
+-- Let's assume `c0` is a circuit whose denotation is an arbitrary scalar query, whose ExtFP implies its IntFP and internally converges on specific inputs.
 -- An example of such circuit is a LiftedScalar circuit.
 variable (c0: Ckt (A ×ᵥ B) B 0) (hei: ∀ x n, ExtFP1 c0 x n -> IntFP1 c0 x n)
 -- `R` is the relational query expressed by `c0`
@@ -376,7 +376,7 @@ lemma f_unfold (x: VType_interp B):
 
 abbrev c0_input := sprod ((fun _ => iv), (funcIterStream (f R iv) 0))
 
-variable (ht: Terminate c0 (c0_input R iv))
+variable (ht: IntConv c0 (c0_input R iv))
 
 -- The recursive query body (yet to be lifted) between the bracket
 def body: Ckt A B 0 :=
@@ -417,7 +417,7 @@ lemma loop_HoareT:
   apply HoareT_loop (by apply loop_output; tauto)
   intro x y hx hy
   rw [<- funext_iff] at hx hy
-  simp [HoareT, sprodO, Terminate, denote]
+  simp [HoareT, sprodO, IntConv, denote]
   have : z⁻¹ y = funcIterStream (f R iv) 0 := by
     rw [hy]; funext i
     rcases i with _ | i <;> simp
@@ -536,7 +536,7 @@ def query: Ckt A B 0 :=
   cbracket (c↑ (body c0))
 
 variable {b: stream ℕ} {is: stream (VType_interp A)}
-  (hfa: ∀ j, FixedAt (f R (is j)) 0 (b j)) (htv: ∀ j, Terminate c0 (c0_input R (is j)))
+  (hfa: ∀ j, FixedAt (f R (is j)) 0 (b j)) (htv: ∀ j, IntConv c0 (c0_input R (is j)))
 
 include hf htv hei hfa in
 theorem lifted_body_HoareI2:
@@ -582,11 +582,11 @@ theorem query_HoareT:
   apply hfa; omega
 
 include hf in
-lemma Converge_query_impl_c0
-  (h: Converge (query c0) is):
-    ∀ i, Converge c0 (c0_input R (is i)) := by
+lemma ExtConv_query_impl_c0
+  (h: ExtConv (query c0) is):
+    ∀ i, ExtConv c0 (c0_input R (is i)) := by
   intro i
-  simp [Converge, query, body, cΔ] at h
+  simp [ExtConv, query, body, cΔ] at h
   rcases h with ⟨h, _, _⟩
   specialize h i
   rw [integral_delta] at h
@@ -595,10 +595,10 @@ lemma Converge_query_impl_c0
   exact h
 
 include hf htv in
-lemma Converge_impl_FixedAt
-  (h: Converge (query c0) is):
+lemma ExtConv_impl_FixedAt
+  (h: ExtConv (query c0) is):
     ∃ (b: stream ℕ), ∀ j, FixedAt (f R (is j)) 0 (b j) := by
-  simp [Converge, query, body] at h
+  simp [ExtConv, query, body] at h
   rcases h with ⟨h, ⟨b', hfa⟩⟩
   rw [denote, <- body] at hfa
   use (fun j => b' j + 1)
@@ -609,10 +609,10 @@ lemma Converge_impl_FixedAt
   all_goals tauto
 
 include hf htv hei in
-theorem query_Terminate
-  (h: Converge (query c0) is):
-    Terminate (query c0) is := by
-  apply Converge_impl_FixedAt at h <;> try tauto
+theorem query_IntConv
+  (h: ExtConv (query c0) is):
+    IntConv (query c0) is := by
+  apply ExtConv_impl_FixedAt at h <;> try tauto
   rcases h with ⟨b, h⟩
   apply And.left
   apply query_HoareT <;> tauto

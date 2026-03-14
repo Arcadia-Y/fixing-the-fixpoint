@@ -106,8 +106,8 @@ lemma Sequiv_incr_dist {ns: Bool}:
       ext a; rcases i <;> simp [distinctHAt]
       omega
   · constructor
-    · simp [Terminate, cΔ, incr_dist]
-    · simp [Converge, cΔ, incr_dist]
+    · simp [IntConv, cΔ, incr_dist]
+    · simp [ExtConv, cΔ, incr_dist]
 
 lemma Preserve1_incr_dist {ns: Bool}:
     (c₁ (DistinctUnaryNode (A:=A))) ↝₁ incr_dist (Ckt.node2 (ns:=ns) HBinaryNode) := by

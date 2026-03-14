@@ -4,10 +4,10 @@ open CktBasic
 
 variable {A B C: VType} {ns: Bool}
 
--- Convergence equivalence with output agreement on converging inputs.
+-- ExtConv equivalence with output agreement on converging inputs.
 structure ConvEq (c1 c2: Ckt A B ns) where
-  conv: Converge c1 = Converge c2
-  denote: ∀ x, Converge c1 x -> denote c1 x = denote c2 x
+  conv: ExtConv c1 = ExtConv c2
+  denote: ∀ x, ExtConv c1 x -> denote c1 x = denote c2 x
 
 -- Preferred notation.
 infix:30 " ≋ " => ConvEq
@@ -20,7 +20,7 @@ lemma ConvEq_rfl (c: Ckt A B ns): c ≋ c := by
 lemma ConvEq_symm {c1 c2: Ckt A B ns} (h: c1 ≋ c2): c2 ≋ c1 := by
   refine ⟨h.conv.symm, ?_⟩
   intro x hx
-  have hx' : Converge c1 x := by simpa [h.conv] using hx
+  have hx' : ExtConv c1 x := by simpa [h.conv] using hx
   have hd := h.denote x hx'
   exact hd.symm
 
@@ -37,15 +37,15 @@ lemma Sequiv_to_ConvEq {c1 c2: Ckt A B ns} (h: c1 ≃ c2): c1 ≋ c2 := by
   rcases h with ⟨hd, _, hc⟩
   exact ⟨hc, by intro _ _; simp [hd]⟩
 
-lemma ConvEq_denote_eq_of_terminate {c1 c2: Ckt A B ns}
-  (h: c1 ≋ c2) {x} (ht: Terminate c1 x):
+lemma ConvEq_denote_eq_of_IntConv {c1 c2: Ckt A B ns}
+  (h: c1 ≋ c2) {x} (ht: IntConv c1 x):
   denote c1 x = denote c2 x := by
-  exact h.denote x (Terminate_impl_Converge ht)
+  exact h.denote x (IntConv_impl_ExtConv ht)
 
-lemma Converge_cΔ_of_Converge {A B ns} {c: Ckt A B ns} {x: SOVType ns A}
-  (h: Converge c x):
-  Converge (cΔ c) (D x) := by
-  simp [cΔ, Converge, h, derivative_integral]
+lemma ExtConv_cΔ_of_ExtConv {A B ns} {c: Ckt A B ns} {x: SOVType ns A}
+  (h: ExtConv c x):
+  ExtConv (cΔ c) (D x) := by
+  simp [cΔ, ExtConv, h, derivative_integral]
 
 lemma denote_cΔ_D {A B ns} (c: Ckt A B ns) (x: SOVType ns A):
   denote (cΔ c) (D x) = D (denote c x) := by
@@ -55,32 +55,32 @@ lemma ConvEq_seq
     {c1 c2: Ckt A B ns} {d1 d2: Ckt B C ns}
     (hc: c1 ≋ c2) (hd: d1 ≋ d2):
       (c1 >>c d1) ≋ (c2 >>c d2) := by
-  have hforward : ∀ x, Converge (c1 >>c d1) x -> Converge (c2 >>c d2) x := by
+  have hforward : ∀ x, ExtConv (c1 >>c d1) x -> ExtConv (c2 >>c d2) x := by
     intro x hx
-    simp [Converge] at hx ⊢
+    simp [ExtConv] at hx ⊢
     rcases hx with ⟨hc1x, hd1x⟩
-    have hc2x : Converge c2 x := by simpa [hc.conv] using hc1x
+    have hc2x : ExtConv c2 x := by simpa [hc.conv] using hc1x
     have hdc : denote c1 x = denote c2 x := hc.denote x hc1x
-    have hd1x' : Converge d1 (denote c2 x) := by simpa [hdc] using hd1x
-    have hd2x : Converge d2 (denote c2 x) := by simpa [hd.conv] using hd1x'
+    have hd1x' : ExtConv d1 (denote c2 x) := by simpa [hdc] using hd1x
+    have hd2x : ExtConv d2 (denote c2 x) := by simpa [hd.conv] using hd1x'
     exact ⟨hc2x, hd2x⟩
-  have hbackward : ∀ x, Converge (c2 >>c d2) x -> Converge (c1 >>c d1) x := by
+  have hbackward : ∀ x, ExtConv (c2 >>c d2) x -> ExtConv (c1 >>c d1) x := by
     intro x hx
     have hc' : c2 ≋ c1 := ConvEq_symm hc
     have hd' : d2 ≋ d1 := ConvEq_symm hd
-    simp [Converge] at hx ⊢
+    simp [ExtConv] at hx ⊢
     rcases hx with ⟨hc2x, hd2x⟩
-    have hc1x : Converge c1 x := by simpa [hc'.conv] using hc2x
+    have hc1x : ExtConv c1 x := by simpa [hc'.conv] using hc2x
     have hdc : denote c2 x = denote c1 x := hc'.denote x hc2x
-    have hd2x' : Converge d2 (denote c1 x) := by simpa [hdc] using hd2x
-    have hd1x : Converge d1 (denote c1 x) := by simpa [hd'.conv] using hd2x'
+    have hd2x' : ExtConv d2 (denote c1 x) := by simpa [hdc] using hd2x
+    have hd1x : ExtConv d1 (denote c1 x) := by simpa [hd'.conv] using hd2x'
     exact ⟨hc1x, hd1x⟩
   refine ⟨?_, ?_⟩
   · funext x
     apply propext
     exact ⟨hforward x, hbackward x⟩
   · intro x hx
-    simp [Converge] at hx
+    simp [ExtConv] at hx
     rcases hx with ⟨hc1x, hd1x⟩
     have hdc : denote c1 x = denote c2 x := hc.denote x hc1x
     have hdd : denote d1 (denote c1 x) = denote d2 (denote c1 x) :=
@@ -99,19 +99,19 @@ lemma ConvEq_par
     apply propext
     constructor
     · intro hx
-      simp [Converge] at hx ⊢
+      simp [ExtConv] at hx ⊢
       rcases hx with ⟨hc1x, hd1x⟩
-      have hc2x : Converge c2 x := by simpa [hc.conv] using hc1x
-      have hd2x : Converge d2 x := by simpa [hd.conv] using hd1x
+      have hc2x : ExtConv c2 x := by simpa [hc.conv] using hc1x
+      have hd2x : ExtConv d2 x := by simpa [hd.conv] using hd1x
       exact ⟨hc2x, hd2x⟩
     · intro hx
-      simp [Converge] at hx ⊢
+      simp [ExtConv] at hx ⊢
       rcases hx with ⟨hc2x, hd2x⟩
-      have hc1x : Converge c1 x := by simpa [ConvEq_symm hc |>.conv] using hc2x
-      have hd1x : Converge d1 x := by simpa [ConvEq_symm hd |>.conv] using hd2x
+      have hc1x : ExtConv c1 x := by simpa [ConvEq_symm hc |>.conv] using hc2x
+      have hd1x : ExtConv d1 x := by simpa [ConvEq_symm hd |>.conv] using hd2x
       exact ⟨hc1x, hd1x⟩
   · intro x hx
-    simp [Converge] at hx
+    simp [ExtConv] at hx
     rcases hx with ⟨hc1x, hd1x⟩
     have hdc : denote c1 x = denote c2 x := hc.denote x hc1x
     have hdd : denote d1 x = denote d2 x := hd.denote x hd1x
@@ -131,17 +131,17 @@ lemma ConvEq_lifting {c1 c2: Ckt A B 0} (h: c1 ≋ c2):
     apply propext
     constructor
     · intro hx
-      simp [Converge] at hx ⊢
+      simp [ExtConv] at hx ⊢
       intro j
-      have hxj : Converge c1 (x j) := hx j
+      have hxj : ExtConv c1 (x j) := hx j
       exact (by simpa [h.conv] using hxj)
     · intro hx
-      simp [Converge] at hx ⊢
+      simp [ExtConv] at hx ⊢
       intro j
-      have hxj : Converge c2 (x j) := hx j
+      have hxj : ExtConv c2 (x j) := hx j
       exact (by simpa [ConvEq_symm h |>.conv] using hxj)
   · intro x hx
-    simp [Converge] at hx
+    simp [ExtConv] at hx
     funext i j
     simp [denote]
     exact congrFun (h.denote (x i) (hx i)) j
@@ -151,12 +151,12 @@ lemma ConvEq_loop {c1 c2: Ckt (A ×ᵥ B) B ns} (h: c1 ≋ c2) :
     (cloop c1) ≋ (cloop c2) := by
   have hforward_gen : ∀ {cL cR: Ckt (A ×ᵥ B) B ns},
       cL ≋ cR -> ∀ x,
-      Converge (cloop cL) x ->
-      Converge (cloop cR) x ∧ denote (cloop cL) x = denote (cloop cR) x := by
+      ExtConv (cloop cL) x ->
+      ExtConv (cloop cR) x ∧ denote (cloop cL) x = denote (cloop cR) x := by
     intro cL cR hLR x ht
-    simp [Converge] at ht
+    simp [ExtConv] at ht
     set input1 := sprodO ns (x, z⁻¹ (denote (cloop cL) x))
-    have hcv : Converge cR input1 := by simpa [hLR.conv] using ht
+    have hcv : ExtConv cR input1 := by simpa [hLR.conv] using ht
     have hden_lr : denote cL input1 = denote cR input1 :=
       hLR.denote input1 ht
     have hd : denote (cloop cL) x = denote (cloop cR) x := by
@@ -188,8 +188,8 @@ lemma ConvEq_loop {c1 c2: Ckt (A ×ᵥ B) B ns} (h: c1 ≋ c2) :
           rw [agreeUpto_delay_succ] <;>
           symm <;> apply ih
         )
-    have hloop : Converge (cloop cR) x := by
-      simp [Converge]
+    have hloop : ExtConv (cloop cR) x := by
+      simp [ExtConv]
       have hinput : input1 = sprodO ns (x, z⁻¹ (denote (cloop cR) x)) := by
         simp [input1, hd]
       simpa [hinput] using hcv
@@ -210,12 +210,12 @@ lemma ConvEq_lifted_loop {c1 c2: Ckt (A ×ᵥ B) B 1} (h: c1 ≋ c2) :
     (cloop2 c1) ≋ (cloop2 c2) := by
   have hforward_gen : ∀ {cL cR: Ckt (A ×ᵥ B) B 1},
       cL ≋ cR -> ∀ x,
-      Converge (cloop2 cL) x ->
-      Converge (cloop2 cR) x ∧ denote (cloop2 cL) x = denote (cloop2 cR) x := by
+      ExtConv (cloop2 cL) x ->
+      ExtConv (cloop2 cR) x ∧ denote (cloop2 cL) x = denote (cloop2 cR) x := by
     intro cL cR hLR x ht
-    simp [Converge] at ht
+    simp [ExtConv] at ht
     set input1 := sprod2 (x, ↑↑z⁻¹ (denote (cloop2 cL) x))
-    have hcv : Converge cR input1 := by simpa [hLR.conv] using ht
+    have hcv : ExtConv cR input1 := by simpa [hLR.conv] using ht
     have hden_lr : denote cL input1 = denote cR input1 :=
       hLR.denote input1 ht
     have hd : denote (cloop2 cL) x = denote (cloop2 cR) x := by
@@ -245,8 +245,8 @@ lemma ConvEq_lifted_loop {c1 c2: Ckt (A ×ᵥ B) B 1} (h: c1 ≋ c2) :
         rw [<- agreeUpto];
         rw [agreeUpto_delay_succ];
         symm; intro _ _; apply ih; omega
-    have hloop : Converge (cloop2 cR) x := by
-      simp [Converge]
+    have hloop : ExtConv (cloop2 cR) x := by
+      simp [ExtConv]
       have hinput : input1 = sprod2 (x, ↑↑z⁻¹ (denote (cloop2 cR) x)) := by
         simp [input1, hd]
       simpa [hinput] using hcv
@@ -293,7 +293,7 @@ lemma streamElim_D_comm
 lemma ConvEq_bracket_D {c: Ckt A B 1}:
     (cbracket c) >>c cD ≋ cbracket (c >>c cD) := by
   refine ⟨?_, ?_⟩
-  · funext x; simp [Converge]
+  · funext x; simp [ExtConv]
     intro _; simp [denote]
     constructor
     · rintro ⟨b, h⟩
@@ -304,7 +304,7 @@ lemma ConvEq_bracket_D {c: Ckt A B 1}:
       use (I b)
       apply ZeroAfterVec_I; tauto
   · intro x ht
-    simp [Converge] at ht
+    simp [ExtConv] at ht
     rcases ht with ⟨ht, hb⟩
     rcases hb with ⟨b, hz⟩
     simp [denote, D]

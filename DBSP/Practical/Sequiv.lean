@@ -1,16 +1,16 @@
 import DBSP.Circuits.Circuits
 import DBSP.Circuits.CktProp
-import DBSP.Termination.Spec
-import DBSP.Termination.FPProp
+import DBSP.Convergence.Spec
+import DBSP.Convergence.FPProp
 open CktBasic
 
 section Sequiv
 variable {n: ℕ} {A B C: VType} {ns: Bool}
 
 -- semantic equivalence for Ckts
--- termination is preserved
+-- IntConv is preserved
 def Sequiv (c1 c2: Ckt A B ns): Prop :=
-  denote c1 = denote c2 ∧ Terminate c1 = Terminate c2 ∧ Converge c1 = Converge c2
+  denote c1 = denote c2 ∧ IntConv c1 = IntConv c2 ∧ ExtConv c1 = ExtConv c2
 infix:30 " ≃ " => Sequiv
 
 -- equivalence relation
@@ -39,8 +39,8 @@ theorem Sequiv_seq_cong {c1 c3: Ckt A B ns} {c2 c4: Ckt B C ns}
   constructor
   · funext x; simp [denote]; rw [d1, d2]
   · constructor
-    · funext x; simp [Terminate]; rw [t1, d1, t2]
-    · funext x; simp [Converge]; rw [cv1, d1, cv2]
+    · funext x; simp [IntConv]; rw [t1, d1, t2]
+    · funext x; simp [ExtConv]; rw [cv1, d1, cv2]
 
 theorem Sequiv_seq_assoc {D: VType} {c1: Ckt A B ns}
   {c2: Ckt B C ns} {c3: Ckt C D ns}:
@@ -48,8 +48,8 @@ theorem Sequiv_seq_assoc {D: VType} {c1: Ckt A B ns}
   unfold Sequiv; constructor
   · funext x; simp [denote]
   · constructor
-    · funext x; simp [Terminate, denote]; tauto
-    · funext x; simp [Converge, denote]; tauto
+    · funext x; simp [IntConv, denote]; tauto
+    · funext x; simp [ExtConv, denote]; tauto
 
 theorem Sequiv_par_cong {c1 c3: Ckt A B ns} {c2 c4: Ckt A C ns}
   (h1: c1 ≃ c3) (h2: c2 ≃ c4):
@@ -58,8 +58,8 @@ theorem Sequiv_par_cong {c1 c3: Ckt A B ns} {c2 c4: Ckt A C ns}
   constructor
   · funext x; simp [denote, d1, d2]
   · constructor
-    · funext x; simp [Terminate, t1, t2]
-    · funext x; simp [Converge, cv1, cv2]
+    · funext x; simp [IntConv, t1, t2]
+    · funext x; simp [ExtConv, cv1, cv2]
 
 theorem Sequiv_lifting_congr {c1 c2: Ckt A B 0} (h: c1 ≃ c2):
     (c↑ c1) ≃ (c↑ c2) := by
@@ -68,10 +68,10 @@ theorem Sequiv_lifting_congr {c1 c2: Ckt A B 0} (h: c1 ≃ c2):
   · funext x; funext n; simp [denote, lifting]
     rw [d1]
   · constructor
-    · funext x; simp [Terminate]
+    · funext x; simp [IntConv]
       apply forall_congr'; intro n
       rw [t1]
-    · funext x; simp [Converge]
+    · funext x; simp [ExtConv]
       apply forall_congr'; intro n
       rw [cv1]
 
@@ -85,11 +85,11 @@ theorem Sequiv_loop_congr {c1 c2: Ckt (A ×ᵥ B) B ns} (h: c1 ≃ c2):
   constructor
   · exact d_loop
   · constructor
-    · funext x; simp [Terminate]
+    · funext x; simp [IntConv]
       rw [t1]
       have := congr_fun d_loop
       rw [this]
-    · funext x; simp [Converge]
+    · funext x; simp [ExtConv]
       rw [cv1]
       have := congr_fun d_loop
       rw [this]
@@ -105,10 +105,10 @@ theorem Sequiv_lifted_loop_congr {c1 c2: Ckt (A ×ᵥ B) B 1} (h: c1 ≃ c2):
   · exact d_loop
   · constructor
     · funext x
-      simp [Terminate]
+      simp [IntConv]
       rw [d_loop, t1]
     · funext x
-      simp [Converge]
+      simp [ExtConv]
       rw [d_loop, cv1]
 
 abbrev SemCkt (A B: VType) (ns: Bool) := Quotient (SetoidSequiv (A:=A) (B:=B) (ns:=ns))
@@ -165,7 +165,7 @@ theorem SemCkt_lifted_loop_lift (c: Ckt (A ×ᵥ B) B 1):
 
 -- incrementalize lemmas
 lemma Sequiv_incr_linear {ns} {a b} (c: Ckt a b ns)
-  (ht: ∀ x, Terminate c x)
+  (ht: ∀ x, IntConv c x)
   {f: VType_interp a -> VType_interp b}
   (hf: DenoteLiftedScalar c f)
   (hfl: ∀ x y, f (x + y) = f x + f y):
@@ -179,14 +179,14 @@ lemma Sequiv_incr_linear {ns} {a b} (c: Ckt a b ns)
     intro x y; funext t
     simp [hfl]
   · constructor
-    · simp [cΔ, Terminate]
+    · simp [cΔ, IntConv]
       funext x
       rw [eq_iff_iff]
       tauto
-    · have hc : ∀ x, Converge c x := fun x => Terminate_impl_Converge (ht x)
+    · have hc : ∀ x, ExtConv c x := fun x => IntConv_impl_ExtConv (ht x)
       funext x
       apply propext
-      simp [cΔ, Converge, hc]
+      simp [cΔ, ExtConv, hc]
 
 lemma Sequiv_incr_linear_node1 {ns}
   {a b} [BaseType a] [BaseType b]
@@ -209,7 +209,7 @@ def bilinear_opt {ns} {a b c} (x: Ckt (a ×ᵥ b) c ns) :=
   >>c cadd
 
 lemma Sequiv_incr_bilinear {ns} {A B C} (c: Ckt (A ×ᵥ B) C ns)
-  (ht: ∀ x, Terminate c x)
+  (ht: ∀ x, IntConv c x)
   {f: VType_interp A × VType_interp B -> VType_interp C}
   (hf: DenoteLiftedScalar c f)
   (hb1: ∀ x y z, f (x+y, z) = f (x, z) + f (y, z))
@@ -239,14 +239,14 @@ lemma Sequiv_incr_bilinear {ns} {A B C} (c: Ckt (A ×ᵥ B) C ns)
       · rw [hb2, hb1 (z:= I b i j)]
         abel
   · constructor
-    · simp [cΔ, bilinear_opt, Terminate]
+    · simp [cΔ, bilinear_opt, IntConv]
       funext x
       rw [eq_iff_iff]
       tauto
-    · have hc : ∀ x, Converge c x := fun x => Terminate_impl_Converge (ht x)
+    · have hc : ∀ x, ExtConv c x := fun x => IntConv_impl_ExtConv (ht x)
       funext x
       apply propext
-      simp [cΔ, bilinear_opt, Converge, hc]
+      simp [cΔ, bilinear_opt, ExtConv, hc]
 
 theorem Sequiv_incr_bilinear_node2 {ns} {A B C} [BaseType A] [BaseType B] [BaseType C]
   (bn: BinaryNode A B C)
@@ -258,35 +258,35 @@ theorem Sequiv_incr_bilinear_node2 {ns} {A B C} [BaseType A] [BaseType B] [BaseT
 theorem Sequiv_incr_id:
     cΔ cid ≃ (@Ckt.id ns A) := by
   apply Sequiv_incr_linear (f := id)
-  · intro; simp [Terminate]
+  · intro; simp [IntConv]
   · rfl
   · intros; rfl
 
 theorem Sequiv_incr_fst:
     cΔ c1st ≃ (@Ckt.fst ns A B) := by
   apply Sequiv_incr_linear (f := Prod.fst)
-  case ht => intro; simp [Terminate]
+  case ht => intro; simp [IntConv]
   case hf => rfl
   case hfl => intros; rfl
 
 theorem Sequiv_incr_snd:
     cΔ c2nd ≃ (@Ckt.snd ns A B) := by
   apply Sequiv_incr_linear (f := Prod.snd)
-  case ht => intro; simp [Terminate]
+  case ht => intro; simp [IntConv]
   case hf => rfl
   case hfl => intros; rfl
 
 theorem Sequiv_incr_add:
     cΔ cadd ≃ (@Ckt.add ns A) := by
   apply Sequiv_incr_linear (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 + x.2)
-  · intro; simp [Terminate]
+  · intro; simp [IntConv]
   · rfl
   · intros x y; simp; abel
 
 theorem Sequiv_incr_sub:
     cΔ csub ≃ (@Ckt.sub ns A) := by
   apply Sequiv_incr_linear (f := fun (x : VType_interp (A ×ᵥ A)) => x.1 - x.2)
-  · intro; simp [Terminate]
+  · intro; simp [IntConv]
   · rfl
   · intros x y; simp [sub_eq_add_neg]; abel
 
@@ -300,10 +300,10 @@ theorem Sequiv_incr_const x:
     · funext t; rcases t <;> simp
     · funext m n; rcases m <;> simp
   · constructor
-    · -- Terminate part
-      funext y; simp [Terminate, cΔ, cI, cD, denote]
-    · -- Converge part
-      funext y; simp [Converge, cΔ, cI, cD, denote]
+    · -- IntConv part
+      funext y; simp [IntConv, cΔ, cI, cD, denote]
+    · -- ExtConv part
+      funext y; simp [ExtConv, cΔ, cI, cD, denote]
 
 theorem Sequiv_incr_delay:
     cΔ cz⁻¹ ≃ (@Ckt.delay ns A) := by
@@ -312,8 +312,8 @@ theorem Sequiv_incr_delay:
     rcases ns <;>
     apply delay_incremental
   · constructor
-    · simp [cΔ, Terminate]
-    · simp [cΔ, Converge]
+    · simp [cΔ, IntConv]
+    · simp [cΔ, ExtConv]
 
 theorem Sequiv_incr_lifted_delay:
     cΔ c↑z⁻¹ ≃ (@Ckt.lifted_delay A) := by
@@ -323,8 +323,8 @@ theorem Sequiv_incr_lifted_delay:
     apply lifting_lti
     apply delay_linear
   · constructor
-    · simp [cΔ, Terminate]
-    · simp [cΔ, Converge]
+    · simp [cΔ, IntConv]
+    · simp [cΔ, ExtConv]
 
 theorem Sequiv_incr_seq (c1: Ckt A B ns) (c2: Ckt B C ns):
     cΔ (c1 >>c c2) ≃ (cΔ c1 >>c cΔ c2) := by
@@ -332,10 +332,10 @@ theorem Sequiv_incr_seq (c1: Ckt A B ns) (c2: Ckt B C ns):
   · funext x; simp [denote]
     rw [chain_incremental]; simp
   · constructor
-    · funext x; unfold cΔ cI cD; simp [Terminate]
+    · funext x; unfold cΔ cI cD; simp [IntConv]
       rw [<- cI, <- cI, <- cD]; intro _
       simp [denote]
-    · funext x; simp [cΔ, Converge, denote]
+    · funext x; simp [cΔ, ExtConv, denote]
 
 theorem Sequiv_incr_par (c1: Ckt A B ns) (c2: Ckt A C ns):
     cΔ (c1 &&c c2) ≃ (cΔ c1 &&c cΔ c2) := by
@@ -346,8 +346,8 @@ theorem Sequiv_incr_par (c1: Ckt A B ns) (c2: Ckt A C ns):
     · funext m n; simp [incremental, D, delay]
       rcases m <;> simp
   · constructor
-    · funext x; unfold cΔ cI cD; simp [Terminate]
-    · funext x; unfold cΔ cI cD; simp [Converge]
+    · funext x; unfold cΔ cI cD; simp [IntConv]
+    · funext x; unfold cΔ cI cD; simp [ExtConv]
 
 theorem Sequiv_incr_loop {c: Ckt (A ×ᵥ B) B ns}:
     cΔ (cloop c) ≃ cloop (cΔ c) := by
@@ -374,7 +374,7 @@ theorem Sequiv_incr_loop {c: Ckt (A ×ᵥ B) B ns}:
   unfold Sequiv; constructor
   · exact h_denote
   · constructor
-    · funext x; unfold cΔ cI cD; simp [Terminate]
+    · funext x; unfold cΔ cI cD; simp [IntConv]
       rw [<- cI, <- cI, <- cD, <- eq_iff_iff]
       congr
       simp_rw [cI_denote]
@@ -384,7 +384,7 @@ theorem Sequiv_incr_loop {c: Ckt (A ×ᵥ B) B ns}:
         rw [integral_timeInvariant]; simp [denote]
       · rw [integral_sprod2]; rw [sprod2_eq_iff]
         rw [integral_timeInvariant]; simp [denote]
-    · funext x; unfold cΔ cI cD; simp [Converge]
+    · funext x; unfold cΔ cI cD; simp [ExtConv]
       rw [<- cI, <- cI, <- cD, <- eq_iff_iff]
       congr
       simp_rw [cI_denote]
@@ -412,7 +412,7 @@ theorem Sequiv_incr_loop2 {c: Ckt (A ×ᵥ B) B 1}:
   unfold Sequiv; constructor
   · exact h_denote
   · constructor
-    · funext x; unfold cΔ cI cD; simp [Terminate]
+    · funext x; unfold cΔ cI cD; simp [IntConv]
       rw [<- cI, <- cI, <- cD, <- eq_iff_iff]
       congr
       simp_rw [cI_denote]
@@ -420,7 +420,7 @@ theorem Sequiv_incr_loop2 {c: Ckt (A ×ᵥ B) B 1}:
       rw [integral_sprod2]; rw [sprod2_eq_iff]; simp
       rw [integral_lift_comm]; simp [denote]
       apply delay_linear
-    · funext x; unfold cΔ cI cD; simp [Converge]
+    · funext x; unfold cΔ cI cD; simp [ExtConv]
       rw [<- cI, <- cI, <- cD, <- eq_iff_iff]
       congr
       simp_rw [cI_denote]
@@ -442,7 +442,7 @@ theorem Sequiv_I_bracket {c: Ckt A B 1}:
     rcases n <;> simp at * <;> tauto
   · constructor
     · funext x
-      simp [Terminate]
+      simp [IntConv]
       simp [denote, IntFP2Vec, IntFP2]
       rw [integral_lift_comm]; swap
       · apply delta_linear
@@ -456,13 +456,13 @@ theorem Sequiv_I_bracket {c: Ckt A B 1}:
       · apply IntFP2_mono; tauto; simp
       · apply ZeroAfterVec_mono; tauto; simp
     · funext x
-      simp [Converge]
+      simp [ExtConv]
       constructor <;> rintro ⟨hcv, ⟨b, hz⟩⟩
       · refine ⟨?_, ?_⟩
         · have hI : I (↑↑δ0 x) = ↑↑δ0 (I x) := by
             rw [integral_lift_comm]
             apply delta_linear
-          simpa [hI, Converge, denote] using hcv
+          simpa [hI, ExtConv, denote] using hcv
         · use b
           have hI : I (↑↑δ0 x) = ↑↑δ0 (I x) := by
             rw [integral_lift_comm]
@@ -472,7 +472,7 @@ theorem Sequiv_I_bracket {c: Ckt A B 1}:
         · have hI : I (↑↑δ0 x) = ↑↑δ0 (I x) := by
             rw [integral_lift_comm]
             apply delta_linear
-          simpa [hI, Converge, denote] using hcv
+          simpa [hI, ExtConv, denote] using hcv
         · use b
           have hI : I (↑↑δ0 x) = ↑↑δ0 (I x) := by
             rw [integral_lift_comm]
@@ -485,8 +485,8 @@ theorem Sequiv_lifting_delay:
   unfold Sequiv; constructor
   · funext x; simp [denote, lifting, liftO, delay]
   · constructor
-    · funext x; simp [Terminate]
-    · funext x; simp [Converge]
+    · funext x; simp [IntConv]
+    · funext x; simp [ExtConv]
 
 theorem Sequiv_lifting_seq {c1: Ckt A B 0} {c2: Ckt B C 0}:
     (c↑ (c1 >>c c2)) ≃ (c↑ c1) >>c (c↑ c2) := by
@@ -494,9 +494,9 @@ theorem Sequiv_lifting_seq {c1: Ckt A B 0} {c2: Ckt B C 0}:
   · funext x; simp [denote, lifting]
     rw [lifting_distributivity]; simp
   · constructor
-    · funext x; simp [Terminate, denote]
+    · funext x; simp [IntConv, denote]
       rw [forall_and_iff]
-    · funext x; simp [Converge, denote]
+    · funext x; simp [ExtConv, denote]
       rw [forall_and_iff]
 
 theorem Sequiv_lifting_par {c1: Ckt A B 0} {c2: Ckt A C 0}:
@@ -505,9 +505,9 @@ theorem Sequiv_lifting_par {c1: Ckt A B 0} {c2: Ckt A C 0}:
   · funext x; simp [denote, lifting, sprodO]
     funext m n; simp
   · constructor
-    · funext x; simp [Terminate]
+    · funext x; simp [IntConv]
       rw [forall_and_iff]
-    · funext x; simp [Converge]
+    · funext x; simp [ExtConv]
       rw [forall_and_iff]
 
 theorem Sequiv_lifting_loop {c: Ckt (A ×ᵥ B) B 0}:
@@ -523,12 +523,12 @@ theorem Sequiv_lifting_loop {c: Ckt (A ×ᵥ B) B 0}:
   unfold Sequiv; constructor
   · assumption
   · constructor
-    · funext x; simp [Terminate]
+    · funext x; simp [IntConv]
       rw [<- eq_denote]
       apply forall_congr'; intro i
       rw [show sprod (x i, z⁻¹ (denote (cloop c) (x i))) = sprod2 (x, ↑↑z⁻¹ (denote (c↑ (cloop c)) x)) i by
           simp [denote, lifting, liftO, sprod2, sprodO]; rfl]
-    · funext x; simp [Converge]
+    · funext x; simp [ExtConv]
       rw [<- eq_denote]
       apply forall_congr'; intro i
       rw [show sprod (x i, z⁻¹ (denote (cloop c) (x i))) = sprod2 (x, ↑↑z⁻¹ (denote (c↑ (cloop c)) x)) i by

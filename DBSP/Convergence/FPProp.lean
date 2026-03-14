@@ -1,7 +1,7 @@
 -- Propositions of ExtFP and IntFP
 import DBSP.Circuits.CktProp
 import DBSP.Circuits.LiftedScalar
-import DBSP.Termination.Spec
+import DBSP.Convergence.Spec
 open CktBasic
 
 -- Fixpoint proposition
@@ -860,49 +860,49 @@ lemma D_IntFP2Vec {x: SOVType 1 A}
 
 end FPProp2
 
-section TerminateProp
+section IntConvProp
 variable {A B C: VType} {ns: Bool}
 
 @[simp]
-lemma Terminate_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
-    Terminate cI x := by
-  simp [cI, Terminate]
+lemma IntConv_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
+    IntConv cI x := by
+  simp [cI, IntConv]
 
 @[simp]
-lemma Converge_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
-    Converge cI x := by
-  simp [cI, Converge]
+lemma ExtConv_cI {ns: Bool} {A: VType}{x: SOVType ns A}:
+    ExtConv cI x := by
+  simp [cI, ExtConv]
 
 @[simp]
-lemma Terminate_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
-    Terminate cD x := by
-  simp [cD, Terminate]
+lemma IntConv_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
+    IntConv cD x := by
+  simp [cD, IntConv]
 
 @[simp]
-lemma Converge_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
-    Converge cD x := by
-  simp [cD, Converge]
+lemma ExtConv_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
+    ExtConv cD x := by
+  simp [cD, ExtConv]
 
-lemma Terminate_cΔ {c: Ckt A B ns}
-  {x: SOVType ns A} (h: Terminate c x):
-    Terminate (cΔ c) (D x) := by
-  simp [cΔ, Terminate]; tauto
+lemma IntConv_cΔ {c: Ckt A B ns}
+  {x: SOVType ns A} (h: IntConv c x):
+    IntConv (cΔ c) (D x) := by
+  simp [cΔ, IntConv]; tauto
 
-lemma Terminate_bracket_alt {c: Ckt A B 1} {x: SOVType 0 A}
-  (h: Terminate (cbracket c) x):
-    Terminate c (↑↑δ0 x) ∧
+lemma IntConv_bracket_alt {c: Ckt A B 1} {x: SOVType 0 A}
+  (h: IntConv (cbracket c) x):
+    IntConv c (↑↑δ0 x) ∧
     ∀ i, ∃ b, IntFP2 c (↑↑δ0 x) i b ∧ ZeroAfter (denote c (↑↑δ0 x) i) b := by
-  simp [Terminate] at h
+  simp [IntConv] at h
   rcases h with ⟨h1, ⟨b, ⟨h2, h3⟩⟩⟩
   simp [h1]
   intro i; use (b i)
   tauto
 
-theorem Terminate_impl_Converge {c: Ckt A B ns}
-  {x: SOVType ns A} (h: Terminate c x):
-    Converge c x := by
+theorem IntConv_impl_ExtConv {c: Ckt A B ns}
+  {x: SOVType ns A} (h: IntConv c x):
+    ExtConv c x := by
   revert x
-  induction c <;> intro x h <;> simp [Terminate, Converge] at h ⊢
+  induction c <;> intro x h <;> simp [IntConv, ExtConv] at h ⊢
   case seq c1 c2 ih1 ih2 =>
     rcases h with ⟨h1, h2⟩
     exact ⟨ih1 h1, ih2 h2⟩
@@ -920,4 +920,4 @@ theorem Terminate_impl_Converge {c: Ckt A B ns}
     rcases h with ⟨h1, ⟨b, h2, h3⟩⟩
     exact ⟨ih h1, ⟨b, h3⟩⟩
 
-end TerminateProp
+end IntConvProp

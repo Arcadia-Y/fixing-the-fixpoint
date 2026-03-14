@@ -1,6 +1,6 @@
 import DBSP.Circuits.Circuits
-import DBSP.Termination.Spec
-import DBSP.Termination.FPProp
+import DBSP.Convergence.Spec
+import DBSP.Convergence.FPProp
 open Classical
 
 namespace CktBasic
@@ -22,7 +22,7 @@ def VType_space {a: VType} (x: VType_interp a) :=
 -- For a circuit `c`, `cost_f c` is a function maps an input of `c` to the cost of computing the output
 -- We assume that the underlying data is big enough such that
 -- we can count only the cost of computing and storing these data and ignore other bookkeeping cost
-noncomputable def cost_f {ns} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A) (ht: Terminate c x) : SOType ns ℕ :=
+noncomputable def cost_f {ns} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A) (ht: IntConv c x) : SOType ns ℕ :=
   match c with
   | Ckt.node1 f => liftO ns f.cost x
   | Ckt.node2 f => liftO ns f.cost x
@@ -48,7 +48,7 @@ noncomputable def cost_f {ns} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A) (ht
       cost_f c (sprod2 (x, ↑↑z⁻¹ o)) ht + liftO 1 VType_space o
   -- `bracket` maintains an internal accumulator, which can be regarded as an `cI` operator
   | Ckt.bracket c => fun i =>
-      let b := Nat.find ((Terminate_bracket_alt ht).2 i)
+      let b := Nat.find ((IntConv_bracket_alt ht).2 i)
       let o := denote c (↑↑δ0 x) i
       let c_cost: stream ℕ := cost_f c (↑↑δ0 x) ht.1 i
       -- This is essentially unfolding `cost_f cI o`

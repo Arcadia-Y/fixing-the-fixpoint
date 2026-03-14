@@ -1,7 +1,7 @@
 import DBSP.StreamTheory.Linear
 import DBSP.Logic.SProp
-import DBSP.Termination.Spec
-import DBSP.Termination.FPProp
+import DBSP.Convergence.Spec
+import DBSP.Convergence.FPProp
 open CktBasic
 
 -- Fixpoint Detector

@@ -4,12 +4,12 @@
 -- The definition of DBSP (well-formed) circuits and their denotational semantics.
 import DBSP.Circuits.Circuits
 
--- The termination specification and detection algorithm
-import DBSP.Termination.Spec
-import DBSP.Termination.FPDetector
+-- The convergence specification and detection algorithm
+import DBSP.Convergence.Spec
+import DBSP.Convergence.FPDetector
 
--- Termination-complete circuits, our core concept for arguing about the practicality of the new termination specification.
-import DBSP.Practical.TCCkt
+-- IntConv-complete circuits, our core concept for arguing about the practicality of the new convergence specification.
+import DBSP.Practical.IntConvComp
 -- Semantic equivalence and convergence equivalence between DBSP circuits
 import DBSP.Practical.Sequiv
 import DBSP.Practical.ConvEq

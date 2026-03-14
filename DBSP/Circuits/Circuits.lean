@@ -262,8 +262,8 @@ def DenoteType (ns: Bool) (a b: VType) :=
   Operator (OVType ns a) (OVType ns b)
 
 -- denotational semantics of circuits
--- the semantics is "partial" w.r.t. termination
--- `denote c x = y` denotes that if `c` terminates on input `x` then the output is `y`
+-- the semantics is "partial" w.r.t. convergence
+-- `denote c x = y` denotes that if `c` converges on input `x` then the output is `y`
 noncomputable def denote {a b: VType} {ns: Bool}: (Ckt a b ns) -> DenoteType ns a b
   | Ckt.node1 f => liftO ns f.f
   | Ckt.node2 f => liftO ns f.f

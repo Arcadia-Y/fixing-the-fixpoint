@@ -143,7 +143,7 @@ theorem HoareR_delay:
     HoareR (fun y => y = x) (@Ckt.delay ns A) (fun y => y = z⁻¹ x) (liftO ns VType_space x) := by
   constructor
   case post =>
-    intro y hy; subst hy; simp [Terminate, denote]
+    intro y hy; subst hy; simp [IntConv, denote]
   case cost =>
     intro y hy; subst hy; simp [cost_f]
 
@@ -151,7 +151,7 @@ theorem HoareR_id:
     HoareR (fun y => y = x) (@Ckt.id ns A) (fun y => y = x) 0 := by
   constructor
   case post =>
-    intro y hy; subst hy; simp [Terminate, denote]
+    intro y hy; subst hy; simp [IntConv, denote]
   case cost =>
     intro y hy; subst hy; simp [cost_f]
 
@@ -159,7 +159,7 @@ theorem HoareR_fst {x: SOVType ns (A×ᵥB)}:
     HoareR (fun y => y = x) (@Ckt.fst ns A B) (fun y => y = liftO ns Prod.fst x) 0 := by
   constructor
   case post =>
-    intro y hy; subst hy; simp [Terminate, denote]
+    intro y hy; subst hy; simp [IntConv, denote]
   case cost =>
     intro y hy; subst hy; simp [cost_f]
 
@@ -167,7 +167,7 @@ theorem HoareR_snd {x: SOVType ns (A×ᵥB)}:
     HoareR (fun y => y = x) (@Ckt.snd ns A B) (fun y => y = liftO ns Prod.snd x) 0 := by
   constructor
   case post =>
-    intro y hy; subst hy; simp [Terminate, denote]
+    intro y hy; subst hy; simp [IntConv, denote]
   case cost =>
     intro y hy; subst hy; simp [cost_f]
 
@@ -176,7 +176,7 @@ theorem HoareR_add {x1 x2: SOVType ns A}:
       (fun y => y = x1 + x2) (liftO ns add_cost (sprodO ns (x1, x2)))  := by
   constructor
   case post =>
-    intro y hy; subst hy; simp [Terminate, denote]
+    intro y hy; subst hy; simp [IntConv, denote]
     rcases ns <;> simp
     funext _ _; simp
   case cost =>
@@ -187,7 +187,7 @@ theorem HoareR_sub {x1 x2: SOVType ns A}:
       (fun y => y = x1 - x2) (liftO ns sub_cost (sprodO ns (x1, x2)))  := by
   constructor
   case post =>
-    intro y hy; subst hy; simp [Terminate, denote]
+    intro y hy; subst hy; simp [IntConv, denote]
     rcases ns <;> simp
     funext _; simp
     funext _ _; simp
@@ -318,7 +318,7 @@ theorem HoareR_lifted_delay (x: SOVType 1 A):
     HoareR (fun y => y = x) (c↑z⁻¹) (fun y => y = ↑↑z⁻¹ x) (↑↑↑↑VType_space x) := by
   constructor
   case post =>
-    intro y hy; subst hy; simp [Terminate, denote]
+    intro y hy; subst hy; simp [IntConv, denote]
   case cost =>
     intro y hy; subst hy; simp [cost_f]
 
@@ -328,8 +328,8 @@ theorem HoareR_lifted_I (x: SOVType 1 A):
   unfold lifted_I
   apply HoareR_lifted_loop
   case ht =>
-    rw [<- lifted_I]; simp [HoareT, Terminate]
-    unfold lifted_I; simp [Terminate]
+    rw [<- lifted_I]; simp [HoareT, IntConv]
+    unfold lifted_I; simp [IntConv]
   case hc =>
     intro a b ha hb; subst a b
     apply HoareR_conseq_post

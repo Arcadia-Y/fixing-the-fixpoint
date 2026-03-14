@@ -10,7 +10,7 @@ variable {A B C: VType} {ns: Bool}
 -- Non-step-indexed Hoare triple for total correctness
 def HoareT (P: SOVType ns A -> Prop)
     (c: Ckt A B ns) (Q: SOVType ns B -> Prop) :=
-  ∀ x, P x -> Terminate c x ∧ Q (denote c x)
+  ∀ x, P x -> IntConv c x ∧ Q (denote c x)
 
 variable {c: Ckt A B ns} {P: SOVType ns A -> Prop} {Q: SOVType ns B -> Prop}
 
@@ -46,7 +46,7 @@ theorem HoareT_conseq_post {Q': SOVType ns B -> Prop}
   · apply hq; assumption
 
 theorem HoareT_True:
-    HoareT P c (fun _ => True) <-> (∀ x, P x -> Terminate c x) := by
+    HoareT P c (fun _ => True) <-> (∀ x, P x -> IntConv c x) := by
   simp [HoareT]
 
 theorem Hoare_to_HoareT
@@ -95,11 +95,11 @@ theorem HoareT_incOpt {c1 c2: Ckt A B ns}
   intro x hx
   specialize h1 _ hx
   constructor
-  · simp [cΔ, Terminate] at h1
+  · simp [cΔ, IntConv] at h1
     rw [<- integral_derivative x]
     apply ht; tauto
   · rcases h1 with ⟨h1, h2⟩
-    apply Terminate_impl_Converge at h1
+    apply IntConv_impl_ExtConv at h1
     rw [<- (hc.denote x h1)]; tauto
 
 theorem HoareT_seq {c1: Ckt A B ns} {c2: Ckt B C ns}
@@ -110,7 +110,7 @@ theorem HoareT_seq {c1: Ckt A B ns} {c2: Ckt B C ns}
   rcases h1 x hx with ⟨t1, q1⟩
   rcases h2 (denote c1 x) q1 with ⟨t2, q2⟩
   constructor
-  · simp [Terminate]; constructor <;> assumption
+  · simp [IntConv]; constructor <;> assumption
   · simp [denote]; assumption
 
 theorem HoareT_par {c1: Ckt A B ns} {c2: Ckt A C ns}
@@ -121,7 +121,7 @@ theorem HoareT_par {c1: Ckt A B ns} {c2: Ckt A C ns}
   rcases h1 x hx with ⟨t1, q1⟩
   rcases h2 x hx with ⟨t2, q2⟩
   constructor
-  · simp [Terminate]; constructor <;> assumption
+  · simp [IntConv]; constructor <;> assumption
   · simp [denote, liftO, sprodO]; constructor <;> rcases ns <;> assumption
 
 theorem HoareT_conj {Q1: SOVType ns B -> Prop} {Q2: SOVType ns B -> Prop}
@@ -143,7 +143,7 @@ theorem HoareT_loop {c: Ckt (A ×ᵥ B) B ns}
   apply Hoare_to_HoareT_indexed
   assumption
   intro x hx
-  simp [Terminate]
+  simp [IntConv]
   apply Hoare_impl_forall at hh
   specialize ht x (denote (cloop c) x) (by tauto) (by tauto)
   specialize ht _ (by rfl); tauto
@@ -157,7 +157,7 @@ theorem HoareT_lifted_loop {c: Ckt (A ×ᵥ B) B 1}
   apply Hoare_to_HoareT_indexed
   assumption
   intro x hx
-  simp [Terminate]
+  simp [IntConv]
   apply Hoare_impl_forall at hh
   specialize ht x (denote (cloop2 c) x) (by tauto) (by tauto)
   specialize ht _ (by rfl); tauto
@@ -167,7 +167,7 @@ theorem HoareT_lifting {c: Ckt A B 0}
   (h: ∀ j, HoareT (P j) c (Q j)):
     HoareT (fun x => ∀ j, P j (x j)) (c↑ c) (fun y => ∀ j, Q j (y j)) := by
   intro x hx
-  simp [Terminate]
+  simp [IntConv]
   rw [<- forall_and_iff]
   intro j; simp [denote]
   apply h; tauto
@@ -194,7 +194,7 @@ theorem HoareT_bracket {c: Ckt A B 1}
   specialize hi (↑↑δ0 x) (by tauto)
   specialize hb (denote c (↑↑δ0 x)) (by tauto)
   constructor
-  · simp [Terminate, ht]
+  · simp [IntConv, ht]
     simp at hi
     use b
   · simp; use (denote c (↑↑δ0 x))
@@ -257,7 +257,7 @@ theorem HoareI1_Preserve1 {c1 c2: Ckt A B ns} {x0: SOVType ns A}
   intro x hx
   specialize h1 _ (by rfl)
   specialize ht _ (by rfl)
-  specialize h x0 b1 (Terminate_impl_Converge ht.1) h1.1
+  specialize h x0 b1 (IntConv_impl_ExtConv ht.1) h1.1
   rw [hx]; tauto
 
 theorem HoareI1_mono {b1': ℕ}
@@ -458,7 +458,7 @@ theorem HoareI2_Preserve2 {c1 c2: Ckt A B 1} {x0: SOVType 1 A}
   intro x hx
   specialize h1 _ (by rfl)
   specialize ht _ (by rfl)
-  specialize h x0 b2 (Terminate_impl_Converge ht.1) h1.1
+  specialize h x0 b2 (IntConv_impl_ExtConv ht.1) h1.1
   rw [hx]; tauto
 
 theorem HoareI2_True:

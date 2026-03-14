@@ -32,7 +32,7 @@ theorem pushLifting_Sequiv {a b} (c: Ckt a b 0):
     apply Quotient.sound
     change Sequiv _ _
     unfold Sequiv
-    simp [denote, Terminate, Converge, lifting, liftO]
+    simp [denote, IntConv, ExtConv, lifting, liftO]
     try rfl
   case delay =>
     simp only [pushLifting]
@@ -59,18 +59,18 @@ theorem pushLifting_Sequiv {a b} (c: Ckt a b 0):
     rw [ih rfl]
     rw [SemCkt_lifted_loop_lift]
 
-theorem pushLifting_Terminate_iff {a b} (c: Ckt a b 0) {x}:
-    Terminate (pushLifting c) x <-> (∀ i, Terminate c (x i)):= by
+theorem pushLifting_IntConv_iff {a b} (c: Ckt a b 0) {x}:
+    IntConv (pushLifting c) x <-> (∀ i, IntConv c (x i)):= by
   rw [<- (pushLifting_Sequiv c).2.1]
-  simp [Terminate]
+  simp [IntConv]
 
-theorem pushLifting_Converge_iff {a b}
+theorem pushLifting_ExtConv_iff {a b}
   (c: Ckt a b 0) {x}:
-    Converge (pushLifting c) x <-> ∀ i, Converge c (x i) := by
+    ExtConv (pushLifting c) x <-> ∀ i, ExtConv c (x i) := by
   revert c x
   apply Ckt_generalize_ns_0
   intro ns c hns
-  induction c <;> (try subst hns) <;> simp [pushLifting, Converge]
+  induction c <;> (try subst hns) <;> simp [pushLifting, ExtConv]
   case seq c1 c2 ih1 ih2 =>
     intro x
     simp at ih1 ih2

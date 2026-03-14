@@ -132,7 +132,7 @@ theorem HoareR_Zset_add {x1 x2: SOType ns Z[A]}:
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp [Terminate, denote]
+    rcases ns <;> simp [IntConv, denote]
     funext _ _; simp
   case cost =>
     intro y hy; subst hy
@@ -147,7 +147,7 @@ theorem HoareR_Zset_sub {x1 x2: SOType ns Z[A]}:
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp [Terminate, denote]
+    rcases ns <;> simp [IntConv, denote]
     funext _; simp
     funext _ _; simp
   case cost =>
@@ -163,7 +163,7 @@ theorem HoareR_Zset_distinct {x: SOType ns Z[A]}:
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp only [Terminate, denote, DistinctUnaryNode, liftO] <;> trivial
+    rcases ns <;> simp only [IntConv, denote, DistinctUnaryNode, liftO] <;> trivial
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, UnaryNode.cost, DistinctUnaryNode, liftO, Zset.size] <;> rfl
@@ -175,7 +175,7 @@ theorem HoareR_Zset_map (f: A → B) {x: SOType ns Z[A]}:
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp only [Terminate, denote, MapUnaryNode, liftO] <;> trivial
+    rcases ns <;> simp only [IntConv, denote, MapUnaryNode, liftO] <;> trivial
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, UnaryNode.cost, MapUnaryNode, liftO, Zset.size] <;> rfl
@@ -187,7 +187,7 @@ theorem HoareR_Zset_filter (p: A → Prop) [DecidablePred p] {x: SOType ns Z[A]}
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp only [Terminate, denote, FilterUnaryNode, liftO] <;> trivial
+    rcases ns <;> simp only [IntConv, denote, FilterUnaryNode, liftO] <;> trivial
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, UnaryNode.cost, FilterUnaryNode, liftO, Zset.size] <;> rfl
@@ -199,7 +199,7 @@ theorem HoareR_Zset_H {x1 x2: SOType ns Z[A]}:
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp only [Terminate, denote, HBinaryNode, Zset_H, liftO, sprodO, sprod, sprod2] <;> trivial
+    rcases ns <;> simp only [IntConv, denote, HBinaryNode, Zset_H, liftO, sprodO, sprod, sprod2] <;> trivial
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, BinaryNode.cost, HBinaryNode, liftO, Zset.size, sprodO, sprod, sprod2] <;> rfl
@@ -211,7 +211,7 @@ theorem HoareR_Zset_product {x1: SOType ns Z[A]} {x2: SOType ns Z[B]}:
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp only [Terminate, denote, ProductBinaryNode, Zset_product, liftO, sprodO, sprod, sprod2] <;> trivial
+    rcases ns <;> simp only [IntConv, denote, ProductBinaryNode, Zset_product, liftO, sprodO, sprod, sprod2] <;> trivial
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, BinaryNode.cost, ProductBinaryNode, liftO, Zset.size, sprodO, sprod, sprod2] <;> rfl
@@ -224,7 +224,7 @@ theorem HoareR_Zset_join (π1 : A → C) (π2 : B → C)
   constructor
   case post =>
     intro y hy; subst hy
-    rcases ns <;> simp only [Terminate, denote, EquiJoinBinaryNode, Zset_join, liftO, sprodO, sprod, sprod2] <;> trivial
+    rcases ns <;> simp only [IntConv, denote, EquiJoinBinaryNode, Zset_join, liftO, sprodO, sprod, sprod2] <;> trivial
   case cost =>
     intro y hy; subst hy
     rcases ns <;> simp only [cost_f, BinaryNode.cost, EquiJoinBinaryNode, liftO, Zset.size, sprodO, sprod, sprod2] <;> rfl
@@ -605,12 +605,12 @@ theorem HoareR_ZSB_add {x1 x2: SOType ns Z[A]} {b1 b2}
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO, sprodO, sprod]
+    · simp only [IntConv, denote, ZSB, liftO, sprodO, sprod]
       refine ⟨trivial, ?_⟩
       intro m; simp
       apply le_trans; apply Zset_size_add
       apply add_le_add <;> tauto
-    · simp only [Terminate, denote, ZSB, liftO, sprodO, sprod2]
+    · simp only [IntConv, denote, ZSB, liftO, sprodO, sprod2]
       refine ⟨trivial, ?_⟩
       intro i m; simp
       apply le_trans; apply Zset_size_add
@@ -630,12 +630,12 @@ theorem HoareR_ZSB_sub {x1 x2: SOType ns Z[A]} {b1 b2}
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO, sprodO, sprod]
+    · simp only [IntConv, denote, ZSB, liftO, sprodO, sprod]
       refine ⟨trivial, ?_⟩
       intro m; simp
       apply le_trans; apply Zset_size_sub
       apply add_le_add <;> tauto
-    · simp only [Terminate, denote, ZSB, liftO, sprodO, sprod2]
+    · simp only [IntConv, denote, ZSB, liftO, sprodO, sprod2]
       refine ⟨trivial, ?_⟩
       intro i m; simp
       apply le_trans; apply Zset_size_sub
@@ -655,11 +655,11 @@ theorem HoareR_ZSB_distinct {x: SOType ns Z[A]} {b}
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO, DistinctUnaryNode]
+    · simp only [IntConv, denote, ZSB, liftO, DistinctUnaryNode]
       refine ⟨trivial, ?_⟩
       intro m; simp
       apply le_trans; apply Zset_size_distinct; apply h
-    · simp only [Terminate, denote, ZSB, liftO, DistinctUnaryNode]
+    · simp only [IntConv, denote, ZSB, liftO, DistinctUnaryNode]
       refine ⟨trivial, ?_⟩
       intro i m; simp
       apply le_trans; apply Zset_size_distinct; apply h
@@ -676,11 +676,11 @@ theorem HoareR_ZSB_map {f: A → B} {x: SOType ns Z[A]} {b}
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO, MapUnaryNode]
+    · simp only [IntConv, denote, ZSB, liftO, MapUnaryNode]
       refine ⟨trivial, ?_⟩
       intro m; simp
       apply le_trans; apply Zset_size_map; apply h
-    · simp only [Terminate, denote, ZSB, liftO, MapUnaryNode]
+    · simp only [IntConv, denote, ZSB, liftO, MapUnaryNode]
       refine ⟨trivial, ?_⟩
       intro i m; simp
       apply le_trans; apply Zset_size_map; apply h
@@ -697,11 +697,11 @@ theorem HoareR_ZSB_filter {p: A → Prop} [DecidablePred p] {x: SOType ns Z[A]} 
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO, FilterUnaryNode]
+    · simp only [IntConv, denote, ZSB, liftO, FilterUnaryNode]
       refine ⟨trivial, ?_⟩
       intro m; simp
       apply le_trans; apply Zset_size_filter; apply h
-    · simp only [Terminate, denote, ZSB, liftO, FilterUnaryNode]
+    · simp only [IntConv, denote, ZSB, liftO, FilterUnaryNode]
       refine ⟨trivial, ?_⟩
       intro i m; simp
       apply le_trans; apply Zset_size_filter; apply h
@@ -718,12 +718,12 @@ theorem HoareR_ZSB_H {x1 x2: SOType ns Z[A]} {b1 b2}
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO, HBinaryNode, sprodO, sprod]
+    · simp only [IntConv, denote, ZSB, liftO, HBinaryNode, sprodO, sprod]
       refine ⟨trivial, ?_⟩
       intro m; simp
       apply le_trans; apply Zset_size_H
       apply add_le_add <;> tauto
-    · simp only [Terminate, denote, ZSB, liftO, HBinaryNode, sprodO, sprod2]
+    · simp only [IntConv, denote, ZSB, liftO, HBinaryNode, sprodO, sprod2]
       refine ⟨trivial, ?_⟩
       intro i m; simp
       apply le_trans; apply Zset_size_H
@@ -744,12 +744,12 @@ theorem HoareR_ZSB_join {π1 : A → C} {π2 : B → C}
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO, EquiJoinBinaryNode, sprodO, sprod]
+    · simp only [IntConv, denote, ZSB, liftO, EquiJoinBinaryNode, sprodO, sprod]
       refine ⟨trivial, ?_⟩
       intro m; simp
       apply le_trans; apply Zset_size_join
       apply mul_le_mul' <;> tauto
-    · simp only [Terminate, denote, ZSB, liftO, EquiJoinBinaryNode, sprodO, sprod2]
+    · simp only [IntConv, denote, ZSB, liftO, EquiJoinBinaryNode, sprodO, sprod2]
       refine ⟨trivial, ?_⟩
       intro i m; simp
       apply le_trans; apply Zset_size_join
@@ -768,13 +768,13 @@ theorem HoareR_ZSB_delay {x: SOType ns Z[A]} {b}
   case post =>
     intro y hy; subst hy
     rcases ns with _ | _
-    · simp only [Terminate, denote, ZSB, liftO]
+    · simp only [IntConv, denote, ZSB, liftO]
       refine ⟨trivial, ?_⟩
       rw [Zsize_delay]
       intro m; simp [delay]
       split_ifs; simp
       apply h
-    · simp only [Terminate, denote, ZSB, liftO]
+    · simp only [IntConv, denote, ZSB, liftO]
       refine ⟨trivial, ?_⟩
       intro i m; simp [delay]
       split_ifs; simp [Zset.size]
@@ -824,7 +824,7 @@ lemma HoareR_sid_delay {x: stream Z[A]} {b} {π: A → B}
   constructor
   case post =>
     intro y hy; subst hy
-    simp only [Terminate, denote, ZSB, liftO]
+    simp only [IntConv, denote, ZSB, liftO]
     refine ⟨trivial, ?_, ?_⟩
     · rw [Zsize_delay]
       intro m; simp [delay]
@@ -844,7 +844,7 @@ lemma HoareR_sid_filter {p: A → Prop} [DecidablePred p]
   constructor
   case post =>
     intro y hy; subst hy
-    simp only [Terminate, denote, ZSB, liftO, FilterUnaryNode]
+    simp only [IntConv, denote, ZSB, liftO, FilterUnaryNode]
     refine ⟨trivial, ?_, ?_⟩
     · intro m; simp
       apply le_trans; apply Zset_size_filter; apply h
@@ -862,7 +862,7 @@ lemma HoareR_sid_map
   constructor
   case post =>
     intro y hy; subst hy
-    simp only [Terminate, denote, ZSB, liftO, MapUnaryNode]
+    simp only [IntConv, denote, ZSB, liftO, MapUnaryNode]
     refine ⟨trivial, ?_, ?_⟩
     · intro m; simp
       apply le_trans; apply Zset_size_map; apply h
@@ -881,7 +881,7 @@ lemma HoareR_sid_join {π1 : A → C} {π2 : B → C} [DecidableEq B] [Decidable
   constructor
   case post =>
     intro y hy; subst hy
-    simp only [Terminate, denote, EquiJoinBinaryNode, sprodO, sprod]
+    simp only [IntConv, denote, EquiJoinBinaryNode, sprodO, sprod]
     refine ⟨trivial, ?_⟩
     intro m; simp only [liftO, Zset.size, Zset_join]
     apply le_trans

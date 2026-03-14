@@ -73,28 +73,28 @@ theorem RegularCkt_ExtFP1_IntFP1 {A B: VType}
   case datalog =>
     apply Datalog.query_ExtFP1_IntFP1; tauto
 
-theorem RegularCkt_Terminate {A B: VType}
+theorem RegularCkt_IntConv {A B: VType}
   {c: Ckt A B 0} (hr: RegularCkt c) (x: SOVType 0 A)
-  (hc: Converge c x):
-    Terminate c x := by
+  (hc: ExtConv c x):
+    IntConv c x := by
   induction hr
   case lifted_scalar =>
-    apply Terminate_LiftedScalar; tauto
+    apply IntConv_LiftedScalar; tauto
   case seq =>
-    simp [Terminate]
-    simp [Converge] at hc
+    simp [IntConv]
+    simp [ExtConv] at hc
     tauto
   case par =>
-    simp [Terminate]
-    simp [Converge] at hc
+    simp [IntConv]
+    simp [ExtConv] at hc
     tauto
   case whileloop c h ih =>
     have := RegularCkt_denote h
     have := RegularCkt_ExtFP1_IntFP1 h
-    have ht := WhileLoop.Converge_query_impl_c0 c (h:=hc)
-    apply WhileLoop.query_Terminate <;> tauto
+    have ht := WhileLoop.ExtConv_query_impl_c0 c (h:=hc)
+    apply WhileLoop.query_IntConv <;> tauto
   case datalog c h ih =>
     have := RegularCkt_denote h
     have := RegularCkt_ExtFP1_IntFP1 h
-    have ht := Datalog.Converge_query_impl_c0 c (h:=hc)
-    apply Datalog.query_Terminate <;> tauto
+    have ht := Datalog.ExtConv_query_impl_c0 c (h:=hc)
+    apply Datalog.query_IntConv <;> tauto
