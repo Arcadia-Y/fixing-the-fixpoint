@@ -425,7 +425,6 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
     exact {
       conv := by apply ConvEq_incOpt_bracket
                  exact ih.conv
-                 exact ih.preserve2,
       preserve1 := by apply Preserve1_bracket; exact ih.preserve1,
       preserve2 := by trivial,
       preserveIC := by

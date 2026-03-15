@@ -463,44 +463,6 @@ lemma Preserve1_bracket {c1 c2: Ckt A B 1} (hp: c1 ↝₁ c2):
   · simp [ExtConv] at ht; tauto
   · tauto
 
-lemma ConvEq_incOpt_bracket {c1 c2: Ckt A B 1}
-  (hr: (cΔ c1) ≋ c2) (hp: c1 ↝₂ c2):
-    cΔ (cbracket c1) ≋ (cbracket c2) := by
-  have _ := hp
-  apply ConvEq_trans
-  apply ConvEq_incr_bracket
-  refine ⟨?_, ?_⟩
-  · funext x
-    apply propext
-    constructor
-    · intro hx
-      simp [ExtConv] at hx ⊢
-      rcases hx with ⟨hcx, hb⟩
-      have hcy : ExtConv c2 (↑↑δ0 x) := by simpa [hr.conv] using hcx
-      have hd : denote (cΔ c1) (↑↑δ0 x) = denote c2 (↑↑δ0 x) := hr.denote _ hcx
-      rcases hb with ⟨b, hz⟩
-      have hz' : ZeroAfterVec (denote c2 (↑↑δ0 x)) b := by
-        rw [← hd]
-        exact hz
-      refine ⟨hcy, ⟨b, ?_⟩⟩
-      exact hz'
-    · intro hy
-      simp [ExtConv] at hy ⊢
-      rcases hy with ⟨hcy, hb⟩
-      have hcx : ExtConv (cΔ c1) (↑↑δ0 x) := by simpa [hr.conv] using hcy
-      have hd : denote c2 (↑↑δ0 x) = denote (cΔ c1) (↑↑δ0 x) := (hr.denote _ hcx).symm
-      rcases hb with ⟨b, hz⟩
-      have hz' : ZeroAfterVec (denote (cΔ c1) (↑↑δ0 x)) b := by
-        rw [← hd]
-        exact hz
-      refine ⟨hcx, ⟨b, ?_⟩⟩
-      exact hz'
-  · intro x hx
-    simp [ExtConv] at hx
-    rcases hx with ⟨hcx, _⟩
-    have hd : denote (cΔ c1) (↑↑δ0 x) = denote c2 (↑↑δ0 x) := hr.denote _ hcx
-    simpa [denote] using congrArg (fun s => (↑↑∫0) s) hd
-
 lemma PreserveIC_loop
   {c1 c2: Ckt (A ×ᵥ B) B ns}
   (hr: c1 ↝c c2)

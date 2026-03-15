@@ -290,6 +290,39 @@ lemma streamElim_D_comm
   rw [<- sub_eq_add_neg] at this
   rw [this, streamElim_neg, sub_eq_add_neg]
 
+lemma ConvEq_bracket_congr {c1 c2: Ckt A B 1}
+  (h: c1 ≋ c2):
+    cbracket c1  ≋ cbracket c2 := by
+  refine ⟨?_, ?_⟩
+  · funext x
+    apply propext
+    constructor
+    · intro hx
+      simp [ExtConv] at hx ⊢
+      rcases hx with ⟨hcx, hb⟩
+      have hcy : ExtConv c2 (↑↑δ0 x) := by simpa [h.conv] using hcx
+      have hd : denote c1 (↑↑δ0 x) = denote c2 (↑↑δ0 x) := h.denote _ hcx
+      rcases hb with ⟨b, hz⟩
+      have hz' : ZeroAfterVec (denote c2 (↑↑δ0 x)) b := by
+        rw [← hd]
+        exact hz
+      exact ⟨hcy, ⟨b, hz'⟩⟩
+    · intro hy
+      simp [ExtConv] at hy ⊢
+      rcases hy with ⟨hcy, hb⟩
+      have hcx : ExtConv c1 (↑↑δ0 x) := by simpa [ConvEq_symm h |>.conv] using hcy
+      have hd : denote c2 (↑↑δ0 x) = denote c1 (↑↑δ0 x) := (h.denote _ hcx).symm
+      rcases hb with ⟨b, hz⟩
+      have hz' : ZeroAfterVec (denote c1 (↑↑δ0 x)) b := by
+        rw [← hd]
+        exact hz
+      exact ⟨hcx, ⟨b, hz'⟩⟩
+  · intro x hx
+    simp [ExtConv] at hx
+    rcases hx with ⟨hcx, _⟩
+    have hd : denote c1 (↑↑δ0 x) = denote c2 (↑↑δ0 x) := h.denote _ hcx
+    simpa [denote] using congrArg (fun s => (↑↑∫0) s) hd
+
 lemma ConvEq_bracket_D {c: Ckt A B 1}:
     (cbracket c) >>c cD ≋ cbracket (c >>c cD) := by
   refine ⟨?_, ?_⟩
@@ -328,3 +361,40 @@ lemma ConvEq_incr_bracket {c: Ckt A B 1}:
     apply Sequiv_I_bracket
     rfl
   apply ConvEq_bracket_D
+
+lemma ConvEq_incOpt_bracket {c1 c2: Ckt A B 1}
+  (hr: (cΔ c1) ≋ c2):
+    cΔ (cbracket c1) ≋ (cbracket c2) := by
+  apply ConvEq_trans
+  apply ConvEq_incr_bracket
+  refine ⟨?_, ?_⟩
+  · funext x
+    apply propext
+    constructor
+    · intro hx
+      simp [ExtConv] at hx ⊢
+      rcases hx with ⟨hcx, hb⟩
+      have hcy : ExtConv c2 (↑↑δ0 x) := by simpa [hr.conv] using hcx
+      have hd : denote (cΔ c1) (↑↑δ0 x) = denote c2 (↑↑δ0 x) := hr.denote _ hcx
+      rcases hb with ⟨b, hz⟩
+      have hz' : ZeroAfterVec (denote c2 (↑↑δ0 x)) b := by
+        rw [← hd]
+        exact hz
+      refine ⟨hcy, ⟨b, ?_⟩⟩
+      exact hz'
+    · intro hy
+      simp [ExtConv] at hy ⊢
+      rcases hy with ⟨hcy, hb⟩
+      have hcx : ExtConv (cΔ c1) (↑↑δ0 x) := by simpa [hr.conv] using hcy
+      have hd : denote c2 (↑↑δ0 x) = denote (cΔ c1) (↑↑δ0 x) := (hr.denote _ hcx).symm
+      rcases hb with ⟨b, hz⟩
+      have hz' : ZeroAfterVec (denote (cΔ c1) (↑↑δ0 x)) b := by
+        rw [← hd]
+        exact hz
+      refine ⟨hcx, ⟨b, ?_⟩⟩
+      exact hz'
+  · intro x hx
+    simp [ExtConv] at hx
+    rcases hx with ⟨hcx, _⟩
+    have hd : denote (cΔ c1) (↑↑δ0 x) = denote c2 (↑↑δ0 x) := hr.denote _ hcx
+    simpa [denote] using congrArg (fun s => (↑↑∫0) s) hd

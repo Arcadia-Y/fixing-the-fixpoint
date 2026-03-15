@@ -578,3 +578,69 @@ theorem incOpt_ConvComplete {A B ns}
   apply h
   rw [incOpt_ExtConv_iff]
   simp [hc]
+
+-- Delta-of-deltas circuits are ConvComplete
+open Datalog in
+theorem delta_of_deltas_ConvComplete {A B}
+  (c0: Ckt (A ×ᵥ B) B 0) (hr: RegularCkt c0) [IncCkt c0]
+  (c1: Ckt (A ×ᵥ B) B 1) (hc1: pushLifting (incOpt c0) = c1) [h1ic: IncCkt c1]:
+    ConvComplete (opt_query c1) := by
+  unfold opt_query
+  have h1: ConvComplete (query c0) := by
+    apply RegularCkt_is_ConvComplete
+    apply RegularCkt.datalog; assumption
+  have h2: ConvComplete (cbracket (cloop2 (c1))) := by
+    unfold query body at h1
+    intro x hec
+    have heq1: (cloop2 c1) ≋ (c↑ (cΔ (cloop c0))) := by
+      symm
+      apply ConvEq_trans
+      apply ConvEq_lifting
+      apply incOpt_ConvEq
+      simp; apply ConvEq_trans
+      apply Sequiv_to_ConvEq
+      apply pushLifting_Sequiv
+      simp [pushLifting]
+      simp [hc1]; rfl
+    have: cbracket (cloop2 c1) ≋ cbracket c↑ (cΔ (cloop c0)) := by
+      apply ConvEq_bracket_congr
+      tauto
+    rw [this.conv] at hec
+    have hec' := hec
+    apply h1 at hec
+    rw [IntConv] at hec
+    rcases hec with ⟨hic, ⟨b, hif, hz⟩⟩
+    have hic : ∀ j, IntConv (((cloop (incOpt c0)))) (↑↑δ0 x j) := by
+      intro j
+      specialize hic j
+      rw [cΔ, IntConv] at hic; simp at hic
+      rw [IntConv] at hic; simp at hic
+      apply incOpt_IntConv at hic
+      simp at hic; tauto
+    rw [<- pushLifting_IntConv_iff] at hic
+    simp [pushLifting] at hic; rw [hc1] at hic
+    rw [IntConv]; simp [hic]
+    have hif: IntFP2Vec (c↑ ((cloop (incOpt c0)))) (↑↑δ0 x) (fun j => b j + 1) := by
+      intro j; simp
+      rw [IntFP2]; simp
+      rw [<- integral_derivative (δ0 (x j))]
+      apply incOpt_Preserve1 (cloop c0)
+      · simp [ExtConv] at hec'
+        have hec' := hec'.1 j
+        rw [cΔ, ExtConv, ExtConv] at hec'
+        simp [denote] at hec'; tauto
+      specialize hif j
+      simp [IntFP2] at hif
+      rw [cΔ,IntFP1, IntFP1] at hif
+      simp [denote] at hif; tauto
+    apply pushLifting_IntFP2Vec at hif
+    simp [pushLifting] at hif; rw [hc1] at hif
+    use (fun j => b j + 1); simp [hif]
+    rw [heq1.denote]
+    apply ZeroAfterVec_mono; tauto; omega
+    rw [heq1.conv]
+    rw [ExtConv] at hec'; tauto
+  have h3 : ConvComplete (incOpt (cbracket (cloop2 c1))) := by
+    apply incOpt_ConvComplete
+    exact h2
+  simpa [incOpt_bracket, incOpt_lifted_loop] using h3
