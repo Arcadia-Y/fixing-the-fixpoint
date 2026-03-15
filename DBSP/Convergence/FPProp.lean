@@ -883,6 +883,11 @@ lemma ExtConv_cD {ns: Bool} {A: VType}{x: SOVType ns A}:
     ExtConv cD x := by
   simp [cD, ExtConv]
 
+lemma ExtConv_cΔ {c: Ckt A B ns}
+  {x: SOVType ns A} (h: ExtConv c x):
+    ExtConv (cΔ c) (D x) := by
+  simp [cΔ, ExtConv]; tauto
+
 lemma IntConv_cΔ {c: Ckt A B ns}
   {x: SOVType ns A} (h: IntConv c x):
     IntConv (cΔ c) (D x) := by

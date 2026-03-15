@@ -18,36 +18,36 @@ def Preserve2 {A B} (c1 c2: Ckt A B 1) : Prop :=
 infix:30 " ↝₂ " => Preserve2
 
 -- D-shifted termination preservation relation used in incrementalization proofs.
-def PreserveT (c1 c2: Ckt A B ns): Prop :=
+def PreserveIC (c1 c2: Ckt A B ns): Prop :=
   ∀ x, IntConv c1 x -> IntConv c2 (D x)
 
-infix:30 " ⊑T " => PreserveT
+infix:30 " ↝c " => PreserveIC
 
-lemma PreserveT_incr (c: Ckt A B ns): c ⊑T cΔ c := by
+lemma PreserveIC_incr (c: Ckt A B ns): c ↝c cΔ c := by
   intro x hx
   exact IntConv_cΔ hx
 
-lemma Sequiv_to_PreserveT {c1 c2: Ckt A B ns}:
-  cΔ c1 ≃ c2 -> c1 ⊑T c2 := by
+lemma Sequiv_to_PreserveIC {c1 c2: Ckt A B ns}:
+  cΔ c1 ≃ c2 -> c1 ↝c c2 := by
   intro h
   rcases h with ⟨_, ht, _⟩
   intro x hx
   have hxΔ : IntConv (cΔ c1) (D x) := IntConv_cΔ hx
   simpa [ht] using hxΔ
 
-lemma PreserveT_par
+lemma PreserveIC_par
   {c1 c2: Ckt A B ns} {d1 d2: Ckt A C ns}
-  (hc: c1 ⊑T c2) (hd: d1 ⊑T d2):
-  (c1 &&c d1) ⊑T (c2 &&c d2) := by
+  (hc: c1 ↝c c2) (hd: d1 ↝c d2):
+  (c1 &&c d1) ↝c (c2 &&c d2) := by
   intro x hx
   simp [IntConv] at hx ⊢
   rcases hx with ⟨hcx, hdx⟩
   exact ⟨hc x hcx, hd x hdx⟩
 
-lemma PreserveT_seq
+lemma PreserveIC_seq
   {c1 c2: Ckt A B ns} {d1 d2: Ckt B C ns}
-  (hc: c1 ⊑T c2) (hd: d1 ⊑T d2) (heq: cΔ c1 ≋ c2):
-  (c1 >>c d1) ⊑T (c2 >>c d2) := by
+  (hc: c1 ↝c c2) (hd: d1 ↝c d2) (heq: cΔ c1 ≋ c2):
+  (c1 >>c d1) ↝c (c2 >>c d2) := by
   intro x hx
   simp [IntConv] at hx ⊢
   rcases hx with ⟨htc1, htd1⟩
@@ -501,11 +501,11 @@ lemma ConvEq_incOpt_bracket {c1 c2: Ckt A B 1}
     have hd : denote (cΔ c1) (↑↑δ0 x) = denote c2 (↑↑δ0 x) := hr.denote _ hcx
     simpa [denote] using congrArg (fun s => (↑↑∫0) s) hd
 
-lemma PreserveT_loop
+lemma PreserveIC_loop
   {c1 c2: Ckt (A ×ᵥ B) B ns}
-  (hr: c1 ⊑T c2)
+  (hr: c1 ↝c c2)
   (hc: cΔ (cloop c1) ≋ (cloop c2)):
-  cloop c1 ⊑T cloop c2 := by
+  cloop c1 ↝c cloop c2 := by
   intro x hx
   set inp := sprodO ns (x, z⁻¹ (denote (cloop c1) x))
   have hinner : IntConv c1 inp := by
@@ -531,11 +531,11 @@ lemma PreserveT_loop
         simp [hden]
   simpa [IntConv, hDinp] using href
 
-lemma PreserveT_lifted_loop
+lemma PreserveIC_lifted_loop
   {c1 c2: Ckt (A ×ᵥ B) B 1}
-  (hr: c1 ⊑T c2)
+  (hr: c1 ↝c c2)
   (hc: cΔ (cloop2 c1) ≋ (cloop2 c2)):
-  cloop2 c1 ⊑T cloop2 c2 := by
+  cloop2 c1 ↝c cloop2 c2 := by
   intro x hx
   set inp := sprod2 (x, ↑↑z⁻¹ (denote (cloop2 c1) x))
   have hinner : IntConv c1 inp := by
@@ -560,12 +560,12 @@ lemma PreserveT_lifted_loop
         simp [hden]
   simpa [IntConv, hDinp] using href
 
-lemma PreserveT_bracket
+lemma PreserveIC_bracket
   {c1 c2: Ckt A B 1}
-  (hr: c1 ⊑T c2)
+  (hr: c1 ↝c c2)
   (hc: cΔ c1 ≋ c2)
   (hp: c1 ↝₂ c2):
-  cbracket c1 ⊑T cbracket c2 := by
+  cbracket c1 ↝c cbracket c2 := by
   intro x hx
   simp [IntConv] at hx ⊢
   rcases hx with ⟨htc, ⟨b, hif, hz⟩⟩

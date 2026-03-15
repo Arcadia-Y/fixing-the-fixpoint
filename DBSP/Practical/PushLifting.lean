@@ -30,10 +30,7 @@ theorem pushLifting_Sequiv {a b} (c: Ckt a b 0):
   case node1 | node2 | const | id | fst | snd | add | sub  =>
     simp only [pushLifting]
     apply Quotient.sound
-    change Sequiv _ _
-    unfold Sequiv
-    simp [denote, IntConv, ExtConv, lifting, liftO]
-    try rfl
+    constructor <;> simp [denote, IntConv, ExtConv, lifting, liftO]
   case delay =>
     simp only [pushLifting]
     rw [<- SemCkt_lifting_lift, SemCkt_lifting_delay]
@@ -61,7 +58,7 @@ theorem pushLifting_Sequiv {a b} (c: Ckt a b 0):
 
 theorem pushLifting_IntConv_iff {a b} (c: Ckt a b 0) {x}:
     IntConv (pushLifting c) x <-> (∀ i, IntConv c (x i)):= by
-  rw [<- (pushLifting_Sequiv c).2.1]
+  rw [<- (pushLifting_Sequiv c).IntConv]
   simp [IntConv]
 
 theorem pushLifting_ExtConv_iff {a b}
@@ -138,6 +135,45 @@ theorem pushLifting_ExtConv_iff {a b}
         funext j
         simp [denote]
       simpa [hEq] using h i
+
+theorem pushLifting_ExtFP1_IntFP1 {a b} (c: Ckt a b 0) {x n}
+  (h: ExtFP1 (pushLifting c) x n ):
+    IntFP1 (pushLifting c) x n := by
+  revert c; apply Ckt_generalize_ns_0
+  intro ns c hns; induction c
+  all_goals
+    try subst hns
+    simp [pushLifting, IntFP1]
+  case seq c1 c2 ih1 ih2 =>
+    simp at ih1 ih2
+    rintro ⟨hf1, hf2⟩; simp [denote] at hf2
+    have hf3 :=  FixAfter1_lifting (f:= denote c1) hf1
+    rw [<- denote, (pushLifting_Sequiv c1).denote] at hf3
+    constructor
+    · apply ih1; tauto
+    · apply ih2; tauto
+  case par c1 c2 ih1 ih2 =>
+    simp at ih1 ih2
+    intro hf
+    have hpar := ExtFP1_par (pushLifting c1) (pushLifting c2) x n hf
+    rcases hpar with ⟨hf1, hf2⟩
+    constructor
+    · exact ih1 hf1
+    · exact ih2 hf2
+  case loop c ih =>
+    simp at ih
+    intro hf
+    apply ih
+    simp [ExtFP1] at hf ⊢
+    rcases hf with ⟨hfixx, hfixo⟩
+    constructor
+    · rw [FixAfter1_sprod2]
+      constructor
+      · exact hfixx
+      · apply FixAfter1_lifting (f := fun s => z⁻¹ s)
+        exact hfixo
+    · rw [<- lifted_loop_unfold (c := pushLifting c) (x := x)]
+      exact hfixo
 
 theorem pushLifting_IntFP2 {a b} (c: Ckt a b 0)
   {x m n} (h: IntFP1 c (x m) n):

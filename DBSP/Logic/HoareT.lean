@@ -85,11 +85,11 @@ theorem HoareT_Sequiv_cong {c1 c2: Ckt A B ns}
   unfold HoareT
   apply forall_congr'; intro x
   apply imp_congr_right; intro hP
-  unfold Sequiv at h; rcases h with ⟨hd, ht, _⟩
+  rcases h with ⟨hd, ht, _⟩
   rw [hd, ht]
 
 theorem HoareT_incOpt {c1 c2: Ckt A B ns}
-  (hc: (cΔ c1) ≋ c2) (ht: c1 ⊑T c2) (h1: HoareT P (cΔ c1) Q):
+  (hc: (cΔ c1) ≋ c2) (ht: c1 ↝c c2) (h1: HoareT P (cΔ c1) Q):
     HoareT P c2 Q := by
   unfold HoareT at h1 ⊢
   intro x hx

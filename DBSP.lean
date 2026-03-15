@@ -8,8 +8,8 @@ import DBSP.Circuits.Circuits
 import DBSP.Convergence.Spec
 import DBSP.Convergence.FPDetector
 
--- IntConv-complete circuits, our core concept for arguing about the practicality of the new convergence specification.
-import DBSP.Practical.IntConvComp
+-- Convergence-complete circuits and fixpoint-complete circuits, our core concept for arguing about the practicality of the new convergence specification.
+import DBSP.Practical.ConvComplete
 -- Semantic equivalence and convergence equivalence between DBSP circuits
 import DBSP.Practical.Sequiv
 import DBSP.Practical.ConvEq

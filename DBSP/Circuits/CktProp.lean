@@ -11,6 +11,14 @@ lemma Ckt_generalize_ns_0 {A B: VType} {P: Ckt A B 0 -> Prop}
     ∀ (c: Ckt A B 0), P c := by
   intros c; specialize h 0 c (by tauto); apply h
 
+lemma Ckt_generalize_ns_0' {A B: VType} {P: Ckt A B 0 -> Prop}
+  (h: ∀ ns (c: Ckt A B ns), ns = 0 ->
+    match ns with
+    | true => True
+    | false => P c):
+    ∀ (c: Ckt A B 0), P c := by
+  intros c; specialize h 0 c (by tauto); apply h
+
 lemma Ckt_generalize_ns_1 {A B: VType} {P: Ckt A B 1 -> Prop}
   (h: ∀ ns (c: Ckt A B ns), ns = 1 ->
     match ns with

@@ -86,7 +86,7 @@ theorem Hoare_conseq_pre'
 theorem Hoare_Sequiv_cong {c1 c2: Ckt A B ns}
   (h: c1 ≃ c2):
     Hoare P c1 Q <-> Hoare P c2 Q:= by
-  unfold Sequiv at h; rcases h with ⟨h1, h2⟩
+  rcases h with ⟨h1, _, _⟩
   unfold Hoare; simp_rw [h1]
 
 theorem Hoare_seq {c1: Ckt A B ns} {c2: Ckt B C ns}

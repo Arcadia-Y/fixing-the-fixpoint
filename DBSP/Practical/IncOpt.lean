@@ -11,7 +11,7 @@ structure SoundIncr {a b ns} (c1 c2: Ckt a b ns) where
   preserve2: match ns with
     | false => True
     | true => c1 ↝₂ c2
-  preserveT: c1 ⊑T c2
+  preserveIC: c1 ↝c c2
 
 -- incrementalizable unary nodes
 class IncUnary {A B} [BaseType A] [BaseType B] (f :@UnaryNode A B _ _) where
@@ -305,7 +305,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                       try apply Preserve2_snd
                       try apply Preserve2_add
                       try apply Preserve2_sub,
-      preserveT := by
+      preserveIC := by
         intro x hx
         simp [IntConv]
     }
@@ -314,7 +314,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
       conv := by apply Sequiv_to_ConvEq; apply Sequiv_incr_const,
       preserve1 := by apply Preserve1_const,
       preserve2 := by cases ns <;> simp; apply Preserve2_const,
-      preserveT := by
+      preserveIC := by
         intro x hx
         simp [IntConv]
     }
@@ -334,10 +334,10 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                       exact ih1.preserve2
                       exact ih2.preserve2
                       exact ih1.conv,
-      preserveT := by
-        apply PreserveT_seq
-        · exact ih1.preserveT
-        · exact ih2.preserveT
+      preserveIC := by
+        apply PreserveIC_seq
+        · exact ih1.preserveIC
+        · exact ih2.preserveIC
         · exact ih1.conv
     }
   case par ih1 ih2 =>
@@ -354,17 +354,17 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                       apply Preserve2_par
                       exact ih1.preserve2
                       exact ih2.preserve2,
-      preserveT := by
-        apply PreserveT_par
-        · exact ih1.preserveT
-        · exact ih2.preserveT
+      preserveIC := by
+        apply PreserveIC_par
+        · exact ih1.preserveIC
+        · exact ih2.preserveIC
     }
   case delay =>
     exact {
       conv := by apply Sequiv_to_ConvEq; apply Sequiv_incr_delay,
       preserve1 := by apply Preserve1_delay,
       preserve2 := by cases ns <;> simp; apply Preserve2_delay,
-      preserveT := by
+      preserveIC := by
         intro x hx
         simp [IntConv]
     }
@@ -373,7 +373,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
       conv := by apply Sequiv_to_ConvEq; apply Sequiv_incr_lifted_delay,
       preserve1 := by apply Preserve1_lifted_delay,
       preserve2 := by apply Preserve2_lifted_delay,
-      preserveT := by
+      preserveIC := by
         intro x hx
         simp [IntConv]
     }
@@ -382,7 +382,7 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
       conv := by rfl,
       preserve1 := by apply Preserve1_incr,
       preserve2 := by apply Preserve2_incr,
-      preserveT := by
+      preserveIC := by
         intro x hx
         exact IntConv_cΔ hx
     }
@@ -398,9 +398,9 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                       exact ih.preserve2
                       apply ConvEq_incr_loop
                       exact ih.conv,
-      preserveT := by
-        apply PreserveT_loop
-        · exact ih.preserveT
+      preserveIC := by
+        apply PreserveIC_loop
+        · exact ih.preserveIC
         · apply ConvEq_incr_loop
           exact ih.conv
     }
@@ -415,9 +415,9 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                       exact ih.preserve2
                       apply ConvEq_incr_loop2
                       exact ih.conv,
-      preserveT := by
-        apply PreserveT_lifted_loop
-        · exact ih.preserveT
+      preserveIC := by
+        apply PreserveIC_lifted_loop
+        · exact ih.preserveIC
         · apply ConvEq_incr_loop2
           exact ih.conv
     }
@@ -428,9 +428,9 @@ lemma incOpt_induction {ns A B} {c: Ckt A B ns} (e: IncEvidence c):
                  exact ih.preserve2,
       preserve1 := by apply Preserve1_bracket; exact ih.preserve1,
       preserve2 := by trivial,
-      preserveT := by
-        apply PreserveT_bracket
-        · exact ih.preserveT
+      preserveIC := by
+        apply PreserveIC_bracket
+        · exact ih.preserveIC
         · exact ih.conv
         · exact ih.preserve2
     }
@@ -457,10 +457,10 @@ theorem incOpt_Preserve2 {A B} (c: Ckt A B 1) [hic: IncCkt c] :
   have h := IncrementalizeProof.incOpt_correctness c
   exact h.preserve2
 
-theorem incOpt_PreserveT {ns A B} (c: Ckt A B ns) [hic: IncCkt c] :
-  c ⊑T (incOpt c) := by
+theorem incOpt_PreserveIC {ns A B} (c: Ckt A B ns) [hic: IncCkt c] :
+  c ↝c (incOpt c) := by
   have h := IncrementalizeProof.incOpt_correctness c
-  exact h.preserveT
+  exact h.preserveIC
 
 @[simp]
 lemma incOpt_I {ns A}:
@@ -482,7 +482,7 @@ theorem incOpt_IntConv {ns A B}
   (c: Ckt A B ns) [hic: IncCkt c]
   {x} (ht: IntConv c x):
     IntConv (incOpt c) (D x) := by
-  exact incOpt_PreserveT c x ht
+  exact incOpt_PreserveIC c x ht
 
 theorem incOpt_ExtConv_iff {ns a b}
   (c: Ckt a b ns) [hic: IncCkt c] {x}:

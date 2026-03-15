@@ -8,7 +8,7 @@ import DBSP.Practical.IncOpt
 import DBSP.Practical.PushLifting
 open CktBasic
 
--- We first prove some lemmas for LiftedScalar circuits
+-- We first prove some FPComplete lemmas for LiftedScalar circuits
 section Ext2Int
 variable {ns: Bool} {A B C: VType}
 
@@ -50,6 +50,60 @@ lemma LiftedScalar_ExtFP1_IntFP1
     · apply ih2; simp [ExtFP1]; tauto
   all_goals
     try (simp [IntFP1]; assumption)
+
+lemma LiftedScalar_ExtFP2_IntFP2
+  (c: Ckt A B 1) (hc: LiftedScalar c)
+  x b (he: ExtFP2Vec c x b):
+    IntFP2Vec c x b := by
+  revert x b c
+  apply Ckt_generalize_ns_1
+  suffices h:
+      ∀ (ns : Bool) (c : Ckt A B ns),
+        ns = 1 -> LiftedScalar c ->
+          match ns, c with
+          | false, c => True
+          | true, c => ∀ (x : SOVType 1 A) (b : stream ℕ), ExtFP2Vec c x b → IntFP2Vec c x b
+  · intro ns c hns; subst hns; simp
+    intro hl
+    specialize h 1 c rfl hl
+    simp at h; tauto
+  intro ns c hns hc; induction hc <;> (try subst hns) <;> simp
+  case seq c1 c2 h1 h2 ih1 ih2 =>
+    simp at ih1 ih2
+    intro x b h m; simp [IntFP2]
+    constructor
+    · apply ih1
+      intro i
+      rw [LiftedScalar_ExtFP2 c1 x h1]
+      exact (h i).1
+    · apply ih2
+      intro i
+      rw [LiftedScalar_ExtFP2 c2 (denote c1 x) h2]
+      have hci : ExtFP2 c1 x i (b i) := by
+        rw [LiftedScalar_ExtFP2 c1 x h1]
+        exact (h i).1
+      exact hci.2
+  case par c1 c2 h1 h2 ih1 ih2 =>
+    simp at ih1 ih2
+    intro x b h m; simp [IntFP2]
+    constructor
+    · apply ih1
+      intro i
+      rw [LiftedScalar_ExtFP2 c1 x h1]
+      exact (h i).1
+    · apply ih2
+      intro i
+      rw [LiftedScalar_ExtFP2 c2 x h2]
+      exact (h i).1
+  case lifting c ih =>
+    simp [ExtFP2Vec, IntFP2Vec, IntFP2]
+    intro x b h i
+    apply LiftedScalar_ExtFP1_IntFP1; tauto
+    specialize h i
+    simp [ExtFP2, FixAfter2, denote] at h; simp [ExtFP1]
+    tauto
+  all_goals
+    simp [IntFP2Vec, ExtFP2Vec, IntFP2]
 
 @[simp]
 theorem IntConv_LiftedScalar
@@ -639,7 +693,7 @@ lemma opt_body_HoareT:
     (fun y => y = bodyOutput R iv) := by
   apply HoareT_incOpt (h1:= by apply body_HoareT <;> tauto)
   apply incOpt_ConvEq
-  apply incOpt_PreserveT
+  apply incOpt_PreserveIC
 
 include hf ht hei in
 lemma opt_body_HoareI1 {n: ℕ}
@@ -679,7 +733,7 @@ theorem opt_lifted_body_HoareT :
       (fun y => y = D (↑↑(bodyOutput R) is)) := by
   apply HoareT_incOpt
   · apply incOpt_ConvEq (c:= cloop2 c1)
-  · apply incOpt_PreserveT
+  · apply incOpt_PreserveIC
   rw [<- D_lifting_delta_comm]
   apply HoareT_Δ
   subst hc1
