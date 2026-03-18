@@ -903,6 +903,18 @@ lemma IntConv_bracket_alt {c: Ckt A B 1} {x: SOVType 0 A}
   intro i; use (b i)
   tauto
 
+lemma IntConv_iff_IntConv' {c: Ckt A B ns} {x: SOVType ns A}:
+    IntConv c x <-> IntConv' c x := by
+  revert x
+  induction c <;> intro x <;> simp [IntConv, IntConv']
+  intro h; constructor <;> rintro ⟨b, h1, h2⟩ <;>
+  use b <;> simp [h1] <;> apply IntFP2Vec_impl_ExtFP2Vec at h1
+  · intro i; apply h2; simp
+  · intro i j h
+    rw [<- h2 i]
+    specialize h1 i
+    apply h1.2; omega
+
 theorem IntConv_impl_ExtConv {c: Ckt A B ns}
   {x: SOVType ns A} (h: IntConv c x):
     ExtConv c x := by

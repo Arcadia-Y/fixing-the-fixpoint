@@ -105,7 +105,7 @@ def IntFP2Vec (c: Ckt A B 1) (x: SOVType 1 A) (b: stream ℕ): Prop :=
 def ZeroAfterVec {A: Type} [Zero A] (x:  stream (stream A)) (b: stream ℕ): Prop :=
   ∀ i, ZeroAfter (x i) (b i)
 
--- Mathematical ExtConvnce Definition
+-- External Convergence Specification
 -- `ExtConv c x` means that `[|c|](x)` mathematically converges, i.e. the input to any `∫` node is zero after some point.
 def ExtConv {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
   match c with
@@ -122,7 +122,7 @@ def ExtConv {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
   -- all other primitive nodes are converging
   | _ => true
 
--- Internal Convergence Specification
+-- Internal Convergence Criterion
 -- `IntConv c x` means that circuit `c` will always converge internally when computing any finite prefix of the output on input `x`
 def IntConv {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
   match c with
@@ -130,6 +130,22 @@ def IntConv {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
   | Ckt.bracket c =>
       IntConv c (↑↑δ0 x) ∧
       ∃ b, IntFP2Vec c (↑↑δ0 x) b ∧ ZeroAfterVec (denote c (↑↑δ0 x)) b
+  -- other structural constructs
+  | Ckt.seq c1 c2 => IntConv c1 x ∧ IntConv c2 (denote c1 x)
+  | Ckt.par c1 c2 => IntConv c1 x ∧ IntConv c2 x
+  | Ckt.lifting c => ∀ j, IntConv c (x j)
+  | Ckt.loop c =>  IntConv c (sprodO ns (x, z⁻¹ (denote (Ckt.loop c) x)))
+  | Ckt.lifted_loop c => IntConv c (sprod2 (x, ↑↑z⁻¹ (denote (Ckt.lifted_loop c) x)))
+  -- all other primitive nodes are terminating
+  | _ => true
+
+-- Alternative Internal Convergence Criterion used in the paper
+def IntConv' {ns: Bool} {A B: VType} (c: Ckt A B ns) (x: SOVType ns A): Prop :=
+  match c with
+  -- the core definition
+  | Ckt.bracket c =>
+      IntConv c (↑↑δ0 x) ∧
+      ∃ b, IntFP2Vec c (↑↑δ0 x) b ∧  ∀ i, (denote c (↑↑δ0 x)) i (b i) = 0
   -- other structural constructs
   | Ckt.seq c1 c2 => IntConv c1 x ∧ IntConv c2 (denote c1 x)
   | Ckt.par c1 c2 => IntConv c1 x ∧ IntConv c2 x
