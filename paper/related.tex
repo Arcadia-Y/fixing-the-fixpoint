@@ -18,14 +18,10 @@ More specifically, prior work has studied incremental recursive and fixpoint com
 % Liu and Teitelbaum \cite{liu1995systematic} took these ideas a step further by identifying systematic methods to transform functional programs into incremental functional programs.
 % A key step in their process was to discover sub-computations whose re-evaluation could be avoided by retrieving their values from cached results.
 % Further developments along these lines were presented in Liu's book \cite{liu2013systematic}.
-% \twr{We could probably eliminate this paragraph.}
-
 % Persistent data structures \cite{driscoll1986making} provide an intriguing platform for incremental computing:
 % with so-called \emph{full persistence}, one can both read and update any prior version of the computational state.
 % This property is precisely what incremental computation needs: access to previous versions of the data without the cost of copying the whole structure.
 % Okasaki \cite{Book:Okasaki99} showed that in a purely functional setting, persistence plus a careful treatment of lazy evaluation and memoization gives incremental computation for free.
-% \twr{We could probably eliminate this paragraph.}
-
 
 
 \paragraph{Feldera implementation of DBSP}

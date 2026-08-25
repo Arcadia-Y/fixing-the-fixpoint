@@ -101,9 +101,6 @@ repeatedly apply $F_E$
 to the accumulated result until a fixpoint is reached, as shown in Fig.~\ref{fig:ivm-and-fixpoint}(b)
 (often called \emph{Kleene iteration}).
 
-% \ycx{I know this paragraph is meant to show how challenging incremental recursive computation is, but I don't think it gets to the point: (i) this example is a bit hard for readers to understand; (ii) in no case will we apply $F_{E'}$ directly to $R^*_{\emph{old}}$ in incremental computation (even if it is a non-recursive query): the non-trivial part is to find the appropriate $F_{\Delta E'}$ to leverage the old results. }
-% \twr{I think it is fine (and appropriate).  It shows that even an apparently simple strategy can be disastrously incorrect.  I added a transition to the next paragraph along the lines of your last sentence.}
-
 % It is challenging, however, to combine incremental computation with recursion:
 % for instance, if edge-set $E$ is changed to $E'$ (some edges inserted, some deleted), the function $F_{E'}$ is different from $F_E$, and the old fixpoint $R^*_{\textit{old}}$ may not be a subset of the new (least) fixpoint $R^*_{\textit{new}}$.
 % If one were to start Kleene iteration of $F_{E'}$ from $R^*_{\textit{old}}$ rather than from $\emptyset$, the fixpoint obtained may be a strict superset ($\supsetneq$) of $R^*_{\textit{old}}$---a fixpoint of $F_{E'}$, but not the least one.
@@ -137,7 +134,6 @@ The \emph{Fixpoint Detection} (FPD) problem actually involves two issues:
 These issues are not confined to DBSP;
 as discussed in \secref{sec:related}, similar problems exist in other frameworks supporting incrementalization of general recursive queries, such as Differential Dataflow~\cite{McSherry2013DifferentialD}.
 
-%\ycx{I see, the following points are actually the structure of our argument, but it should not presented as questions to evaluate a solution.}
 % Any solution to this problem should be evaluated from the following aspects:
 % \begin{itemize}
 %   \item

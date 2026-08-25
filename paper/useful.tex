@@ -49,8 +49,6 @@ We have established some compositional properties of Conv-completeness and FP-co
 % The most surprising result is that FP-complete circuits are not closed under sequential composition. To see this, consider the circuit $\mathsf{I} \seq \mathsf{D}$ on integers. Both $\mathsf{I}$ and $\mathsf{D}$ are FP-complete, but their sequential composition is not: when input is a constant stream of $1$, its output is also a constant stream of $1$, but the internal stream between $\mathsf{I}$ and $\mathsf{D}$ is $\lambda n.\, n+1$, which never reaches a fixpoint.
 
 % This counterexample gives us an important insight on the hardness of the FPD problem. We can see that sequential composition hides the information of internal streams, allowing internally unstable circuits to behave stably externally. This may be one of the root causes of the FPD problem and the reason why IntFP is able to solve this problem.
-% \twr{I don't understand the preceding sentence.  I suspect there is no damage if it is removed.}
-
 % Nevertheless, for some good circuits, FP-completeness can be preserved by $\mathsf{seq}$ and $\mathsf{bracket}$, as the following lemma shows. It will be important for proofs in the next section.
 % \begin{lemma}\label{thm:lifted-scalar-FPcomplete}
 %     For a level-1 circuit $c_0$, if $c_0$ is FP-complete and $\means{c_0} = \lift{f}$ for some scalar function $f$, then $\mathsf{bracket}(c_0)$ is FP-complete. Additionally, if $c_1$ is FP-complete, then $c_0 \seq c_1$ is FP-complete.
