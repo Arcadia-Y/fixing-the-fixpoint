@@ -1,0 +1,289 @@
+% Background section: DBSP stream computation fundamentals
+In this section, we first introduce the core concepts of DBSP that are necessary to understand the FPD problem and our solution (\secref{sec:pre-theory}), then present our formal language for DBSP well-formed circuits (\secref{sec:pre-language}), and finally show how the Datalog query from \secref{sec:intro} is implemented and incrementalized as an example (\secref{sec:pre-example}).
+
+\subsection{Streams and Operators in DBSP}\label{sec:pre-theory}
+In this section, we introduce the core DBSP theory, which forms the universe for our language's semantics.
+
+\begin{definition}[Stream]\label{def:stream}
+Given an Abelian group $(A, +, 0_A, -)$, a \emph{stream} of values from $A$, or an $A$-stream, is a function $s : \mathbb{N} \to A$. We denote the set of all $A$-streams by $\mathcal{S}_A = \{ s \mid s : \mathbb{N} \to A \}$. We write $s[t]$ for the $t$-th element of stream $s$.
+\end{definition}
+Streams inherit the group structure pointwise: $(s_1 + s_2)[t] = s_1[t] + s_2[t]$, so $(\mathcal{S}_A, +, 0_{\mathcal{S}_A}, -)$ is itself an Abelian group.
+
+\begin{definition}[Stream Operator]\label{def:stream-operator}
+A \emph{stream operator} is a function $T : \mathcal{S}_{A_1} \times \cdots \times \mathcal{S}_{A_n} \to \mathcal{S}_B$.
+\end{definition}
+
+In circuit diagrams, we depict stream operators as blocks and streams as arrows.
+
+\begin{definition}[Lifting]\label{def:lifting}
+Given a function $f : A \to B$, its \emph{lifting} ${\uparrow} f : \mathcal{S}_A \to \mathcal{S}_B$ applies $f$ pointwise in time: $({\uparrow} f)(s)[t] = f(s[t])$. Lifting distributes over composition: ${\uparrow}(f \circ g) = ({\uparrow} f) \circ ({\uparrow} g)$.
+\end{definition}
+
+\begin{definition}[Delay]
+The \emph{delay} operator $z^{-1} : \mathcal{S}_A \to \mathcal{S}_A$ shifts a stream by one time step, inserting zero at $t = 0$: $z^{-1}(s)[t] = 0_A$ if $t = 0$, and $s[t-1]$ for $t \geq 1$.
+\end{definition}
+
+\begin{definition}[Feedback Cycle]\label{def:feedback-cycle}
+For certain operators $T: (\stream{A} \times \stream{B}) \to \stream{B}$ and $F: \stream{B} \to \stream{B}$, the equation $Q(s) = T(s, F(Q(s)))$ has a unique solution $Q: \stream{A} \to \stream{B}$, denoted as $\lambda s.\, \mathrm{fix}\, \alpha.\, T(s, F(\alpha))$\footnote{Our formal language guarantees all feedback cycles are well-defined.}. Feedback cycles can be represented as Fig.~\ref{fig:feedback-cycle}.
+\end{definition}
+
+DBSP uses feedback cycles mainly for two purposes: express iterative computation and construct integration operator $\I$, as we will show in the following.
+
+\begin{figure}[ht]
+    \centering
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \begin{tikzpicture}[>=latex, node distance=1cm]
+            \node[] (input) {$s$};
+            \node[block, right of=input] (f) {$T$};
+            \node[right of=f] (output) {$\alpha$};
+            \node[block, below of=f, node distance=.5cm] (z) {$F$};
+            \draw[->] (input) -- (f);
+            \draw[->] (f) -- node (mid) {} (output);
+            \draw[->] (mid.center) |-  (z);
+            \draw[->] (z.west) -- ++(-.3,0) |- ([yshift=1mm]f.south west);
+        \end{tikzpicture}
+        \caption{Feedback cycle}
+        \label{fig:feedback-cycle}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \begin{tikzpicture}[auto,>=latex]
+            \node[] (input) {$s$};
+            \node[block, shape=circle, right of=input, inner sep=0pt] (plus) {$+$};
+            \node[right of=plus, node distance=1.5cm] (output) {$\I(s)$};
+            \node[block, below of=plus, node distance=.7cm] (z) {$z^{-1}$};
+            \draw[draw,->] (input) -- (plus);
+            \draw[->] (plus) -- node (o) {} (output);
+            \draw[->] (o) |- (z);
+            \draw[->] (z) -- (plus);
+        \end{tikzpicture}   
+        \caption{Integration $\I$}
+        \label{fig:integration}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \begin{tikzpicture}[auto,>=latex,node distance=1cm]
+            \node[] (input) {$s$};
+            \node[block, shape=circle, right of=input, inner sep=0pt,node distance=2cm] (plus) {$+$};
+            \node[right of=plus] (output) {$\D(s)$};
+            \draw[draw,->] (input) -- node (i) {} (plus);
+            \node[block, below of=i, node distance=.7cm] (z) {$\zm$};
+            \node[block, shape=circle, right of=z, inner sep=1pt] (minus) {$-$};
+            \draw[->] (plus) -- (output);
+            \draw[->] (i) -- (z);
+            \draw[->] (z) -- (minus);
+            \draw[->] (minus) -- (plus);
+        \end{tikzpicture}
+        \caption{Differentiation $\D$}
+        \label{fig:differentiation}
+    \end{subfigure}
+    \caption{Some core DBSP operators represented as circuit diagrams.}
+    \label{fig:core-circuits}
+\end{figure}
+
+\begin{definition}[Integration and Differentiation]\label{def:integration}
+The \emph{integration} operator $\I : \mathcal{S}_A \to \mathcal{S}_A$ is $\I(s) = \mathrm{fix}\, \alpha.\, (s + z^{-1}(\alpha))$, computing the running sum: $\I(s)[t] = \sum_{i \leq t} s[i]$, as shown in Fig.~\ref{fig:integration}.
+The \emph{differentiation} operator $\D : \mathcal{S}_A \to \mathcal{S}_A$ is $\D(s) = s - z^{-1}(s)$, as shown in Fig.~\ref{fig:differentiation}.
+\end{definition}
+
+$\I$ and $\D$ are inverses ($\I \circ \D = \D \circ \I = \mathrm{id}$).
+Given a stream operator $Q : \mathcal{S}_A \to \mathcal{S}_B$, its \emph{incremental version} is defined as $Q^\Delta = \D \circ Q \circ \I$.
+The operator $Q^\Delta$ consumes a stream of changes and produces a stream of changes: if $Q(s_1) = s_2$, then $\inc{Q}(\D(s_1))= \D(s_2)$. 
+The DBSP theory establishes compositional properties for $Q^\Delta$, such as the chain rule $(Q_1 \circ Q_2)^\Delta = Q_1^\Delta \circ Q_2^\Delta$. This leads to a syntax-guided incrementalization algorithm, which we will formalize as $\mathsf{incOpt}$ in \secref{sec:pre-language}.
+
+To incrementalize iterative computations (like recursive Datalog queries), we need to introduce a new ``inner'' time dimension for iterative fixpoint computation besides the ``outer'' time dimension for incremental computation, as \secref{sec:overview-problem} shows. DBSP implements this via two specific operators and nested streams.
+
+\begin{definition}[Stream Introduction]\label{def:stream-intro}
+The \emph{stream introduction} operator $\delta_0 : A \to \mathcal{S}_A$ produces a stream from a scalar value $v$:
+$\delta_0(v)[0] = v$ and $\delta_0(v)[t] = 0$ for $t > 0$.
+\end{definition}
+
+\begin{definition}[Stream Elimination]\label{def:stream-elim}
+The \emph{stream elimination} operator $\textstyle\elim : \mathcal{S}_A \to A$ aggregates a stream that is \emph{zero almost everywhere} (i.e., $\exists t_0 \in \mathbb{N}.\, \forall t \geq t_0.\, s[t] = 0_A$) into a scalar value: $\textstyle\elim(s) = \sum_{t \geq 0} s[t]$.
+\end{definition}
+As we mentioned in \secref{sec:overview-solution}, $\delta_0$ takes a scalar input and outputs a stream and initiates a new unbounded iterative computation. $\elim$ integrates the intermediate results of the inner computation back into a single scalar output.
+If the input stream of $\elim$ is not zero almost everywhere, the summation diverges. This potential for divergence leads to the FPD problem that we address in this paper.
+
+A \emph{nested stream} (or stream of streams) has type $\mathcal{S}_{\mathcal{S}_A} = \mathbb{N} \to (\mathbb{N} \to A)$. It can be viewed as an infinite 2D matrix where $(t_0, t_1)$ index the outer time and inner time, respectively, and each row is an inner stream. 
+
+We call an operator $S : \mathcal{S}_{\mathcal{S}_A} \to \mathcal{S}_{\mathcal{S}_B}$ a \emph{nested operator}. Just as we lift scalar functions to operators, we can lift operators to nested operators. If $S : \mathcal{S}_A \to \mathcal{S}_B$, then ${\uparrow}S : \mathcal{S}_{\mathcal{S}_A} \to \mathcal{S}_{\mathcal{S}_B}$ applies $S$ to each \emph{row} of the nested stream: $({\uparrow}S)(s)[t_0] = S(s[t_0])$. For a scalar function $f:A \to B$, we lift it twice to get $\lift{\lift{f}}: \stream{\stream{A}} \to \stream{\stream{B}}$, defined as $(\lift{\lift{f}})(s)[m][n] = f(s[m][n])$.
+
+For nested streams, delay $z^{-1}$ shifts values along the outer time dimension, delaying ``rows'' of the matrix, while lifted delay ${\uparrow}z^{-1}$ shifts values along the \emph{inner} time dimension, delaying ``columns'' of the matrix. The integration $\I$ operates along the outer time dimension, summing up rows of the matrix, while the lifted integration ${\uparrow}\I$ operates along the inner time dimension, summing up columns of the matrix.
+
+\subsection{A Formal Language for DBSP Well-Formed Circuits}\label{sec:pre-language}
+
+We now formalize a language of DBSP \emph{well-formed circuits} (which we simply abbreviate as \emph{circuits} from now on) that serves as the core calculus for our theory.
+This circuit language is an inductive grammar as shown in Table~\ref{tab:circuit-syntax}.
+
+A circuit $c : A \to B$ transforms an input stream of type $A$ to an output stream of type $B$. Types are built from \emph{base types} (Abelian groups) and binary products $A \times B$.
+Each circuit is annotated with a \emph{stream level} $\ell \in \{1, 2\}$\footnote{\label{fn:stream-level}
+  This restriction to the stream level is mainly for formalization convenience without loss of expressiveness. See \secref{sec:formalization} for more discussion on this point.
+}, representing whether the circuit's input and output are streams (level 1) or nested streams (level 2). For instance, a $\mathsf{bracket}$ node must wrap a level-2 circuit and output a level-1 circuit.
+
+The \emph{primitive node} construct ($\mathsf{node}$) lifts a user-defined scalar function to a stream operator, providing a generic extension point for core computations. Commonly used generic operations (like identity, tuple projections, and group arithmetic) are separated into a class of \emph{standard nodes}.
+
+\begin{table}[htb]
+    \centering
+    \caption{Circuit syntax and denotational semantics. Constructs are polymorphic over stream level $\ell$ unless indicated.}
+    \label{tab:circuit-syntax}
+    \footnotesize
+    \begin{tabular}{llllll}
+        \toprule
+        \textbf{Construct $c$} & \textbf{Type} & \textbf{Level} & \textbf{$\llbracket c \rrbracket$} & \textbf{$\mathsf{plift}(c)$} & \textbf{$\mathsf{incOpt}(c)$} \\
+        \midrule
+        \multicolumn{6}{l}{\textit{Primitive nodes}} \\
+        $\mathsf{node}(f)$ & $A \to B$ & $\ell$ & ${\uparrow}^{\ell} f$ & $\mathsf{node}(f)$ & $\mathsf{incOpt}(\mathsf{node}(f))$ \\
+        \midrule
+        \multicolumn{6}{l}{\textit{Standard nodes}} \\
+        $\mathsf{const}(x)$ & $A \to B$ & $\ell$ & ${\uparrow}^{\ell} (\lambda\_.\ x)$ & $\mathsf{const}(x)$ & $\mathsf{const}(x) \seq \mathsf{D}$ \\
+        $\mathsf{id}$ & $A \to A$ & $\ell$ & $\mathrm{id}$ & $\mathsf{id}$ & $\mathsf{id}$ \\
+        $\mathsf{fst}$ & $A \times B \to A$ & $\ell$ & ${\uparrow}^{\ell} \pi_1$ & $\mathsf{fst}$ & $\mathsf{fst}$ \\
+        $\mathsf{snd}$ & $A \times B \to B$ & $\ell$ & ${\uparrow}^{\ell} \pi_2$ & $\mathsf{snd}$ & $\mathsf{snd}$ \\
+        $\mathsf{add}$ & $A \times A \to A$ & $\ell$ & ${\uparrow}^{\ell} (+)$ & $\mathsf{add}$ & $\mathsf{add}$ \\
+        $\mathsf{sub}$ & $A \times A \to A$ & $\ell$ & ${\uparrow}^{\ell} (-)$ & $\mathsf{sub}$ & $\mathsf{sub}$ \\
+        \midrule
+        \multicolumn{6}{l}{\textit{Temporal nodes}} \\
+        $\mathsf{delay}$ & $A \to A$ & $\ell$ & $z^{-1}$ & $\mathsf{\lift{delay}}$ & $\mathsf{delay}$ \\
+        $\mathsf{\lift{delay}}$ & $A \to A$ & $2$ & $\lift{z^{-1}}$ & $-$ & $\mathsf{\lift{delay}}$ \\
+        \midrule
+        \multicolumn{6}{l}{\textit{Structural combinators}} \\
+        $c_1 \seq c_2$ & $A \to C$ & $\ell$ & $\llbracket c_2 \rrbracket \circ \llbracket c_1 \rrbracket$ & $\mathsf{plift}(c_1) \seq \mathsf{plift}(c_2)$ & $\mathsf{incOpt}(c_1) \seq \mathsf{incOpt}(c_2)$ \\
+        $c_1 \pll c_2$ & $A \to B \times C$ & $\ell$ & $\lambda x.\, (\llbracket c_1 \rrbracket(x),\, \llbracket c_2 \rrbracket(x))$ & $\mathsf{plift}(c_1) \pll \mathsf{plift}(c_2)$ & $\mathsf{incOpt}(c_1) \pll \mathsf{incOpt}(c_2)$ \\
+        \midrule
+        \multicolumn{6}{l}{\textit{Feedback loops}} \\
+        $\mathsf{loop}(c)$ & $A \to B$ & $\ell$ & $\lambda x.\, \mathrm{fix}\, \alpha.\, \means{c}(x, z^{-1}(\alpha))$ & $\mathsf{\lift{loop}}(\mathsf{plift}(c))$ & $\mathsf{loop}(\mathsf{incOpt}(c))$ \\
+        $\mathsf{\lift{loop}}(c)$ & $A \to B$ & 2 & $\lambda x.\, \mathrm{fix}\, \alpha.\, \means{c}(x, \lift{z^{-1}}(\alpha))$ & $-$ & $\mathsf{\lift{loop}}(\mathsf{incOpt}(c))$ \\
+        \midrule
+        \multicolumn{6}{l}{\textit{Level adapters}} \\
+        $\mathsf{lifting}(c)$ & $A \to B$  & 2 $(c \text{ at } 1)$ & ${\uparrow}\llbracket c \rrbracket$ & $-$ & $\Delta(\mathsf{lifting}(c))$ \\
+        $\mathsf{bracket}(c)$ & $A \to B$  & 1 $(c \text{ at } 2)$ & $\lift{\elim} \circ \means{c} \circ \lift{\delta_0}$ & $\mathsf{lifting}(\mathsf{bracket}(c))$ & $\mathsf{bracket}(\mathsf{incOpt}(c))$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Several important circuits can be defined compositionally: 
+\begin{definition}[Derived Circuit Constructs]
+    The integration circuit $\mathsf{I} = \mathsf{loop}(\mathsf{add})$ computes $\I$, and the differentiation circuit $\mathsf{D} = (\mathsf{id} \pll \mathsf{delay}) \seq \mathsf{sub}$ computes $\D$. The unoptimized incremental form of a circuit $c$ is given by $\Delta(c) = \mathsf{I} \seq c \seq \mathsf{D}$.
+\end{definition}
+
+The denotational semantics $\llbracket c \rrbracket$ of a circuit $c : A \to B$ at stream level $\ell$ is a stream operator. For level 1, it is an operator $\mathcal{S}_A \to \mathcal{S}_B$. For level 2, it is $\mathcal{S}_{\mathcal{S}_A} \to \mathcal{S}_{\mathcal{S}_B}$. Here ${\uparrow}^{1} f = {\uparrow} f$ denotes single lifting, and ${\uparrow}^{2} f = {\uparrow}{\uparrow} f$ denotes double lifting.
+
+Due to the $\mathsf{bracket}$ construct, which relies on the stream elimination operator $\elim$, the denotational semantics $\llbracket \cdot \rrbracket$ is a \emph{partial} function. Whether it converges on a given input is the convergence detection problem we mentioned in \secref{sec:overview-solution}.
+
+We can now formalize the incremental optimization algorithm of DBSP as the following two syntactic functions:
+
+\begin{definition}\label{def:plift}
+    $\mathsf{plift}$ lifts a level-1 circuit and pushes the lifting operator onto individual nodes. Its definition is in Table~\ref{tab:circuit-syntax}.
+\end{definition}
+\begin{definition}\label{def:incOpt}
+    $\mathsf{incOpt}$ transforms a circuit into its optimized incremental version following the DBSP's syntax-guided algorithm. Its definition is in Table~\ref{tab:circuit-syntax}.
+\end{definition}
+
+Note that for primitive nodes, $\mathsf{incOpt}(\mathsf{node}(f))$ is a customizable incremental form, which makes this algorithm quite extensible. The theory has provided an incremental form for a wide class of functions. For example, for a linear function $f$, the incremental form can be $\mathsf{node}(f)$ itself. Even in the worst case, the incremental form can fall back to the unoptimized form $\Delta(\mathsf{node}(f))$.
+
+Another thing to notice is that $\mathsf{incOpt}(\mathsf{lifting}(c))$ is the unoptimized form, as the incremental operator $\Delta$ cannot go across $\mathsf{lifting}$ into the inner circuit. That's why we need the function $\mathsf{plift}$ to push the lifting operator into the inner circuit.
+
+\subsection{Example: Implementing and Incrementalizing the Datalog Query in DBSP}\label{sec:pre-example}
+
+In this section, we present how DBSP expresses and incrementalizes the Datalog query example from \secref{sec:intro} and \secref{sec:overview-problem} in three steps (corresponding to the three strategies in \secref{sec:overview-problem}).
+
+DBSP uses \textbf{$\mathbb{Z}$-sets} \cite{Green2009ReconcilableD} (or simply Zsets) as the underlying Abelian group to represent sets and relations. It can be simply understood as sets where each element has an integer count, which can be negative to represent deletion. In this paper, we will simply treat Zsets as their underlying sets for most cases.
+
+\begin{figure}[ht]
+    \centering
+    \begin{subfigure}[b]{0.35\textwidth}
+        \centering
+        \begin{tikzpicture}[>=latex, node distance=.72cm]
+            \node[] (Iinput) {$i$};
+            \node[block, right of=Iinput] (Idelta) {$\delta_0$};
+            \node[block, right of=Idelta] (I) {$\I$};
+            \node[block, right of=I] (f) {$\lift{F}$};
+            \node[block, right of=f, node distance=1.0cm] (D) {$\D$};
+            \node[block, right of=D] (S) {$\elim$};
+            \node[right of=S] (output)  {$o$};
+            \draw[->] (f) -- node (o) {} (D);
+            \node[block, below of=o, node distance=.55cm] (z) {$\zm$};
+            \draw[->] (Iinput) -- (Idelta);
+            \draw[->] (S) -- (output);
+            \draw[->] (o.center) -- (z);
+            \draw[->] (z) -| (f);
+            \draw[->] (Idelta) -- (I);
+            \draw[->] (I) -- (f);
+            \draw[->] (D) -- (S);
+        \end{tikzpicture}
+        \caption{The naive strategy.}
+        \label{fig:naive-dbsp}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.28\textwidth}
+        \centering
+        \begin{tikzpicture}[>=latex, node distance=.97cm]
+            \node[] (Iinput) {$i$};
+            \node[block, right of=Iinput, node distance=0.7cm] (Idelta) {$\delta_0$};
+            \node[block, right of=Idelta] (f) {$\inc{(\lift{F})}$};
+            \node[block, right of=f, node distance=1.1cm] (S) {$\elim$};
+            \node[right of=S, node distance=.7cm] (output)  {$o$};
+            \draw[->] (f) -- node (o) {} (S);
+            \node[block, below of=o, node distance=.65cm] (z) {$\zm$};
+            \draw[->] (Iinput) -- (Idelta);
+            \draw[->] (S) -- (output);
+            \draw[->] (o.center) -- (z);
+            \draw[->] (z) -| (f);
+            \draw[->] (Idelta) -- (f);
+        \end{tikzpicture}   
+        \caption{The semi-naive strategy.}
+        \label{fig:semi-naive-dbsp}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\textwidth}
+        \centering
+        \begin{tikzpicture}[>=latex,node distance=.95cm]
+            \node[] (Iinput) {$\vec{i}$};
+            \node[block, right of=Iinput, node distance=.75cm] (Idelta) {$\lift{\delta_0}$};
+            \node[block, right of=Idelta, node distance=1.35cm] (f) {$\inc{(\lift{\inc{(\lift{F})}})}$};
+            \node[block, right of=f, node distance=1.5cm] (S) {$\lift{\elim}$};
+            \node[right of=S, node distance=.75cm] (output)  {$\vec{o}$};
+            \draw[->] (f) -- node (o) {} (S);
+            \node[block, below of=o, node distance=.65cm] (z) {$\lift{\zm}$};
+            \draw[->] (Iinput) -- (Idelta);
+            \draw[->] (S) -- (output);
+            \draw[->] (o.center) -- (z);
+            \draw[->] (z) -| (f);
+            \draw[->] (Idelta) -- (f);
+        \end{tikzpicture}
+        \caption{The delta-of-deltas strategy.}
+        \label{fig:delta-of-deltas-dbsp}
+    \end{subfigure}
+    \caption{The three circuits that arise when DBSP implements and incrementalizes a Datalog recursive query.}
+    \label{fig:three-approaches-DBSP}
+\end{figure}
+
+Recall that the recursive query is defined via a non-recursive query $F_E(R)$, or $F(E, R)$ (which we will simply write as $F$). DBSP will first compile it into some circuit and lift it to get a level-1 circuit $c_0$  whose denotation is $\lift{F}$.
+The recursive query $Q$ asks for the fixpoint of iterative application of $F$ on an input $i$. $Q$ can be expressed as a circuit shown in Fig.~\ref{fig:naive-dbsp}. 
+The query body (the bracketed sub-circuit) can be expressed in our formal language as\footnote{
+    Technically, we cannot express the whole level-0 circuit itself in our formal language because of our syntactic restriction (see \secref{sec:formalization}), but it suffices to express the query body as it encodes sufficient information.
+}
+\begin{equation}\label{eq:naive-body}
+    \mathsf{datalogBody}(c_0) = \mathsf{loop}(\Delta(c_0))
+\end{equation}
+We use the stream introduction operator $\delta_0$ (Def.~\ref{def:stream-intro}) and the integration operator $\I$ (Def.~\ref{def:integration}) to convert the input $i$ into a constant stream of $i$ and then feed it into $\lift{F}$. The feedback loop implements the iterative fixpoint computation we need. Its output stream $\alpha$ looks like following:
+\[ \alpha[0] = F(i, 0), \ \alpha[1] = F(i, \alpha[0]), \ \alpha[2] = F(i, \alpha[1]), \ \ldots \] 
+If $\alpha$ is fixed after some point, then the differentiation operator $\D$ (Def.~\ref{def:integration}) converts it into a stream that is zero almost everywhere, which can then be aggregated by the stream elimination operator $\elim$ (Def.~\ref{def:stream-elim}) to produce the final output $o$. This corresponds to the naive strategy in \secref{sec:overview-problem}.
+
+Note that we can optimize $\lift{F}$ between $\I$ and $\D$ into $\inc{(\lift{F})}$ by applying the DBSP's incremental optimization algorithm, naturally leading to the circuit implementing the semi-naive strategy shown in Fig.~\ref{fig:semi-naive-dbsp}. Its query body can be expressed as
+\begin{equation}\label{eq:semi-naive-body}
+    \mathsf{semiNaiveBody}(c_0) = \mathsf{loop}(\mathsf{incOpt}(c_0))
+\end{equation}
+
+We can further lift the whole circuit, push the lifting operator and apply the incremental optimization to transform it into the circuit shown in Fig.~\ref{fig:delta-of-deltas-dbsp}, which implements the delta-of-deltas strategy.
+Its query body can be expressed as
+\begin{equation}\label{eq:delta-of-deltas-body}
+    \mathsf{deltaOfDeltasBody}(c_0) = \mathsf{\lift{loop}}\Bigl(\mathsf{incOpt} \Bigl(\mathsf{plift} \bigl(\mathsf{incOpt}(c_0)\bigr) \Bigr) \Bigr)
+\end{equation}
+and the whole circuit can be expressed as
+\begin{equation}\label{eq:opt-datalog-query}
+    \mathsf{deltaOfDeltasQuery}(c_0) = \mathsf{bracket}(\mathsf{deltaOfDeltasBody}(c_0))
+\end{equation}

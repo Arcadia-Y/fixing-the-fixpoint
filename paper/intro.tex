@@ -1,0 +1,187 @@
+Incremental computation \cite{DBLP:conf/popl/RamalingamR93,DBLP:conf/pepm/Liu24} is a cornerstone of efficient software systems. Its fundamental premise is straightforward: when the input to a computation changes, the system should update the output by processing only the small changes (or ``deltas''), rather than recomputing the entire result from scratch. This principle finds its most classical application in databases in the form of \textit{Incremental View Maintenance} (IVM) \cite{Book:GM99,chirkova2012materialized}, as shown in Fig.~\ref{fig:ivm-and-fixpoint}(a). For standard relational queries, IVM is well-understood and widely deployed, allowing systems to maintain up-to-date views with significantly reduced cost compared to recomputation.
+
+\begin{figure}[!tb]
+    \centering
+    % Define styles for consistency
+    \tikzset{
+        main node/.style={font=\large},
+        func arrow/.style={->, >={Stealth}, draw=blue!60!cyan, thick},
+        update arrow/.style={->, >={Stealth}, draw=red!60!black, thick},
+        label text/.style={font=\normalsize}
+    }
+    \begin{tabular}{c@{\hspace{9.0ex}}c}
+        \resizebox{3.0cm}{!}{%
+        \begin{tikzpicture}[node distance=1cm and 2cm]
+            % Nodes
+            \node[main node] (db0) {$DB_0$};
+            \node[main node] (v0) [right=of db0] {$V_0$};
+            \node[main node] (db1) [below=of db0] {$DB_1$};
+            \node[main node] (v1) [right=of db1] {$V_1$};
+
+            % Vertical arrows (Updates) - Continuous lines
+            \draw[update arrow] (db0) -- (db1);
+            \draw[update arrow] (v0) -- (v1);
+
+            % Top Horizontal arrow (Q)
+            \draw[func arrow] (db0) -- node[above, text=black] {$Q$} (v0);
+
+            % Delta Nodes (positioned relative to the center/arrows)
+            % ddb is slightly right of the midpoint of the left vertical arrow
+            \path (db0) -- coordinate[midway] (midleft) (db1);
+            \node (ddb) [right=0.08cm of midleft] {$\Delta DB_1$};
+
+            % dv is slightly left of the midpoint of the right vertical arrow
+            \path (v0) -- coordinate[midway] (midright) (v1);
+            \node (dv) [left=0.08cm of midright] {$\Delta V_1$};
+
+            % Middle Horizontal arrow (Q^Delta)
+            \draw[func arrow] (ddb) -- node[above, text=black] {$Q^\Delta$} (dv);
+
+        \end{tikzpicture}
+        }
+     &
+        \resizebox{7.5cm}{!}{%
+        \begin{tikzpicture}[
+            node distance=1.4cm,
+            main node/.style={font=\large},
+            func arrow/.style={->, >={Stealth}, draw=blue!60!cyan, thick},
+            label text/.style={font=\small},
+            brace style/.style={decoration={brace, mirror, amplitude=10pt, raise=6pt}, decorate, thick}
+        ]
+
+            % --- Nodes in a horizontal chain ---
+            \node[main node] (db) {$DB$};
+            \node[main node] (v1) [right=of db] {$V^1$};
+            \node[main node] (v2) [right=of v1] {$V^2$};
+            \node[main node] (dots) [right=of v2] {$\dots$};
+            \node[main node] (v) [right=of dots] {$V$};
+
+            % --- Arrows with F label ---
+            \draw[func arrow] (db) -- node[above] {$F$} (v1);
+            \draw[func arrow] (v1) -- node[above] {$F$} (v2);
+            \draw[func arrow] (v2) -- node[above] {$F$} (dots);
+            \draw[func arrow] (dots) -- node[above] {$F$} node[below, font=\small] {fixpoint} (v);
+
+            % --- Bottom Curly Brace ---
+            \draw[brace style] (db.south east) -- (v.south west)
+                node[midway, below=16pt] {$Q = \mathsf{fix}\, F$};
+
+        \end{tikzpicture}
+        }
+    \end{tabular}
+    \caption{(a) Incremental view maintenance; (b) iterative fixpoint computation for a recursive query.}\label{fig:ivm-and-fixpoint}
+\end{figure}
+
+However, modern data analysis has evolved beyond simple relational queries. Applications ranging from graph analytics to machine learning rely heavily on algorithms that are \textit{iterative or recursive} in nature.
+As a simple example,
+consider the simple recursive query $Q$ 
+for computing the transitive closure of a finite directed graph, expressed in Datalog as follows:
+
+\noindent
+{\footnotesize
+\begin{lstlisting}[language=ddlog]
+// Edge relation with head and tail
+input relation E(h: Node, t: Node)
+// Reach relation with source s and sink t
+output relation R(s: Node, t: Node)
+R(x, y) :- E(x, y).
+R(x, y) :- E(x, z), R(z, y).
+\end{lstlisting}
+}
+
+The semantics of this recursive query is defined in terms of the non-recursive query $F_E(R) := E \cup (E \circ R)$.
+The result of the recursive query, $Q$, is defined as the
+least fixpoint of the equation $x = F_E(x)$.
+In this case, the process of finding the least fixpoint can be understood in terms of shortest distances:
+if $R^n$ consists of pairs of nodes for which the length of the shortest
+connecting path is $\leq n$, then $F_E(R^n) = R^{n+1}$ consists of pairs of nodes whose shortest distance is $\leq n+1$;
+consequently, the least fixpoint is the transitive closure of the graph.
+This intuition corresponds to the following iterative computation strategy:
+repeatedly apply $F_E$
+to the accumulated result until a fixpoint is reached, as shown in Fig.~\ref{fig:ivm-and-fixpoint}(b)
+(often called \emph{Kleene iteration}).
+
+% \ycx{I know this paragraph is meant to show how challenging incremental recursive computation is, but I don't think it gets to the point: (i) this example is a bit hard for readers to understand; (ii) in no case will we apply $F_{E'}$ directly to $R^*_{\emph{old}}$ in incremental computation (even if it is a non-recursive query): the non-trivial part is to find the appropriate $F_{\Delta E'}$ to leverage the old results. }
+% \twr{I think it is fine (and appropriate).  It shows that even an apparently simple strategy can be disastrously incorrect.  I added a transition to the next paragraph along the lines of your last sentence.}
+
+% It is challenging, however, to combine incremental computation with recursion:
+% for instance, if edge-set $E$ is changed to $E'$ (some edges inserted, some deleted), the function $F_{E'}$ is different from $F_E$, and the old fixpoint $R^*_{\textit{old}}$ may not be a subset of the new (least) fixpoint $R^*_{\textit{new}}$.
+% If one were to start Kleene iteration of $F_{E'}$ from $R^*_{\textit{old}}$ rather than from $\emptyset$, the fixpoint obtained may be a strict superset ($\supsetneq$) of $R^*_{\textit{old}}$---a fixpoint of $F_{E'}$, but not the least one.
+% Even worse, if the first Kleene iterate $F_{E'}(R^*_{\textit{old}})$ is incomparable to $R^*_{\textit{old}}$, subsequent iterates may cycle among incomparable values, never converging to any fixpoint.\footnote{
+%   Consider vertex set $\{a,b,c\}$ with $E = \{  (a,c) \}$, so $R^*_{\textit{old}} = \{ (a,c) \}$.
+%   When $E' = \{ (a,b), (b,a) \}$, $R'^* = \{ (a,b), (b,a) \}$.
+%   However, if $R'_0 = R^*_{\textit{old}} = \{ (a,c) \}$, then
+%   $R'_1 = E' \cup (E' \circ R^*_{\textit{old}}) = \{ (a,b), (b,a), (b,c) \} \not\supseteq R^*_{\textit{old}}$;
+%   $R'_2 = E' \cup (E' \circ R'_1) = \{ (a,b), (b,a), (a,c) \}$;
+%   $R'_3 = E' \cup (E' \circ R'_2) = \{ (a,b), (b,a), (b,c) \}$; etc.
+% }
+% Instead, a system that supports incremental recursive computation must use some function of $E$, $E'$, and $R^*_{\textit{old}}$ that leverages old results (and possibly auxiliary information, which must also be updated).
+
+It is challenging, however, to combine incremental computation with recursion to \emph{efficiently incrementalize recursive queries}, that is, in our example, to update the graph and efficiently recompute the new transitive closure. Luckily, frameworks such as DBSP~\cite{budiu2025dbsp} and Differential Dataflow~\cite{McSherry2013DifferentialD} give elegant theories for efficient incrementalization of general recursive queries.
+However, we find that there is a fundamental gap between their mathematical specification and implementations of such frameworks, having to do with detecting fixpoints.
+The \emph{Fixpoint Detection} (FPD) problem actually involves two issues:
+\begin{enumerate}
+  \item
+    \label{It:FPDUndecidability}
+    Because DBSP is Turing-complete, for arbitrary DBSP circuits whose primitive nodes can express primitive recursive functions, exact FPD turns out to be \emph{undecidable}: there is a fixed level-1 circuit with no computable detector that is both sound and complete on all canonical inputs (\secref{sec:fpd-undecidability}).
+  \item
+    \label{It:FirstZeroUnsound}
+    In the DBSP paper~\cite{budiu2025dbsp}, the authors suggest that for many practical queries, including Datalog queries, a key primitive for fixpoint detection can be implemented by an iterative procedure that can be stopped when the first ``$0$'' is encountered (e.g., the first $\emptyset$ when working with sets), which intuitively implies that there is no change in two adjacent results.
+    We call this the \emph{FirstZero} strategy.
+    However, in \secref{sec:overview-problem} (and formalized in
+        \secref{sec:fpd-firstzero}), we show that the FirstZero strategy is
+        unsound, including in naturally arising cases; that is, using it in the
+        implementation results in output that does not match the mathematical specification.
+\end{enumerate}
+
+These issues are not confined to DBSP;
+as discussed in \secref{sec:related}, similar problems exist in other frameworks supporting incrementalization of general recursive queries, such as Differential Dataflow~\cite{McSherry2013DifferentialD}.
+
+%\ycx{I see, the following points are actually the structure of our argument, but it should not presented as questions to evaluate a solution.}
+% Any solution to this problem should be evaluated from the following aspects:
+% \begin{itemize}
+%   \item
+%     Is it \emph{sound}? Will it produce any incorrect results?
+%   \item
+%     Is it \emph{implementation-aware}? Does it allow efficient implementation?
+%   \item
+%     For which class of programs is it \emph{complete}? Specifically, will a user ever encounter a scenario where the original theory guarantees convergence, but the implementation fails to do so? 
+% \end{itemize}
+
+% In \secref{sec:regular-circuits}, we define the class of \textit{Regular Circuits}, a large class of circuits that DBSP can use to implement general and arbitrarily nested recursive computation.
+% Moreover, we show that Regular Circuits are closed under DBSP's incrementalization transformations (\secref{sec:inc-opt}).
+% From results given in \secref{sec:detector}, fixpoint detection is decidable for Regular Circuits, and it follows from \secref{sec:complete} that fixpoint detection is efficient for Regular Circuits.
+
+To fill in this gap, we develop a formal theory of convergence detection using DBSP as a core calculus. Within this theory, we define \emph{internal convergence} (IntConv) as a declarative convergence criterion corresponding to the internal-state-stability strategy used by practical implementations such as Feldera~\cite{feldera_repo}.
+We show that IntConv is a \emph{sound} criterion, so it never produces an incorrect answer (\secref{sec:intfp}),\footnote{
+  Because exact FPD for arbitrary circuits is undecidable, IntConv is not complete
+  for general circuits.
+  Consequently, there can be computations that mathematically converge,
+  but convergence is not detected by the IntConv criterion.
+}
+At the end of \secref{sec:intfp}, we give a theoretical data-dependency example in which relying only on external convergence can require recursive trace-backs and additional retained state. This example motivates an implementation benefit of IntConv.
+To connect this declarative criterion to runtime state, we define the State Fixpoint (StFP) predicate and provide a sound and complete StFP detector (\secref{sec:detector}). StFP and the StFP detector give semantic and algorithmic formalizations, respectively, of the internal-state-stability strategy in our denotational model. The global IntConv detector combines the StFP detector with fixed-input and zero-output checks across all bracketed sub-circuits, yielding sound and complete IntConv detection. Because the predicate and StFP detector are structural, our formulation applies compositionally to nested recursive computations; \secref{sec:related} compares this capability with the Feldera implementation we inspected.
+Moreover, we show that IntConv is
+\emph{complete}---i.e., it detects convergence whenever the theoretical specification does---for
+a large class of useful circuits
+(\secref{sec:useful}). In particular, we use \emph{regular circuits} as a name for the standard DBSP recursive sublanguage generated by lifted scalar circuits, composition, Datalog queries, and while queries. We then show that IntConv is complete for regular circuits and their incrementally optimized versions.\footnote{
+  I.e., if a computation of such a circuit mathematically converges, convergence will always be detected by the IntConv criterion.
+}
+As a result, sound and complete convergence detection is possible for all these useful circuits.
+
+Our key results are formally verified in Lean 4 \cite{Moura2021TheL4}.
+Our Lean 4 development is described in \secref{sec:formalization};
+all mechanized proofs are available as anonymous supplementary material.
+
+In summary, our contributions are as follows:
+\begin{itemize}
+  \item
+    We identify and formalize the Fixpoint Detection (FPD) problem in DBSP, showing that the commonly used FirstZero criterion is unsound in general and that exact FPD is undecidable for arbitrary expressive circuits.
+  \item
+    We define internal convergence (IntConv) as a declarative criterion corresponding to the internal-state-stability strategy used by Feldera-style implementations, and prove that it is a sound and sufficient condition for convergence.
+    We define the State Fixpoint (StFP) predicate and a sound and complete StFP detector, giving semantic and algorithmic formalizations of this strategy. Combining the StFP detector with fixed-input and zero-output checks across all bracketed sub-circuits yields a sound, complete, and compositional global IntConv detector.
+  \item
+    We show that IntConv is a complete criterion for a large class of useful circuits, including all regular circuits and their incrementally optimized forms. As a result, exact convergence detection is possible for these circuits despite its undecidability for the full language.
+  \item
+    We formally verify our key results in Lean.
+\end{itemize}

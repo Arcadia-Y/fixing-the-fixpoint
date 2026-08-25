@@ -1,0 +1,115 @@
+According to Def.~\ref{def:intconv}, the global IntConv detector checks every bracketed sub-circuit with a local IntFP detector and also checks that its fixed output is $0$. We construct the local detector in two steps: the StFP detector checks local state stability, and a fixed-input check turns its result into IntFP detection. Thus, the global IntConv detector combines the StFP detector with fixed-input and zero-output checks across all bracketed sub-circuits.
+
+To detect the IntFP, the Feldera implementation for the DBSP runtime uses a scope-indexed internal-state-stability strategy that we call ``\emph{FirstStateStable}'', as opposed to FirstZero. The idea in our core calculus is as follows: most nodes are stateless, and only $z^{-1}$ and $\lift{z^{-1}}$ are stateful. For stateless nodes, their output is solely determined by their input. For stateful $z^{-1}$ and $\lift{z^{-1}}$, their output in an execution step is solely determined by their state and unrelated to the input of the current step, which means we can predict all stateful nodes' outputs at the end of the previous step. Therefore, at the end of a step, if we can tell that the outputs of all stateful nodes of a circuit are the same as the previous step, and that the input to the whole circuit is fixed after this step
+(which is easily decidable for input like $\delta_0(x)$), then we can conclude that the circuit has reached an IntFP.
+
+To formalize this idea, a challenge is that for simplicity, our theory only specifies the denotational semantics of DBSP circuits as pure mathematical functions, and has no formal concepts of ``states''. After all, although we have some model in mind of how states are implemented, ultimately it is a representation choice in the implementation.
+Luckily, there is an important assumption that holds for any reasonable implementation of states: \emph{a circuit's state at a given point is determined by its input up to that point}. Therefore, we can always formalize properties of a circuit's state in terms of its input up to that point.
+
+Following this idea, we first make precise how to continue an observed input by holding it fixed. For a stream $x$ and an index $n$, let
+\[
+\mathsf{letFixed}_1(x,n)[i] :=
+\begin{cases}
+    x[i] & i < n,\\
+    x[n] & i \geq n,
+\end{cases}
+\]
+and, for a nested stream $x$ and indices $m,n$, let
+\[
+\mathsf{letFixed}_2(x,m,n)[i][j] :=
+\begin{cases}
+    x[m][n] & i=m \land j \geq n,\\
+    x[i][j] & \text{otherwise}.
+\end{cases}
+\]
+Thus, $\mathsf{letFixed}_2$ leaves every row other than $m$ unchanged and replaces the suffix of row $m$ beginning at $n$ with the value $x[m][n]$.
+
+We can now define the notion of \emph{State Fixpoint (StFP)} as a semantic counterpart of the circuit-state property used by the FirstStateStable strategy.
+\begin{definition}[State Fixpoint (StFP)]
+    For any circuit $c$, input $x$, and index $n$, define
+    \[
+    \text{StFP}_1(c,x,n) :=
+    \text{IntFP}_1(c,\mathsf{letFixed}_1(x,n),n).
+    \]
+    For any level-2 circuit $c$, nested input $x$, and indices $m,n$, define
+    \[
+    \text{StFP}_2(c,x,m,n) :=
+    \text{IntFP}_2(c,\mathsf{letFixed}_2(x,m,n),m,n).
+    \]
+    Finally, for a bound stream $\mathbf{b} \in \stream{\N}$, the vectorized predicate is defined pointwise:
+    \[
+    \text{StFP}_2(c,x,\mathbf{b}) :=
+    \forall i \in \N,\, \text{StFP}_2(c,x,i,\mathbf{b}[i]).
+    \]
+\end{definition}
+
+The fixed continuations agree with the observed input through the designated index and impose a fixed future from that index onward. Therefore, StFP asks whether the circuit's current state would be at an internal fixpoint if its future input remained stable. The following theorem states its precise connection to IntFP.
+\begin{theorem}[IntFP and StFP]
+    For any circuit $c$,
+    \[\forall x, n, \, \text{IntFP}_1(c, x, n) \iff (\text{StFP}_1(c, x, n) \land \text{FixAfter}_1(x, n))\]
+    and for any level-2 circuit $c$,
+    \[\forall x, m, n, \, \text{IntFP}_2(c, x, m, n) \iff (\text{StFP}_2(c, x, m, n) \land \text{FixAfter}_2(x, m, n))\]
+    The pointwise definitions immediately give the vectorized form
+    \[\forall x, \mathbf{b}, \, \text{IntFP}_2(c, x, \mathbf{b}) \iff (\text{StFP}_2(c, x, \mathbf{b}) \land \text{FixAfter}_2(x, \mathbf{b})).\]
+\end{theorem}
+Because it is easy to detect whether $\lift{\delta_0}(x)$ (the input to the target bracketed circuit) is fixed after any index $(m, n)$, it suffices to detect the StFP.
+
+We now give a high-level runtime algorithm to detect the StFP for \emph{any} circuit $c$ and input $x$. While StFP provides the semantic formalization of FirstStateStable in our denotational model, this detector provides its algorithmic formalization. As before, we simulate computation of the state at some point by computation of input up to that point. We will also explain what a natural implementation would probably do for each case. See \secref{sec:related} for more discussion on the Feldera implementation.
+
+\begin{definition}[StFP Detector]
+    We define $\text{Detector}_1$, the level-1 StFP detector that accepts a circuit $c$, stream input $x$, and an index $n$, and returns a boolean, as follows:
+    \begin{itemize}
+        \item \textbf{Primitive and Standard Nodes:} Return true because they are stateless. 
+        \[\text{Detector}_1(c, x, n) := \text{true}\]
+        \item \textbf{Temporal Nodes:} For $\mathsf{delay}$, it checks whether the new state (the current input) matches the stored state (the last input). Note that for level-2 delay, we technically need to compare two infinite streams. However, under IntConv, the stream of last input is always fixed after some point, so it can be stored in a finite state (see the example at the end of \secref{sec:intfp}).
+        \[\text{Detector}_1(\mathsf{delay}, x, n) := (x(n) = z^{-1}(x)(n))\] 
+        For $\mathsf{\lift{delay}}$, because its states are only updated within the inner time dimension, it has no states across the outer time dimension, so we always return true.
+        \[\text{Detector}_1(\mathsf{\lift{delay}}, x, n) := \text{true}\]
+        \item \textbf{Structural Combinators:} Call $\text{Detector}_1$ for its sub-circuits. That is 
+        \[\text{Detector}_1(c_1 \seq c_2, x, n) := \text{Detector}_1(c_1, x, n) \land \text{Detector}_1(c_2, \means{c_1}(x), n)\] 
+        and 
+        \[\text{Detector}_1(c_1 \pll c_2, x, n) := \text{Detector}_1(c_1, x, n) \land \text{Detector}_1(c_2, x, n)\]
+        \item \textbf{Feedback Loops:} For $\mathsf{loop}(c)$, it calls the detector on the loop body and checks whether the new state of the $z^{-1}$ on the back edge (the current output) matches the stored state (the delayed output). $o$ denotes the loop output $\means{\mathsf{loop}(c)}(x)$.
+        \[
+            \text{Detector}_1(\mathsf{loop}(c), x, n) :=
+            \text{Detector}_1(c, (x, z^{-1}(o)), n) \land (o(n) = z^{-1}(o)(n))
+        \] 
+        For $\mathsf{\lift{loop}}(c)$, the $\lift{z^{-1}}$ on the back edge has no states across outer iterations, so it only calls the detector on the inner circuit. In the following, $o$ denotes $ \means{\mathsf{\lift{loop}}(c)}(x)$.
+        \[\text{Detector}_1(\mathsf{\lift{loop}}(c), x, n) := \text{Detector}_1(c, (x, \lift{z^{-1}}(o)), n)\]
+        \item \textbf{Level Adapters:} For $\mathsf{bracket}(c)$, it delegates to the internal circuit $c$: 
+        \[\text{Detector}_1(\mathsf{bracket}(c), x, n) := \text{Detector}_1(c, \lift{\delta_0}(x), n)\]
+        For $\mathsf{lifting}(c)$, it lacks states across outer iterations: 
+        \[\text{Detector}_1(\mathsf{lifting}(c), x, n) := \text{true}\]
+    \end{itemize}
+
+    Similarly, we define $\text{Detector}_2$ as the level-2 StFP detector that accepts a level-2 circuit $c$, a nested stream input $x$, an index $(m, n)$, and returns a boolean. For standard and primitive nodes and structural combinators, it is defined by uniformly replacing $\text{Detector}_1$ with $\text{Detector}_2$ and the index $n$ with $(m, n)$. For other cases:
+    \begin{itemize}
+        \item \textbf{Temporal Nodes:} For $\mathsf{delay}$, it detects whether the delayed input from the last outer iteration has reached its fixpoint, which should have been stored in the state at the end of the last outer iteration (again, refer to the example at the end of \secref{sec:intfp}): 
+        \[\text{Detector}_2(\mathsf{delay}, x, m, n) := \text{FixAfter}_2(z^{-1}(x), m, n)\] 
+        For $\mathsf{\lift{delay}}$, the condition drops to just checking the state along the inner dimension: 
+        \[\text{Detector}_2(\mathsf{\lift{delay}}, x, m, n) := (x(m, n) = \lift{z^{-1}}(x)(m, n))\]
+        \item \textbf{Feedback Loops:} For $\mathsf{loop}(c)$, similar to $\mathsf{delay}$, it calls the detector on the internal circuit and checks whether the delayed output from the last outer iteration has reached its fixpoint. In the following, $o$ denotes $\means{\mathsf{loop}(c)}(x)$.
+        \[\text{Detector}_2(\mathsf{loop}(c), x, m, n) := \text{Detector}_2(c, (x, z^{-1}(o)), m, n) \land \text{FixAfter}_2(z^{-1}(o), m, n)\] 
+        For $\mathsf{\lift{loop}}(c)$, similar to $\mathsf{\lift{delay}}$, it calls the detector on the internal circuit, and checks whether the current output matches the delayed output. In the following, $o$ denotes $\means{\mathsf{\lift{loop}}(c)}(x)$.
+        \[\text{Detector}_2(\mathsf{\lift{loop}}(c), x, m, n) := \text{Detector}_2(c, (x, \lift{z^{-1}}(o)), m, n) \land (o(m, n) = \lift{z^{-1}}(o)(m, n))\]
+        \item \textbf{Level Adapters:} For $\mathsf{lifting}(c)$, it delegates to the level-1 detector: 
+        \[\text{Detector}_2(\mathsf{lifting}(c), x, m, n) := \text{Detector}_1(c, x[m], n)\]
+    \end{itemize}
+\end{definition}
+
+The $\text{FixAfter}_2$ conditions in the level-2 delay and loop clauses do not require predicting the future of the current outer iteration. Each is applied to a delayed stream, so its row at outer index $m$ comes from the already completed outer iteration $m-1$ (or is the zero row when $m=0$). Before iteration $m$ begins, the runtime has stored that row through a convergence bound $B$. If $n \geq B$, the bound immediately establishes $\text{FixAfter}_2$; otherwise, the runtime decides it by comparing the finitely many stored entries from $n$ through $B$, since all later entries equal the stored final value.
+
+Like the StFP predicate, the StFP detector is structural and level-indexed. Its clauses for structural combinators recurse into sub-circuits, while its level-adapter clauses delegate across circuit levels. Therefore, it applies compositionally to nested bracketed circuits rather than treating each recursive component as an isolated case.
+
+% An important fact related to implementation is that $\text{Detector}_2$ for the delay node needs to check whether the input from the last outer iteration $s$ is fixed after some index $n$. This is perfect for the sequential implementation because the computation of the last outer iteration has already terminated when we start computing the current outer iteration. For a parallel implementation, this is also totally acceptable, because we will know the result once the thread for the last iteration has terminated before $n$ or it has continued after $n$. Therefore, no computation would be stuck permanently. The example at the end of \secref{sec:intfp} will be helpful to understand this point.
+
+We have proved the correctness of StFP via the following theorem:
+\begin{theorem}[Correctness of StFP Detector]
+    For any circuit $c$,
+    \[\forall x,n,\, \text{Detector}_1(c, x, n) \iff \text{StFP}_1(c, x, n)\]
+    and for any level-2 circuit $c$,
+    \[\forall x,m,n,\, \text{Detector}_2(c, x, m, n) \iff \text{StFP}_2(c, x, m, n)\]
+    These immediately imply that the StFP detector is both sound and complete.
+\end{theorem}
+
+The StFP detector should be read primarily as a correctness-oriented general fallback detector. It establishes that StFP is decidable for arbitrary circuits in our core calculus. A fixed-input check turns it into a local IntFP detector; applying that detector with zero-output checks across all bracketed sub-circuits yields the sound and complete global IntConv detector and establishes that IntConv is decidable as well. A practical implementation may optimize these checks or use a specialized detector when one is justified. In particular, for Conv-complete classes, IntConv and ExtConv coincide, so a sound and complete ExtConv detector also detects IntConv. FirstZero for the naive and semi-naive circuits is one such specialized detector. Measuring the overhead of these alternatives in a complete system is future work.
