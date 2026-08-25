@@ -8,7 +8,7 @@ Formal Theory of Convergence Detection for Incremental Recursive Computation*.
 - `paper.pdf`: revised manuscript.
 - `revision-diff.pdf`: differences between the original and revised manuscripts.
 - `summary-of-changes.pdf`: summary of the revision and how it addresses the reviews.
-- `response_to_reviewer_C.pdf`: additional response to Reviewer C.
+- `response-to-reviewer-C.pdf`: additional response to Reviewer C.
 - `paper-to-lean.md`: correspondence between paper definitions and results and
   their Lean declarations, with links to the paper LaTex source and the Lean code.
 - `paper/`: LaTeX source of the revised manuscript.
