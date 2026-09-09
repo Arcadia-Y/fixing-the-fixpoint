@@ -5,6 +5,8 @@ Formal Theory of Convergence Detection for Incremental Recursive Computation_.
 
 ## Contents
 
+NOTICE: If you are viewing this on the Anonymous Github website, there will be issues with figure display in `paper.pdf`, `revision-diff.pdf` and `revision-diff-full.pdf`. Please consider downloading and reading them elsewhere.
+
 - [`paper.pdf`](./paper.pdf): revised manuscript.
 - [`revision-diff.pdf`](./revision-diff.pdf): revised manuscript with added material highlighted in dark blue.
 - [`revision-diff-full.pdf`](./revision-diff-full.pdf): full diff between the original and revised manuscripts,
