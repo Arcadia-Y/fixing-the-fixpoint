@@ -5,16 +5,16 @@ Formal Theory of Convergence Detection for Incremental Recursive Computation_.
 
 ## Contents
 
-- `paper.pdf`: revised manuscript.
-- `revision-diff.pdf`: revised manuscript with added material highlighted in dark blue.
-- `revision-diff-full.pdf`: full diff between the original and revised manuscripts,
+- [`paper.pdf`](./paper.pdf): revised manuscript.
+- [`revision-diff.pdf`](./revision-diff.pdf): revised manuscript with added material highlighted in dark blue.
+- [`revision-diff-full.pdf`](./revision-diff-full.pdf): full diff between the original and revised manuscripts,
   showing both additions and deletions.
-- `summary-of-changes.pdf`: summary of the revision and how it addresses the reviews.
-- `response-to-reviewer-C.pdf`: additional response to Reviewer C.
+- [`summary-of-changes.pdf`](./summary-of-changes.pdf): summary of the revision and how it addresses the reviews.
+- [`response-to-reviewer-C.pdf`](./response-to-reviewer-C.pdf): additional response to Reviewer C.
 - [`paper-to-lean.md`](./paper-to-lean.md): correspondence between paper definitions and results and
   their Lean declarations, with links to the paper LaTex source and the Lean code.
-- `paper/`: LaTeX source of the revised manuscript.
-- `DBSP/` and `DBSP.lean`: Lean 4 formalization. The project configuration is in
+- [`paper/`](./paper/): LaTeX source of the revised manuscript.
+- [`DBSP/`](./DBSP/) and [`DBSP.lean`](./DBSP.lean): Lean 4 formalization. The project configuration is in
   `lakefile.toml`, with the Lean version pinned by `lean-toolchain`.
 
 ## Building the Lean formalization
