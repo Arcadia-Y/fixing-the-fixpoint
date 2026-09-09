@@ -120,7 +120,7 @@ The \emph{Fixpoint Detection} (FPD) problem actually involves two issues:
 \begin{enumerate}
   \item
     \label{It:FPDUndecidability}
-    Because DBSP is Turing-complete, for arbitrary DBSP circuits whose primitive nodes can express primitive recursive functions, exact FPD turns out to be \emph{undecidable}: there is a fixed level-1 circuit with no computable detector that is both sound and complete on all canonical inputs (\secref{sec:fpd-undecidability}).
+    Because DBSP is Turing-complete, for arbitrary DBSP circuits whose primitive nodes can express primitive recursive functions, exact FPD turns out to be \emph{impossible}: there is a fixed level-1 circuit with no computable detector that is both sound and complete on all canonical inputs (\secref{sec:fpd-undecidability}).
   \item
     \label{It:FirstZeroUnsound}
     In the DBSP paper~\cite{budiu2025dbsp}, the authors suggest that for many practical queries, including Datalog queries, a key primitive for fixpoint detection can be implemented by an iterative procedure that can be stopped when the first ``$0$'' is encountered (e.g., the first $\emptyset$ when working with sets), which intuitively implies that there is no change in two adjacent results.
@@ -150,7 +150,7 @@ as discussed in \secref{sec:related}, similar problems exist in other frameworks
 
 To fill in this gap, we develop a formal theory of convergence detection using DBSP as a core calculus. Within this theory, we define \emph{internal convergence} (IntConv) as a declarative convergence criterion corresponding to the internal-state-stability strategy used by practical implementations such as Feldera~\cite{feldera_repo}.
 We show that IntConv is a \emph{sound} criterion, so it never produces an incorrect answer (\secref{sec:intfp}),\footnote{
-  Because exact FPD for arbitrary circuits is undecidable, IntConv is not complete
+  Because exact FPD for arbitrary circuits is impossible, IntConv is not complete
   for general circuits.
   Consequently, there can be computations that mathematically converge,
   but convergence is not detected by the IntConv criterion.
@@ -172,12 +172,12 @@ all mechanized proofs are available as anonymous supplementary material.
 In summary, our contributions are as follows:
 \begin{itemize}
   \item
-    We identify and formalize the Fixpoint Detection (FPD) problem in DBSP, showing that the commonly used FirstZero criterion is unsound in general and that exact FPD is undecidable for arbitrary expressive circuits.
+    We identify and formalize the Fixpoint Detection (FPD) problem in DBSP, showing that the commonly used FirstZero criterion is unsound in general and that exact FPD is impossible for arbitrary expressive circuits.
   \item
     We define internal convergence (IntConv) as a declarative criterion corresponding to the internal-state-stability strategy used by Feldera-style implementations, and prove that it is a sound and sufficient condition for convergence.
     We define the State Fixpoint (StFP) predicate and a sound and complete StFP detector, giving semantic and algorithmic formalizations of this strategy. Combining the StFP detector with fixed-input and zero-output checks across all bracketed sub-circuits yields a sound, complete, and compositional global IntConv detector.
   \item
-    We show that IntConv is a complete criterion for a large class of useful circuits, including all regular circuits and their incrementally optimized forms. As a result, exact convergence detection is possible for these circuits despite its undecidability for the full language.
+    We show that IntConv is a complete criterion for a large class of useful circuits, including all regular circuits and their incrementally optimized forms. As a result, exact convergence detection is possible for these circuits despite its impossibility for the full language.
   \item
     We formally verify our key results in Lean.
 \end{itemize}

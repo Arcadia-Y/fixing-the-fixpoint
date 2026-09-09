@@ -6,7 +6,9 @@ Formal Theory of Convergence Detection for Incremental Recursive Computation*.
 ## Contents
 
 - `paper.pdf`: revised manuscript.
-- `revision-diff.pdf`: differences between the original and revised manuscripts.
+- `revision-diff.pdf`: revised manuscript with added material highlighted in dark blue.
+- `revision-diff-full.pdf`: full diff between the original and revised manuscripts,
+  showing both additions and deletions.
 - `summary-of-changes.pdf`: summary of the revision and how it addresses the reviews.
 - `response-to-reviewer-C.pdf`: additional response to Reviewer C.
 - `paper-to-lean.md`: correspondence between paper definitions and results and
