@@ -27,3 +27,11 @@ lake build
 
 Getting the Mathlib cache initially takes 1–2 minutes, and a clean build takes
 about 2–3 minutes on a fast laptop.
+
+## License
+
+The original code and its accompanying documentation are available under the
+[MIT License](LICENSE). Inherited code and bundled third-party files retain
+their existing licenses and copyright notices, including the BSD-2-Clause
+notices in `DBSP/StreamTheory/`. The manuscript, its LaTeX sources, and figures
+are not covered by the code's MIT license.

@@ -123,7 +123,7 @@ The \emph{Fixpoint Detection} (FPD) problem actually involves two issues:
 \begin{enumerate}
   \item
     \label{It:FPDUndecidability}
-    Because DBSP is Turing-complete, for arbitrary DBSP circuits whose primitive nodes can express primitive recursive functions, exact FPD turns out to be \emph{impossible}: there is a fixed level-1 circuit with no computable detector that is both sound and complete on all canonical inputs (\secref{sec:fpd-undecidability}).
+    If the choice of primitive nodes makes DBSP Turing-complete, exact FPD for arbitrary circuits is \emph{impossible}: there is a fixed level-1 circuit with no computable detector that is both sound and complete (\secref{sec:fpd-undecidability}).
   \item
     \label{It:FirstZeroUnsound}
     In the DBSP paper~\cite{budiu2025dbsp}, the authors suggest that for many practical queries, including Datalog queries, a key primitive for fixpoint detection can be implemented by an iterative procedure that can be stopped when the first ``$0$'' is encountered (e.g., the first $\emptyset$ when working with sets), which intuitively implies that there is no change in two adjacent results.
