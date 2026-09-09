@@ -1,7 +1,7 @@
 # Revision Submission Attachment
 
-This attachment accompanies the revised submission of *Fixing the Fixpoint: A
-Formal Theory of Convergence Detection for Incremental Recursive Computation*.
+This attachment accompanies the revised submission of _Fixing the Fixpoint: A
+Formal Theory of Convergence Detection for Incremental Recursive Computation_.
 
 ## Contents
 
@@ -11,7 +11,7 @@ Formal Theory of Convergence Detection for Incremental Recursive Computation*.
   showing both additions and deletions.
 - `summary-of-changes.pdf`: summary of the revision and how it addresses the reviews.
 - `response-to-reviewer-C.pdf`: additional response to Reviewer C.
-- `paper-to-lean.md`: correspondence between paper definitions and results and
+- [`paper-to-lean.md`](./paper-to-lean.md): correspondence between paper definitions and results and
   their Lean declarations, with links to the paper LaTex source and the Lean code.
 - `paper/`: LaTeX source of the revised manuscript.
 - `DBSP/` and `DBSP.lean`: Lean 4 formalization. The project configuration is in
