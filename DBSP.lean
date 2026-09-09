@@ -6,6 +6,7 @@ import DBSP.Circuits.Circuits
 
 -- The convergence specification and detection algorithm
 import DBSP.Convergence.Spec
+import DBSP.Convergence.FPD
 import DBSP.Convergence.FPDetector
 
 -- Convergence-complete circuits and fixpoint-complete circuits, our core concept for arguing about the practicality of the new convergence specification.

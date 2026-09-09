@@ -1,0 +1,147 @@
+As introduced in \secref{sec:pre-theory}, the stream elimination operator $\elim$ is inherently a partial function: it is well-defined only if its input stream is \emph{zero almost everywhere}.
+With standard Zset-based relational operators, DBSP is Turing-complete \cite{budiu2025dbsp}, meaning it is acceptable that some circuits containing $\elim$ never converge to zero.
+However, the core challenge is at run time: even if $\elim$'s input does eventually converge to zero, how can the system safely detect this convergence by observing only a finite prefix of the stream? Determining this zero-almost-everywhere property at run time is the essence of the \emph{Fixpoint Detection (FPD)} problem. In this section, we formalize the FPD problem and the \emph{soundness} and \emph{completeness} of fixpoint detectors.
+
+Furthermore, in our language (\secref{sec:pre-language}), $\elim$ operators are packaged inside bracketed circuits, and a complete circuit can contain multiple bracketed sub-circuits, much like a standard program can contain multiple while loops. Therefore, a circuit mathematically \emph{converges} if and only if every bracketed sub-circuit reaches a fixpoint. We refer to this global detection problem as the \emph{Convergence Detection} problem.
+
+To formalize the FPD problem within our formal language, we introduce the following definition to
+characterize when
+a stream has converged to zero at a specific index:
+\begin{definition}[ZeroAfter]\label{De:ZeroAfter}
+    A stream $s \in \stream{A}$ is \emph{zero after an outer index $n \in \N$} if:
+    \[\text{ZeroAfter}_1(s, n) := \forall m \ge n, s[m] = 0_A\]
+    A nested stream $s \in \stream{\stream{A}}$ is \emph{zero after a 2D-index $(m, n) \in \N \times \N$} if:
+    \[\text{ZeroAfter}_2(s, m, n) := \text{ZeroAfter}_1(s[m], n)\]
+    We also say that a nested stream $s \in \stream{\stream{A}}$ is \emph{zero after an upper-bound stream $\mathbf{b} \in \stream{\N}$} if:
+    \[\text{ZeroAfter}_2(s, \mathbf{b}) := \forall i \in \N, \text{ZeroAfter}_2(s, i, \mathbf{b}[i])\]
+\end{definition}
+
+An important fact is that ZeroAfter is a \emph{level-indexed predicate} with the following properties:
+\begin{itemize}
+    \item $\text{ZeroAfter}_1$ applies to any stream (i.e., stream of level $\ell \ge 1$), and accepts a 1D-index.
+    \item $\text{ZeroAfter}_2$ is defined based on $\text{ZeroAfter}_1$. It applies to only nested streams (i.e., stream of level $\ell \ge 2$), and accepts a 2D-index or a stream of 1D-indices.
+\end{itemize}
+This inductive\footnote{
+    One might consider Def.~\ref{De:ZeroAfter} to not be inductive because it only refers to levels 1 and 2.
+    However, this choice was deliberate because of the syntactic restriction we placed on stream level (see \secref{sec:pre-language} and \secref{sec:formalization}). If the stream level is generalized to any natural number, Def.~\ref{De:ZeroAfter} would be a standard inductive definition.
+} structure is a natural result of our well-defined circuit's stream level hierarchy. We will soon see more examples of such level-indexed definitions. 
+
+We also need to introduce another predicate to capture the first true value of a stream of Booleans.
+\begin{definition}[FirstTrue]
+    A stream of Booleans $s \in \stream{\B}$ encounters its first true value at index $n \in \N$, denoted $\text{FirstTrue}_1(s) = n$, if $s[n]= \text{true}$ and $\forall m < n, s[m] = \text{false}$. Similarly, we define $\text{FirstTrue}_2(s) = \mathbf b$ for $s \in \stream{\stream{\B}}$ and $\mathbf b \in \stream{\N}$ as $\forall i \in \N, \text{FirstTrue}_1(s[i]) = \mathbf b[i]$.
+\end{definition}
+
+We can now formally state the FPD problem. Intuitively, the FPD problem is a matter of providing a fixpoint detector that specifies a runtime fixpoint-detection mechanism for a level-1 bracketed circuit $c$ (as shown in Fig.~\ref{fig:fpd-1}) or a level-2 bracketed circuit $c$ (as shown in Fig.~\ref{fig:fpd-2}). A fixpoint detector accepts a circuit $c$ and an input to this circuit (which is either $\delta_0(x)$ or $\lift{\delta_0}(x)$), and returns a Boolean value for each entry of the input. When a fixpoint detector returns true for the first time in an iteration, the output of $c$ should have converged to $0$ in the corresponding iteration (recall that $c$ should produce changes to the output that are integrated by $\elim$ until convergence). We call this property \textit{soundness}
+(see Eqns.~\eqref{eq:fpd-sound} and \eqref{eq:fpd-sound-2} below).
+When the output has converged to $0$, the fixpoint detector should eventually return true. We call this property \textit{completeness}
+(see Eqns.~\eqref{eq:fpd-complete} and \eqref{eq:fpd-complete-2} below).
+\begin{definition}[The FPD problem]\label{def:fpd-problem}
+    Given a level-1 circuit $c$, a function $f_c: \stream{A} \to \stream{\B}$ is a \textit{fixpoint detector} for $c$ if for any $x \in A$ and $n \in \N$:
+    \begin{equation}\label{eq:fpd-sound}
+        \text{FirstTrue}_1(f_c(\delta_0(x))) = n \implies \text{ZeroAfter}_1(\means{c}(\delta_0(x)), n) \text{ and}
+    \end{equation}
+    \begin{equation}\label{eq:fpd-complete}
+        \text{ZeroAfter}_1(\means{c}(\delta_0(x)), n) \implies \exists m, \text{FirstTrue}_1(f_c(\delta_0(x))) = m
+    \end{equation}
+    Similarly, given a level-2 circuit $c$, a function $f_c: \stream{\stream{A}} \to \stream{\stream{\B}}$ is a \textit{fixpoint detector} for $c$ if
+    for any $x \in \stream{A}$ and $\mathbf{b} \in \stream{\N}$:
+    \begin{equation}\label{eq:fpd-sound-2}
+        \text{FirstTrue}_2(f_c(\lift{\delta_0}(x))) = \mathbf{b} \implies \text{ZeroAfter}_2(\means{c}(\lift{\delta_0}(x)), \mathbf{b}) \text{ and}
+    \end{equation}
+    \begin{equation}\label{eq:fpd-complete-2}
+        \text{ZeroAfter}_2(\means{c}(\lift{\delta_0}(x)), \mathbf{b}) \implies \exists \mathbf{b}', \text{FirstTrue}_2(f_c(\lift{\delta_0}(x))) = \mathbf{b}'
+    \end{equation}
+\end{definition}
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \begin{tikzpicture}[>=latex]
+            \node[] (Iinput) {$x$};
+            \node[block, right of=Iinput] (Idelta) {$\delta_0$};
+            \node[block, right of=Idelta] (c) {$c$};
+            \node[block, right of=c] (S) {$\elim$};
+            \node[right of=S] (output)  {};
+            \draw[->] (c) -- node (o) {} (S);
+            \draw[->] (Iinput) -- (Idelta);
+            \draw[->] (Idelta) -- (c);
+            \draw[->] (c) -- (S);
+            \draw[->] (S) -- (output);
+        \end{tikzpicture}
+        \caption{The FPD problem for a level-1 circuit $c$}
+        \label{fig:fpd-1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \begin{tikzpicture}[>=latex]
+            \node[] (Iinput) {$x$};
+            \node[block, right of=Iinput] (Idelta) {$\lift{\delta_0}$};
+            \node[block, right of=Idelta] (c) {$c$};
+            \node[block, right of=c] (S) {$\lift{\elim}$};
+            \node[right of=S] (output)  {};
+            \draw[->] (c) -- node (o) {} (S);
+            \draw[->] (Iinput) -- (Idelta);
+            \draw[->] (Idelta) -- (c);
+            \draw[->] (c) -- (S);
+            \draw[->] (S) -- (output);
+        \end{tikzpicture}
+        \caption{The FPD problem for a level-2 circuit $c$}
+        \label{fig:fpd-2}
+    \end{subfigure}
+    \caption{The FPD problem for level-1 and level-2 circuits.}
+    \label{fig:fpd-ckt}
+\end{figure}
+By changing FirstZero to
+another
+fixpoint specification or criterion (like our IntFP to be introduced in \secref{sec:intfp}), Def.~\ref{def:fpd-problem} can be adapted to formalize other FPD problems.
+Note that the FPD for a level-1 circuit $c$ on some input $x$ can be simply reduced to the FPD for the level-2 circuit $\lift{c}$ on stream input $\lambda\_.\ x$.
+Consequently,
+level-2 FPD is a harder problem than level-1 FPD.
+
+For the theory's global convergence specification, we define it as follows:
+\begin{definition}[External convergence (ExtConv)]
+    For any circuit $c$ and input $x$, we say $c$ \emph{externally converges}, denoted $\text{ExtConv}(c, x)$, if $\means{c}(x)$ mathematically converges. Or equivalently, for any sub-circuit in the form of $\mathsf{bracket}(c_0)$ and its corresponding input $x_0$, $\exists \mathbf{b},\, \text{ZeroAfter}_2(\means{c_0}(\lift{\delta_0}(x_0)), \mathbf{b})$.
+\end{definition}
+
+It is easy to see why the external-convergence problem is just the global version of the FPD problem. Once we have a fixpoint detector for any circuit $c$, we immediately get a convergence detector for ExtConv by applying the fixpoint detector to every bracketed sub-circuit. Therefore, we will only focus on the FPD problem in
+what follows.
+
+
+\subsection{Example: The FirstZero Strategy and Its Limitation}\label{sec:fpd-firstzero}
+
+We have already introduced the FirstZero strategy in Section~\ref{sec:overview-problem}, which is
+merely to stop
+when the first $0$ value is encountered. 
+We can formalize FirstZero by instantiating the $f_c$ fixpoint-detector function 
+from
+Def.~\ref{def:fpd-problem}. For a level-1 circuit $c$, it maps an input stream $x$ to a Boolean stream: $f_c(x) = \lambda n.\, (\means{c}(x)[n] = 0)$. For a level-2 circuit $c$, it maps an input nested stream $x$ to a nested Boolean stream: $f_c(x) = \lambda i.\, \lambda n.\, (\means{c}(x)[i][n] = 0)$.
+
+Following the intuitive idea in \secref{sec:overview-problem}, we have established the following theorems for 
+the soundness and completeness of FirstZero for the naive and semi-naive strategy, and the unsoundness of FirstZero for the delta-of-deltas strategy.
+
+\begin{theorem}\label{thm:firstzero-valid}
+    The FirstZero strategy is a sound and complete fixpoint detector for the naive query body $\mathsf{datalogBody}(c_0)$ (Eqn.~(\ref{eq:naive-body})) and the semi-naive query body $\mathsf{semiNaiveBody}(c_0)$ (Eqn.~(\ref{eq:semi-naive-body})), where $c_0$ can represent any circuit implementing a lifted scalar query.
+\end{theorem}
+
+\begin{theorem}\label{thm:firstzero-counterexample}
+    The FirstZero strategy is not a sound fixpoint detector for the delta-of-deltas query body $\mathsf{deltaOfDeltasBody}(c_0)$ (Equation~\ref{eq:delta-of-deltas-body}), where $c_0$ is the circuit implementing the lifted non-recursive query $F_E(R)$ from \secref{sec:intro}.
+\end{theorem}
+
+\subsection{Impossibility of Exact Fixpoint Detection}\label{sec:fpd-undecidability}
+
+Can another strategy overcome FirstZero's failure and solve FPD exactly for every circuit? The following theorem shows the answer is no. We assume the choice of primitive nodes makes DBSP \emph{Turing-complete}: DBSP circuits can express arbitrary partial-recursive scalar functions. This assumption is mild in practice: standard Zset primitive nodes together with DBSP's recursive constructs suffice~\cite[\S7.2]{budiu2025dbsp}. Without loss of generality, we also assume the base type is \(\mathbb Z\).
+
+\begin{theorem}\label{thm:fpd-undecidability}
+    If the choice of primitive nodes makes DBSP Turing-complete, there exists a fixed level-1 circuit $c$ with no computable sound and complete fixpoint detector.
+\end{theorem}
+\begin{proof}
+    We show that a computable sound and complete detector would recognize\footnote{In computability theory, an algorithm recognizes a set if the algorithm eventually accepts every input in the set and never accepts inputs outside it; on those other inputs, it may run forever.} the complement of the halting problem, which is not recursively enumerable. We construct a fixed circuit whose output is eventually zero exactly for inputs that encode nonhalting programs. Let $h(e,k)$ be $1$ if the program that $e$ encodes halts on input $0$ within $k$ steps of a fixed universal evaluator, and $0$ otherwise. Since $h$ is total and primitive recursive~\cite[\S5.2]{carneiro2019computability}, Turing-completeness ensures there is a level-1 circuit $E$ with $\means{E}=\lift{h}$. Define
+    \(
+        c := \bigl(\mathsf{I} \pll (\mathsf{const}(1) \seq \mathsf{I})\bigr) \seq E.
+    \)
+    On $\delta_0(e)$, the two branches supply $e$ and $n+1$, giving $\means{c}(\delta_0(e))[n]=h(e,n+1)$. Assume there is a computable sound and complete detector for $c$ and run the detector on \(\delta_0(e)\) until its first true output. By completeness, this procedure terminates if \(e\) does not halt; by soundness, it runs forever if \(e\) halts. This would recognize the complement of the halting problem, a contradiction.
+\end{proof}
+
+The theorem only rules out exact fixpoint detection for \emph{arbitrary circuits}, but it does not rule out sound and complete detectors for \emph{certain circuit subclasses of interest}\footnote{For example, this construction does not establish an impossibility result for incrementalizations of total computable queries, as the query \(\elim(\llbracket c\rrbracket(\delta_0(e)))\) is defined exactly for nonhalting programs.}. It motivates the sound sufficient criterion IntConv developed in the next section. In \secref{sec:useful}, we prove that IntConv is also complete for regular circuits, including Datalog and while queries, and then extend this guarantee to their incrementally optimized forms.

@@ -88,17 +88,19 @@ def ComputableFixpointDetector1 {A : VType}
 end FPD
 
 /-!
-# Undecidability of exact fixpoint detection
+# Impossibility of exact fixpoint detection
 
-When primitive DBSP nodes can express primitive-recursive functions, there is
-a level-1 circuit with no computable sound and complete fixpoint detector.
+When DBSP circuits are Turing-complete, there is a level-1 circuit with no
+computable sound and complete fixpoint detector. Only circuit implementations
+of total primitive-recursive functions are needed for the reduction; the
+primitive nodes themselves need not implement those functions individually.
 
 The proof first establishes impossibility for the detector's observable
 restriction to canonical inputs `δ0 x`, then packages that reduction using the
 general level-1 FPD definition above.
 -/
 
-namespace FPDUndecidability
+namespace FPDImpossibility
 
 open Nat.Partrec
 open Nat.Partrec.Code
@@ -112,12 +114,52 @@ instance intBaseType : BaseType Int where
   add_cost := fun _ => 0
   sub_cost := fun _ => 0
 
-/-- The expressiveness assumption used by the paper, restricted to the binary
-primitive-recursive functions needed by this reduction. -/
-def PrimitiveNodesExpressPrimrec : Prop :=
+/-- Encode a pair of natural numbers using the circuit's integer base type. -/
+def encodePair (p : Nat × Nat) : Int × Int := (p.1, p.2)
+
+/-- Circuit-level Turing-completeness on encoded numeric data. Every partial
+recursive scalar function has a level-1 circuit implementing it pointwise.
+
+The convergence equivalence specifies the domain, and the second condition
+specifies each defined output. Both are needed because `denote` totalizes
+stream elimination outside its intended domain. The implementation may use
+composition, feedback, and brackets; it is not restricted to a single node
+or to the syntactic `LiftedScalar` fragment.
+
+As in the paper, expressiveness of the chosen primitives is a hypothesis;
+this development does not prove Turing-completeness of a concrete library
+such as the Zset primitives. -/
+def TuringComplete : Prop :=
+  ∀ f : (Nat × Nat) → Part Nat, Partrec f →
+    ∃ E : Ckt ([Int]v ×ᵥ [Int]v) [Int]v 0,
+      (∀ s : stream (Nat × Nat),
+        ExtConv E ((↑↑encodePair) s) ↔ ∀ n, (f (s n)).Dom) ∧
+      (∀ (s : stream (Nat × Nat)) n value,
+        value ∈ f (s n) →
+          denote E ((↑↑encodePair) s) n = (value : Int))
+
+/-- The weaker circuit-expressiveness property actually used by the proof.
+Every total binary primitive-recursive function has a converging pointwise
+circuit implementation on nonnegative integer inputs. -/
+def CircuitsExpressPrimrec : Prop :=
   ∀ f : Nat → Nat → Nat, Primrec₂ f →
-    ∃ node : BinaryNode Int Int Int,
-      ∀ x y : Nat, node.f ((x : Int), (y : Int)) = (f x y : Int)
+    ∃ E : Ckt ([Int]v ×ᵥ [Int]v) [Int]v 0,
+      (∀ s : stream (Nat × Nat), ExtConv E ((↑↑encodePair) s)) ∧
+      (∀ (s : stream (Nat × Nat)) n,
+        denote E ((↑↑encodePair) s) n = (f (s n).1 (s n).2 : Int))
+
+/-- Turing-completeness supplies the terminating scalar implementation used
+in the paper, since primitive-recursive functions are total and computable. -/
+theorem TuringComplete.circuitsExpressPrimrec (h : TuringComplete) :
+    CircuitsExpressPrimrec := by
+  intro f hf
+  obtain ⟨E, hconv, hvalue⟩ :=
+    h (fun p => Part.some (f p.1 p.2)) hf.to_comp.partrec
+  refine ⟨E, ?_, ?_⟩
+  · intro s
+    exact (hconv s).mpr (fun _ => trivial)
+  · intro s n
+    exact hvalue s n (f (s n).1 (s n).2) (by simp)
 
 /-- `boundedHalting code steps` is `1` exactly when the partial-recursive
 program encoded by `code` has halted on input `0` within `steps` units of
@@ -142,11 +184,11 @@ def clockCircuit : Ckt [Int]v [Int]v 0 :=
   (Ckt.const (ns := 0) (a := [Int]v) (1 : Int)) >>c
     (@cI [Int]v 0)
 
-/-- The fixed circuit used in the reduction. Its first input to `node` is the
-encoded program, and its second input is the current clock value. -/
-def haltingCircuit (node : BinaryNode Int Int Int) :
+/-- The fixed circuit used in the reduction: `(I || (const 1 >> I)) >> E`.
+The evaluator circuit `E` receives the program code and current clock value. -/
+def haltingCircuit (E : Ckt ([Int]v ×ᵥ [Int]v) [Int]v 0) :
     Ckt [Int]v [Int]v 0 :=
-  ((@cI [Int]v 0) &&c clockCircuit) >>c Ckt.node2 node
+  ((@cI [Int]v 0) &&c clockCircuit) >>c E
 
 private lemma integral_one (n : Nat) :
     I (fun _ : Nat => (1 : Int)) n = (n + 1 : Nat) := by
@@ -157,21 +199,45 @@ private lemma integral_one (n : Nat) :
       simp only [ih]
       omega
 
-theorem denote_haltingCircuit
-    (node : BinaryNode Int Int Int)
-    (hnode : ∀ x y : Nat,
-      node.f ((x : Int), (y : Int)) = (boundedHalting x y : Int))
-    (code n : Nat) :
-    denote (haltingCircuit node) (δ0 (code : Int)) n =
-      (boundedHalting code (n + 1) : Int) := by
-  simp only [haltingCircuit, clockCircuit, denote, Function.comp_apply,
+/-- The two branches supply the constant program code and clock `n + 1`. -/
+theorem haltingCircuit_input (code : Nat) :
+    denote ((@cI [Int]v 0) &&c clockCircuit) (δ0 (code : Int)) =
+      (↑↑encodePair) (fun n => (code, n + 1)) := by
+  funext n
+  simp only [clockCircuit, denote, Function.comp_apply,
     liftO_0, lifting_eq, sprodO_0, sprod_apply, integral_delta_apply,
     id_eq]
-  rw [cI_denote]
-  simp only [integral_delta_apply, lifting_eq]
-  change node.f ((code : Int), I (fun _ : Nat => (1 : Int)) n) =
-    (boundedHalting code (n + 1) : Int)
-  rw [integral_one, hnode]
+  rw [cI_denote, integral_delta_apply]
+  change ((code : Int), I (fun _ : Nat => (1 : Int)) n) =
+    ((code : Int), ((n + 1 : Nat) : Int))
+  rw [integral_one]
+
+/-- The paper's key equation: the output at index `n` is `h(code, n + 1)`. -/
+theorem denote_haltingCircuit
+    (E : Ckt ([Int]v ×ᵥ [Int]v) [Int]v 0)
+    (hE : ∀ (s : stream (Nat × Nat)) n,
+      denote E ((↑↑encodePair) s) n =
+        (boundedHalting (s n).1 (s n).2 : Int))
+    (code n : Nat) :
+    denote (haltingCircuit E) (δ0 (code : Int)) n =
+      (boundedHalting code (n + 1) : Int) := by
+  change denote E (denote (cI &&c clockCircuit) (δ0 (code : Int))) n = _
+  rw [haltingCircuit_input]
+  exact hE (fun n => (code, n + 1)) n
+
+/-- Internal bracketed computations terminate on each canonical input.
+The impossibility concerns detecting the outer zero suffix, not computing
+the individual entries of the evaluator's output. -/
+theorem extConv_haltingCircuit
+    (E : Ckt ([Int]v ×ᵥ [Int]v) [Int]v 0)
+    (hE : ∀ s : stream (Nat × Nat), ExtConv E ((↑↑encodePair) s))
+    (code : Nat) : ExtConv (haltingCircuit E) (δ0 (code : Int)) := by
+  change ExtConv (cI &&c clockCircuit) (δ0 (code : Int)) ∧
+    ExtConv E (denote (cI &&c clockCircuit) (δ0 (code : Int)))
+  constructor
+  · simp [clockCircuit, cI, ExtConv]
+  · rw [haltingCircuit_input]
+    exact hE (fun n => (code, n + 1))
 
 /-- The observable part of a level-1 detector on canonical inputs: `d x n` is
 the detector's result at iteration `n` on input `δ0 x`.  This first-order
@@ -212,12 +278,13 @@ private lemma boundedHalting_encode_eq_zero_iff (code : Code) (steps : Nat) :
 halt on input `0`.  Notice that this equivalence holds at every proposed
 zero-after bound, since a halting program eventually produces `1` forever. -/
 theorem zeroAfter_haltingCircuit_iff_not_dom
-    (node : BinaryNode Int Int Int)
-    (hnode : ∀ x y : Nat,
-      node.f ((x : Int), (y : Int)) = (boundedHalting x y : Int))
+    (E : Ckt ([Int]v ×ᵥ [Int]v) [Int]v 0)
+    (hE : ∀ (s : stream (Nat × Nat)) n,
+      denote E ((↑↑encodePair) s) n =
+        (boundedHalting (s n).1 (s n).2 : Int))
     (code : Code) (n : Nat) :
     ZeroAfter
-        (denote (haltingCircuit node)
+        (denote (haltingCircuit E)
           (δ0 ((Encodable.encode code : Nat) : Int))) n ↔
       ¬(eval code 0).Dom := by
   constructor
@@ -235,10 +302,10 @@ theorem zeroAfter_haltingCircuit_iff_not_dom
         boundedHalting (Encodable.encode code) (t + 1) = 1 :=
       (boundedHalting_encode_eq_one_iff code (t + 1)).mpr hisSome
     have hout := hzero t (by simp [t])
-    rw [denote_haltingCircuit node hnode] at hout
+    rw [denote_haltingCircuit E hE] at hout
     simp [hone] at hout
   · intro hnotdom t _
-    rw [denote_haltingCircuit node hnode]
+    rw [denote_haltingCircuit E hE]
     have hnone : evaln (t + 1) code 0 = Option.none := by
       cases hopt : evaln (t + 1) code 0 with
       | none => rfl
@@ -270,15 +337,17 @@ private theorem rfind_dom_iff_exists_firstTrue (s : Nat → Bool) :
     · intro m hm
       simpa using hmin m hm
 
-/-- The first-order core of the reduction: even on nonnegative scalar inputs,
-there is no computable sound and complete detector. -/
+/-- The first-order core of the reduction: all internal computations converge
+on nonnegative scalar inputs, but no computable sound and complete detector
+can detect the outer zero suffix. -/
 theorem no_computable_detector_on_nat_inputs
-    (hexpressive : PrimitiveNodesExpressPrimrec) :
+    (hexpressive : CircuitsExpressPrimrec) :
     ∃ c : Ckt [Int]v [Int]v 0,
+      (∀ input : Nat, ExtConv c (δ0 (input : Int))) ∧
       ¬∃ d : Detector, Computable₂ d ∧ SoundCompleteDetector c d := by
-  obtain ⟨node, hnode⟩ :=
+  obtain ⟨E, hconv, hE⟩ :=
     hexpressive boundedHalting boundedHalting_primrec
-  refine ⟨haltingCircuit node, ?_⟩
+  refine ⟨haltingCircuit E, extConv_haltingCircuit E hconv, ?_⟩
   rintro ⟨detector, hcomputable, hsound, hcomplete⟩
   apply ComputablePred.halting_problem_not_re 0
   let codeDetector : Code → Nat → Bool :=
@@ -302,11 +371,11 @@ theorem no_computable_detector_on_nat_inputs
   constructor
   · rintro ⟨n, hfirst⟩
     exact
-      (zeroAfter_haltingCircuit_iff_not_dom node hnode code n).mp
+      (zeroAfter_haltingCircuit_iff_not_dom E hE code n).mp
         (hsound (Encodable.encode code) n hfirst)
   · intro hnotdom
     exact hcomplete (Encodable.encode code) 0 <|
-      (zeroAfter_haltingCircuit_iff_not_dom node hnode code 0).mpr
+      (zeroAfter_haltingCircuit_iff_not_dom E hE code 0).mpr
         hnotdom
 
 /-- The inclusion of natural numbers into integers is computable for mathlib's
@@ -324,14 +393,14 @@ the sense of paper Definition 4.3 can be both sound and complete.
 Computability is only required on the canonical inputs `δ0 x` inspected by the
 FPD definition.  The proof then restricts such a detector to nonnegative
 integer inputs, which already suffices for the contradiction. -/
-theorem fpd_undecidable
-    (hexpressive : PrimitiveNodesExpressPrimrec) :
+theorem fpd_impossible
+    (hturing : TuringComplete) :
     ∃ c : Ckt [Int]v [Int]v 0,
       ¬∃ f : FixpointDetector1 [Int]v,
         ComputableFixpointDetector1 f ∧
           IsFixpointDetector1 c f := by
-  obtain ⟨c, hrestricted⟩ :=
-    no_computable_detector_on_nat_inputs hexpressive
+  obtain ⟨c, _hconv, hrestricted⟩ :=
+    no_computable_detector_on_nat_inputs hturing.circuitsExpressPrimrec
   refine ⟨c, ?_⟩
   rintro ⟨f, hcomputable, hsound, hcomplete⟩
   have hnatComputable :
@@ -354,4 +423,4 @@ theorem fpd_undecidable
   · intro input n hzero
     exact hcomplete (input : Int) n hzero
 
-end FPDUndecidability
+end FPDImpossibility
