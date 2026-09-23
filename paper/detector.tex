@@ -54,7 +54,7 @@ The fixed continuations agree with the observed input through the designated ind
 \end{theorem}
 Because it is easy to detect whether $\lift{\delta_0}(x)$ (the input to the target bracketed circuit) is fixed after any index $(m, n)$, it suffices to detect the StFP.
 
-We now give a high-level runtime algorithm to detect the StFP for \emph{any} circuit $c$ and input $x$. While StFP provides the semantic formalization of FirstStateStable in our denotational model, this detector provides its algorithmic formalization. As before, we simulate computation of the state at some point by computation of input up to that point. We will also explain what a natural implementation would probably do for each case. See \secref{sec:related} for more discussion on the Feldera implementation.
+We now give a high-level runtime algorithm to detect the StFP for \emph{any} circuit $c$ and input $x$. While StFP provides the semantic formalization of FirstStateStable in our denotational model, this detector provides its algorithmic formalization. As before, we simulate computation of the state at some point by computation of input up to that point. We will also explain what a natural implementation would probably do for each case. See \secref{sec:related} for more discussion of the Feldera implementation.
 
 \begin{definition}[StFP Detector]
     We define $\text{Detector}_1$, the level-1 StFP detector that accepts a circuit $c$, stream input $x$, and an index $n$, and returns a boolean, as follows:
@@ -97,7 +97,7 @@ We now give a high-level runtime algorithm to detect the StFP for \emph{any} cir
     \end{itemize}
 \end{definition}
 
-The $\text{FixAfter}_2$ conditions in the level-2 delay and loop clauses do not require predicting the future of the current outer iteration. Each is applied to a delayed stream, so its row at outer index $m$ comes from the already completed outer iteration $m-1$ (or is the zero row when $m=0$). Before iteration $m$ begins, the runtime has stored that row through a convergence bound $B$. If $n \geq B$, the bound immediately establishes $\text{FixAfter}_2$; otherwise, the runtime decides it by comparing the finitely many stored entries from $n$ through $B$, since all later entries equal the stored final value.
+The $\text{FixAfter}_2$ conditions in the level-2 delay and loop clauses do not require predicting the future of the current outer iteration. Each is applied to a delayed stream, so its row at outer index $m$ comes from the already completed outer iteration $m-1$ (or is the zero row when $m=0$). Before iteration $m$ begins, the runtime has stored that row through a convergence bound $B$. If $n \geq B$, the bound immediately establishes $\text{FixAfter}_2$; otherwise, the runtime decides it by comparing the finitely many stored entries from $n$ through $B$, because all later entries equal the stored final value.
 
 Like the StFP predicate, the StFP detector is structural and level-indexed. Its clauses for structural combinators recurse into sub-circuits, while its level-adapter clauses delegate across circuit levels. Therefore, it applies compositionally to nested bracketed circuits rather than treating each recursive component as an isolated case.
 

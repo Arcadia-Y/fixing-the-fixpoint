@@ -1,4 +1,4 @@
-As introduced in \secref{sec:pre-theory}, the stream elimination operator $\elim$ is inherently a partial function: it is well-defined only if its input stream is \emph{zero almost everywhere}.
+As introduced in \secref{sec:pre-theory}, the stream-elimination operator $\elim$ is inherently a partial function: it is well-defined only if its input stream is \emph{zero almost everywhere}.
 With standard Zset-based relational operators, DBSP is Turing-complete \cite{budiu2025dbsp}, meaning it is acceptable that some circuits containing $\elim$ never converge to zero.
 However, the core challenge is at run time: even if $\elim$'s input does eventually converge to zero, how can the system safely detect this convergence by observing only a finite prefix of the stream? Determining this zero-almost-everywhere property at run time is the essence of the \emph{Fixpoint Detection (FPD)} problem. In this section, we formalize the FPD problem and the \emph{soundness} and \emph{completeness} of fixpoint detectors.
 
@@ -19,12 +19,12 @@ a stream has converged to zero at a specific index:
 An important fact is that ZeroAfter is a \emph{level-indexed predicate} with the following properties:
 \begin{itemize}
     \item $\text{ZeroAfter}_1$ applies to any stream (i.e., stream of level $\ell \ge 1$), and accepts a 1D-index.
-    \item $\text{ZeroAfter}_2$ is defined based on $\text{ZeroAfter}_1$. It applies to only nested streams (i.e., stream of level $\ell \ge 2$), and accepts a 2D-index or a stream of 1D-indices.
+    \item $\text{ZeroAfter}_2$ is defined in terms of $\text{ZeroAfter}_1$. It applies only to nested streams (i.e., streams of level $\ell \ge 2$), and accepts a 2D-index or a stream of 1D-indices.
 \end{itemize}
 This inductive\footnote{
     One might consider Def.~\ref{De:ZeroAfter} to not be inductive because it only refers to levels 1 and 2.
     However, this choice was deliberate because of the syntactic restriction we placed on stream level (see \secref{sec:pre-language} and \secref{sec:formalization}). If the stream level is generalized to any natural number, Def.~\ref{De:ZeroAfter} would be a standard inductive definition.
-} structure is a natural result of our well-defined circuit's stream level hierarchy. We will soon see more examples of such level-indexed definitions. 
+} structure is a natural result of the stream-level hierarchy of a well-defined circuit.     We will soon see more examples of such level-indexed definitions. 
 
 We also need to introduce another predicate to capture the first true value of a stream of Booleans.
 \begin{definition}[FirstTrue]
@@ -144,4 +144,4 @@ Can another strategy overcome FirstZero's failure and solve FPD exactly for ever
     On $\delta_0(e)$, the two branches supply $e$ and $n+1$, giving $\means{c}(\delta_0(e))[n]=h(e,n+1)$. Assume there is a computable sound and complete detector for $c$ and run the detector on \(\delta_0(e)\) until its first true output. By completeness, this procedure terminates if \(e\) does not halt; by soundness, it runs forever if \(e\) halts. This would recognize the complement of the halting problem, a contradiction.
 \end{proof}
 
-The theorem only rules out exact fixpoint detection for \emph{arbitrary circuits}, but it does not rule out sound and complete detectors for \emph{certain circuit subclasses of interest}\footnote{For example, this construction does not establish an impossibility result for incrementalizations of total computable queries, as the query \(\elim(\llbracket c\rrbracket(\delta_0(e)))\) is defined exactly for nonhalting programs.}. It motivates the sound sufficient criterion IntConv developed in the next section. In \secref{sec:useful}, we prove that IntConv is also complete for regular circuits, including Datalog and while queries, and then extend this guarantee to their incrementally optimized forms.
+The theorem only rules out exact fixpoint detection for \emph{arbitrary circuits}, but it does not rule out sound and complete detectors for \emph{certain circuit subclasses of interest}.\footnote{For example, this construction does not establish an impossibility result for incrementalizations of total computable queries, because the query \(\elim(\llbracket c\rrbracket(\delta_0(e)))\) is defined exactly for nonhalting programs.} It motivates the sound sufficient criterion IntConv developed in the next section. In \secref{sec:useful}, we prove that IntConv is also complete for regular circuits, including Datalog and while queries, and then extend this guarantee to their incrementally optimized forms.

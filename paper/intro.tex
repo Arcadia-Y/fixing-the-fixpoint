@@ -117,7 +117,7 @@ to the accumulated result until a fixpoint is reached, as shown in Fig.~\ref{fig
 % }
 % Instead, a system that supports incremental recursive computation must use some function of $E$, $E'$, and $R^*_{\textit{old}}$ that leverages old results (and possibly auxiliary information, which must also be updated).
 
-It is challenging, however, to combine incremental computation with recursion to \emph{efficiently incrementalize recursive queries}, that is, in our example, to update the graph and efficiently recompute the new transitive closure. Luckily, frameworks such as DBSP~\cite{budiu2025dbsp} and Differential Dataflow~\cite{McSherry2013DifferentialD} give elegant theories for efficient incrementalization of general recursive queries.
+It is challenging, however, to combine incremental computation with recursion to \emph{efficiently incrementalize recursive queries}---that is, in our example, to update the graph and efficiently recompute the new transitive closure. Luckily, frameworks such as DBSP~\cite{budiu2025dbsp} and Differential Dataflow~\cite{McSherry2013DifferentialD} give elegant theories for efficient incrementalization of general recursive queries.
 However, we find that there is a fundamental gap between their mathematical specification and implementations of such frameworks, having to do with detecting fixpoints.
 The \emph{Fixpoint Detection} (FPD) problem actually involves two issues:
 \begin{enumerate}
@@ -153,14 +153,14 @@ as discussed in \secref{sec:related}, similar problems exist in other frameworks
 % From results given in \secref{sec:detector}, fixpoint detection is decidable for Regular Circuits, and it follows from \secref{sec:complete} that fixpoint detection is efficient for Regular Circuits.
 
 To fill in this gap, we develop a formal theory of convergence detection using DBSP as a core calculus. Within this theory, we define \emph{internal convergence} (IntConv) as a declarative convergence criterion corresponding to the internal-state-stability strategy used by practical implementations such as Feldera~\cite{feldera_repo}.
-We show that IntConv is a \emph{sound} criterion, so it never produces an incorrect answer (\secref{sec:intfp}),\footnote{
+We show that IntConv is a \emph{sound} criterion, so it never produces an incorrect answer (\secref{sec:intfp}).\footnote{
   Because exact FPD for arbitrary circuits is impossible, IntConv is not complete
   for general circuits.
   Consequently, there can be computations that mathematically converge,
   but convergence is not detected by the IntConv criterion.
 }
 At the end of \secref{sec:intfp}, we give a theoretical data-dependency example in which relying only on external convergence can require recursive trace-backs and additional retained state. This example motivates an implementation benefit of IntConv.
-To connect this declarative criterion to runtime state, we define the State Fixpoint (StFP) predicate and provide a sound and complete StFP detector (\secref{sec:detector}). StFP and the StFP detector give semantic and algorithmic formalizations, respectively, of the internal-state-stability strategy in our denotational model. The global IntConv detector combines the StFP detector with fixed-input and zero-output checks across all bracketed sub-circuits, yielding sound and complete IntConv detection. Because the predicate and StFP detector are structural, our formulation applies compositionally to nested recursive computations; \secref{sec:related} compares this capability with the Feldera implementation we inspected.
+To connect this declarative criterion to runtime state, we define the State Fixpoint (StFP) predicate and provide a sound and complete StFP detector (\secref{sec:detector}). StFP and the StFP detector give semantic and algorithmic formalizations, respectively, of the internal-state-stability strategy in our denotational model. The global IntConv detector combines the StFP detector with fixed-input and zero-output checks across all bracketed sub-circuits, yielding sound and complete IntConv detection. Because the predicate and StFP detector are structural, our formulation applies compositionally to nested recursive computations; \secref{sec:related} compares this capability with the Feldera implementation~\cite{feldera_repo}.
 Moreover, we show that IntConv is
 \emph{complete}---i.e., it detects convergence whenever the theoretical specification does---for
 a large class of useful circuits
@@ -170,8 +170,8 @@ a large class of useful circuits
 As a result, sound and complete convergence detection is possible for all these useful circuits.
 
 Our key results are formally verified in Lean 4 \cite{Moura2021TheL4}.
-Our Lean 4 development is described in \secref{sec:formalization}.
-All mechanized proofs are publicly available; see the \hyperref[sec:data-availability]{Data-Availability Statement} for the repository and paper-to-Lean mapping.
+Our Lean 4 development is described in \secref{sec:formalization};
+all mechanized proofs are available as anonymous supplementary material.
 
 In summary, our contributions are as follows:
 \begin{itemize}

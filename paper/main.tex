@@ -32,7 +32,6 @@
 %TC:envir displaymath 0 word
 %TC:envir math 0 word
 %TC:envir comment 0 0
-%%
 % arXiv preprint: retain the ACM layout without review or publication metadata.
 \documentclass[acmsmall,screen,nonacm]{acmart}
 %%
@@ -225,7 +224,7 @@ A Formal Theory of Convergence Detection for Incremental Recursive Computation}
 %% "authornote" and "authornotemark" commands
 %% used to denote shared contribution to the research.
 \author{Chengxi Yang}
-\authornote{Now at the University of California, Berkeley. This work was done
+\authornote{Now at University of California, Berkeley. This work was done
   while an undergraduate at Shanghai Jiao Tong University and a research intern
   at UW-Madison.}
 \email{chengxi@berkeley.edu}
@@ -235,6 +234,11 @@ A Formal Theory of Convergence Detection for Incremental Recursive Computation}
   \city{Madison}
   \state{Wisconsin}
   \country{USA}
+}
+\affiliation{%
+  \institution{Shanghai Jiao Tong University}
+  \city{Shanghai}
+  \country{China}
 }
 
 \author{Tej Chajed}
@@ -314,6 +318,7 @@ A Formal Theory of Convergence Detection for Incremental Recursive Computation}
 %% the work being presented. Separate the keywords with commas.
 \keywords{fixpoint detection, stream-based computing, incremental recursive computation}
 
+
 %%
 %% This command processes the author and affiliation and title
 %% information and builds the first part of the formatted document.
@@ -328,7 +333,7 @@ A Formal Theory of Convergence Detection for Incremental Recursive Computation}
 \section{Preliminary: A Formal Language for DBSP}\label{sec:preliminary}
 \input{preliminary}
 
-\section{The Fixpoint Detection Problem and the Convergence Detection Problem}\label{sec:fpd}
+\section{The Fixpoint-Detection Problem and the Convergence-Detection Problem}\label{sec:fpd}
 \input{fpd}
 
 \section{A Sound Convergence Criterion: IntConv}\label{sec:intfp}

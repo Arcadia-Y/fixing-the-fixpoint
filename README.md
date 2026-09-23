@@ -35,3 +35,6 @@ The original code and its accompanying documentation are available under the
 their existing licenses and copyright notices, including the BSD-2-Clause
 notices in `DBSP/StreamTheory/`. The manuscript, its LaTeX sources, and figures
 are not covered by the code's MIT license.
+
+## Use of AI
+AI is used to assist with Lean development and artifact preparation. The authors carefully reviewed all definitions and theorem statements and take full responsibility for the paper, formalization, and accompanying artifacts.

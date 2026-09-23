@@ -24,7 +24,7 @@ The \emph{delay} operator $z^{-1} : \mathcal{S}_A \to \mathcal{S}_A$ shifts a st
 \end{definition}
 
 \begin{definition}[Feedback Cycle]\label{def:feedback-cycle}
-For certain operators $T: (\stream{A} \times \stream{B}) \to \stream{B}$ and $F: \stream{B} \to \stream{B}$, the equation $Q(s) = T(s, F(Q(s)))$ has a unique solution $Q: \stream{A} \to \stream{B}$, denoted as $\lambda s.\, \mathrm{fix}\, \alpha.\, T(s, F(\alpha))$\footnote{Our formal language guarantees all feedback cycles are well-defined.}. Feedback cycles can be represented as Fig.~\ref{fig:feedback-cycle}.
+For certain operators $T: (\stream{A} \times \stream{B}) \to \stream{B}$ and $F: \stream{B} \to \stream{B}$, the equation $Q(s) = T(s, F(Q(s)))$ has a unique solution $Q: \stream{A} \to \stream{B}$, denoted as $\lambda s.\, \mathrm{fix}\, \alpha.\, T(s, F(\alpha))$.\footnote{Our formal language guarantees that all feedback cycles are well-defined.} Feedback cycles can be represented as Fig.~\ref{fig:feedback-cycle}.
 \end{definition}
 
 DBSP uses feedback cycles mainly for two purposes: express iterative computation and construct integration operator $\I$, as we will show in the following.
@@ -119,9 +119,9 @@ We now formalize a language of DBSP \emph{well-formed circuits} (which we simply
 This circuit language is an inductive grammar as shown in Table~\ref{tab:circuit-syntax}.
 
 A circuit $c : A \to B$ transforms an input stream of type $A$ to an output stream of type $B$. Types are built from \emph{base types} (Abelian groups) and binary products $A \times B$.
-Each circuit is annotated with a \emph{stream level} $\ell \in \{1, 2\}$\footnote{\label{fn:stream-level}
+Each circuit is annotated with a \emph{stream level} $\ell \in \{1, 2\}$,\footnote{\label{fn:stream-level}
   This restriction to the stream level is mainly for formalization convenience without loss of expressiveness. See \secref{sec:formalization} for more discussion on this point.
-}, representing whether the circuit's input and output are streams (level 1) or nested streams (level 2). For instance, a $\mathsf{bracket}$ node must wrap a level-2 circuit and output a level-1 circuit.
+} representing whether the circuit's input and output are streams (level 1) or nested streams (level 2). For instance, a $\mathsf{bracket}$ node must wrap a level-2 circuit and output a level-1 circuit.
 
 The \emph{primitive node} construct ($\mathsf{node}$) lifts a user-defined scalar function to a stream operator, providing a generic extension point for core computations. Commonly used generic operations (like identity, tuple projections, and group arithmetic) are separated into a class of \emph{standard nodes}.
 
