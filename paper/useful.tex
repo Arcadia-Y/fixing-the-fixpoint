@@ -24,35 +24,37 @@ We say $c$ is \emph{FP-complete} if:
 We have established some compositional properties of Conv-completeness and FP-completeness. In particular, Conv-completeness is closed under all circuit constructs except for $\mathsf{bracket}$, while FP-completeness is closed under all circuit constructs except for $\mathsf{bracket}$ and sequential composition $\mathsf{seq}$. These results are useful for us to establish the important results in this section.
 
 
-% \subsection{Compositional Closure Properties of FP-completeness and Conv-completeness}\label{sec:complete-algebra}
-% In short, FP-complete circuits and Conv-complete circuits are closed under most circuit constructs, but there are notable exceptions.
+%
+%
 
-% \begin{lemma}[Compositional Closure Properties of Conv-complete Circuits]
-%     All individual nodes (including primitive, standard and temporal nodes) are Conv-complete. Conv-complete circuits are closed under all other circuit constructs except for $\mathsf{bracket}$. 
-% \end{lemma}
+%
+%
+%
 
-% \begin{lemma}[Bracket Rule for Conv-complete Circuits]
-%     If $c$ is Conv-complete and FP-complete, then $\mathsf{bracket}(c)$ is Conv-complete.
-% \end{lemma}
+%
+%
+%
 
-% These results immediately imply the following lemma. It means that we can compose FP-complete sub-circuits to get Conv-complete circuits, bridging the local fixpoint guarantee and the global convergence guarantee.
+%
 
-% \begin{lemma}[Conv-completeness from FP-completeness]\label{thm:convcomplete-global-criterion}
-% If every sub-circuit of $c$ in the form $\mathsf{bracket}(c_0)$ has FP-complete inner circuit $c_0$, then $c$ is Conv-complete.
-% \end{lemma}
+%
+%
+%
 
-% Compared to Conv-completeness, FP-completeness has more subtle closure properties.
-% \begin{lemma}[Compositional Closure Properties of FP-complete Circuits]
-%     All individual nodes are FP-complete. FP-complete circuits are closed under all other circuit constructs except for $\mathsf{bracket}$ and sequential composition $\mathsf{seq}$. 
-% \end{lemma}  
+%
+%
+%
+%
 
-% The most surprising result is that FP-complete circuits are not closed under sequential composition. To see this, consider the circuit $\mathsf{I} \seq \mathsf{D}$ on integers. Both $\mathsf{I}$ and $\mathsf{D}$ are FP-complete, but their sequential composition is not: when input is a constant stream of $1$, its output is also a constant stream of $1$, but the internal stream between $\mathsf{I}$ and $\mathsf{D}$ is $\lambda n.\, n+1$, which never reaches a fixpoint.
+%
 
-% This counterexample gives us an important insight on the hardness of the FPD problem. We can see that sequential composition hides the information of internal streams, allowing internally unstable circuits to behave stably externally. This may be one of the root causes of the FPD problem and the reason why IntFP is able to solve this problem.
-% Nevertheless, for some good circuits, FP-completeness can be preserved by $\mathsf{seq}$ and $\mathsf{bracket}$, as the following lemma shows. It will be important for proofs in the next section.
-% \begin{lemma}\label{thm:lifted-scalar-FPcomplete}
-%     For a level-1 circuit $c_0$, if $c_0$ is FP-complete and $\means{c_0} = \lift{f}$ for some scalar function $f$, then $\mathsf{bracket}(c_0)$ is FP-complete. Additionally, if $c_1$ is FP-complete, then $c_0 \seq c_1$ is FP-complete.
-% \end{lemma}
+%
+%
+
+%
+%
+%
+%
 
 \subsection{Regular Circuits Are Conv-complete}\label{sec:regular-circuits}
 
@@ -114,8 +116,8 @@ Both query constructors above belong to the standard DBSP recursive sublanguage.
 \end{definition}
 
 Using the inductive structure, it is easy to show that all regular circuits are FP-complete:
-% Because all regular circuits represent a lifted scalar function, by leveraging Lemma~\ref{thm:lifted-scalar-FPcomplete},
-%  it is easy to show that they are all FP-complete.
+%
+%
 \begin{lemma}[Regular Circuits are FP-complete]
     Any regular circuit $c$ is FP-complete. In particular, for any $x, n$, $\text{ExtFP}_1(c, x, n) \implies \text{IntFP}_1(c, x, n)$.
 \end{lemma}

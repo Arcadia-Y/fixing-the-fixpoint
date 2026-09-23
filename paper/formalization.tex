@@ -1,4 +1,6 @@
 All results in this paper have been formalized in Lean 4. We adapted the existing Lean 3 formalization of the DBSP theory~\cite{Chajed2022dbspF} to Lean 4 as a foundation, which accounts for 3,823 lines of code. On top of this, we formalized our new theory in 9,949 additional lines of code, covering the core IntConv theory, and its application such as a Hoare logic framework and several Zsets circuit case studies.
 
 The restriction of the stream level to $\ell \in \{1, 2\}$ in our formal language (\secref{sec:pre-language}) represents a deliberate trade-off between formalization effort (especially with mechanized proofs) and theoretical generality. This range is sufficient to express arbitrarily nested recursive queries and the delta-of-deltas incremental optimization, while keeping the formal verification tractable. In principle, there is no fundamental obstacle to generalizing $\ell$ to arbitrary natural numbers as our theory has already been developed in an inductive style (the level-indexed predicate).
-%See \secref{app:generalize-l} for more discussion.
+
+\paragraph{Use of AI} AI is used to assist with Lean development and artifact preparation. The authors carefully reviewed all definitions and theorem statements and take full responsibility for the paper, formalization, and accompanying artifacts.
+%

@@ -31,3 +31,6 @@ lake build
 
 Getting the Mathlib cache initially takes 1–2 minutes, and a clean build takes
 about 2–3 minutes on a fast laptop.
+
+## Use of AI
+AI is used to assist with Lean development and artifact preparation. The authors carefully reviewed all definitions and theorem statements and take full responsibility for the paper, formalization, and accompanying artifacts.
