@@ -187,7 +187,7 @@ An important observation is that although $x$ and $\D(x)$ may have different Fix
 \begin{proposition}
     For any stream $s$ and $n \in \N$, $\text{FixAfter}_1(s, n) \iff \text{ZeroAfter}_1(\D(s), n + 1)$,
     and for any nested stream $s$ and $\mathbf{b} \in \stream{\N}$, 
-    $\text{FixAfter}_2(s, \mathbf{b}) \implies \text{ZeroAfter}_2(\D(s), \lift{\max}(\mathbf{b}, z^{-1}(\mathbf{b})))$.
+    $\text{FixAfter}_2(s, \mathbf{b}) \implies \text{FixAfter}_2(\D(s), \lift{\max}(\mathbf{b}, z^{-1}(\mathbf{b})))$.
 \end{proposition}
 
 Note that ZeroAfter implies FixAfter. This inspires us to raise a natural question: \emph{since input streams of $c$ and $\mathsf{incOpt}(c)$ have such FixAfter index relation, will all other intermediate streams share the same relation?} If so, as a result, IntConv should also be preserved. We formalize this idea as the following \emph{preservation} relation. 

@@ -938,3 +938,18 @@ theorem IntConv_impl_ExtConv {c: Ckt A B ns}
     exact ⟨ih h1, ⟨b, h3⟩⟩
 
 end IntConvProp
+
+/-- Proposition 7.14: differentiation relates outer stabilization to eventual
+zero, and preserves inner stabilization with the maximum of adjacent row bounds.
+The nested-stream conclusion is stabilization, not eventual zero. -/
+theorem differentiation_stabilization_bounds {A : Type} [AddCommGroup A] :
+    (∀ (s : stream A) (n : ℕ),
+      FixAfter1 s n ↔ ZeroAfter (D s) (n + 1)) ∧
+    (∀ (s : stream (stream A)) (b : stream ℕ),
+      FixAfter2Vec s b →
+        FixAfter2Vec (D s) (fun i => max (b i) (z⁻¹ b i))) := by
+  constructor
+  · intro s n
+    exact ZeroAfter_succ_D_FixAfter1.symm
+  · intro s b h
+    exact FixAfter2Vec_D h
