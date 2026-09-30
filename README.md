@@ -1,7 +1,7 @@
 # Revision Submission Attachment
 
 This attachment accompanies the revised submission of _Fixing the Fixpoint: A
-Formal Theory of Convergence Detection for Incremental Recursive Computation_.
+Formal Theory of Convergence Detection for Incremental Recursive Computation_. 
 
 ## Contents
 
