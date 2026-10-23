@@ -1,8 +1,8 @@
 # Fixing the Fixpoint
 
 This repository contains the Lean 4 formalization and paper sources for
-*Fixing the Fixpoint: A Formal Theory of Convergence Detection for Incremental
-Recursive Computation*.
+*[Fixing the Fixpoint: A Formal Theory of Convergence Detection for Incremental
+Recursive Computation](https://arxiv.org/abs/2610.00530)*.
 
 ## Contents
 
@@ -38,3 +38,16 @@ are not covered by the code's MIT license.
 
 ## Use of AI
 AI is used to assist with Lean development and artifact preparation. The authors carefully reviewed all definitions and theorem statements and take full responsibility for the paper, formalization, and accompanying artifacts.
+
+## Citation
+```bib
+@misc{yang2026fixingfixpointformaltheory,
+      title={Fixing the Fixpoint: A Formal Theory of Convergence Detection for Incremental Recursive Computation}, 
+      author={Chengxi Yang and Tej Chajed and Thomas Reps},
+      year={2026},
+      eprint={2610.00530},
+      archivePrefix={arXiv},
+      primaryClass={cs.PL},
+      url={https://arxiv.org/abs/2610.00530}, 
+}
+```
